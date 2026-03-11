@@ -610,7 +610,7 @@ class LibraryScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.seated) return
-
+    console.log(this.playerGx, this.playerGy)
     this.moveTimer += delta
 
     if (this.moveTimer >= this.moveDelay) {
