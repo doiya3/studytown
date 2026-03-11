@@ -169,14 +169,8 @@ function showMap() {
   document.getElementById('login-screen').style.display = 'none'
   document.getElementById('map-screen').style.display = 'block'
   
-  // 清除用戶的場景狀態（確保回到首頁時不會在其他區域顯示）
-  if (currentUser?.id) {
-    db.from('users').update({ 
-      map_scene: 'none', 
-      current_zone: 'none',
-      seat_id: null 
-    }).eq('discord_id', currentUser.id)
-  }
+  // 不在这里清除位置，避免与场景加载的并发问题
+  // 清除逻辑由 cafe.html/library.html 的 tryInteract 负责
   
   fetchAndRender()
   setInterval(fetchAndRender, 10000)
