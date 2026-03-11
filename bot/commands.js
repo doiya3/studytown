@@ -269,9 +269,10 @@ if (interaction.commandName === 'checkin') {
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .maybeSingle()
+        .order('start_time', { ascending: false })
+        .limit(1)
 
-      if (existing) {
+      if (existing && existing.length > 0) {
         await interaction.editReply('⏱ 你已經在專注中了！先用 `/study end` 結束。')
         return
       }
@@ -317,13 +318,15 @@ if (maxSeats !== null) {
     if (action === 'end') {
       console.log(`[/study end] userId=${userId}, 查詢進行中...`)
       
-      const { data: session, error: sessionError } = await supabase
+      const { data: sessions, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .maybeSingle()
+        .order('start_time', { ascending: false })
+        .limit(1)
 
+      const session = sessions?.[0]
       console.log(`[/study end] 查詢結果:`, { session, error: sessionError })
 
       if (!session) {
@@ -386,13 +389,15 @@ if (maxSeats !== null) {
     if (interaction.commandName === 'move') {
     const zone = interaction.options.getString('zone')
 
-    const { data: session, error: sessionError } = await supabase
+    const { data: sessions, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .maybeSingle()
+        .order('start_time', { ascending: false })
+        .limit(1)
 
+    const session = sessions?.[0]
     if (!session) {
         await interaction.editReply('❌ 你還沒開始專注！先用 `/study start` 開始。')
         return
