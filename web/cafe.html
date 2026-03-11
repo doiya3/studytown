@@ -556,39 +556,40 @@ if (found !== this.nearSeat) {
           hint.style.display = 'block'
           this.seatOccupied = false
         }
-      })
+      });
   } else if (!this.seated) {
     hint.style.display = 'none'
     this.seatOccupied = false
   }
 }
-  }
 
-async tryInteract() {
-  if (this.nearDoor) {
-    db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
-    window.location.href = 'index.html'
-    return
-  }
-  if (this.nearCounter) {
-    document.getElementById('drink-panel').classList.add('visible')
-    return
-  }
-  if (this.nearSeat && !this.seated) {
-    // 即時檢查座位
-    const { data } = await db.from('users')
-      .select('discord_id')
-      .eq('current_zone', '咖啡廳')
-      .eq('seat_id', this.nearSeat.id)
-      .neq('discord_id', MY_DISCORD_ID)
-
-    if (data && data.length > 0) {
-      document.getElementById('interaction-hint').textContent = `🚫 座位 #${this.nearSeat.id} 已有人`
+  async tryInteract() {
+    if (this.nearDoor) {
+      db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
+      .then(() => {
+        window.location.href = 'index.html'
+      });
       return
     }
-    this.sitDown(this.nearSeat)
+    if (this.nearCounter) {
+      document.getElementById('drink-panel').classList.add('visible')
+      return
+    }
+    if (this.nearSeat && !this.seated) {
+      // 即時檢查座位
+      const { data } = await db.from('users')
+        .select('discord_id')
+        .eq('current_zone', '咖啡廳')
+        .eq('seat_id', this.nearSeat.id)
+        .neq('discord_id', MY_DISCORD_ID);
+
+      if (data && data.length > 0) {
+        document.getElementById('interaction-hint').textContent = `🚫 座位 #${this.nearSeat.id} 已有人`
+        return
+      }
+      this.sitDown(this.nearSeat)
+    }
   }
-}
 
   async sitDown(seat) {
     this.seated = true
@@ -606,7 +607,7 @@ async tryInteract() {
       seat_id: seat.id,
       status: 'studying',
       current_zone: '咖啡廳',
-    }).eq('discord_id', MY_DISCORD_ID)
+    }).eq('discord_id', MY_DISCORD_ID);
   }
 
   standUp() {
@@ -617,9 +618,9 @@ async tryInteract() {
 
     // 清除座位
     db.from('users').update({
-    seat_id: null,
-    status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID)
+      seat_id: null,
+      status: 'browsing',
+    }).eq('discord_id', MY_DISCORD_ID);
   }
 
   async updateZone() {
@@ -634,7 +635,7 @@ async tryInteract() {
       .from('users')
       .select('discord_id, username, map_scene, map_x, map_y, avatar, seat_id')
       .eq('map_scene', '咖啡廳')
-      .neq('discord_id', MY_DISCORD_ID)
+      .neq('discord_id', MY_DISCORD_ID);
 
     Object.values(this.otherPlayers).forEach(p => p.destroy())
     Object.values(this.playerLabels).forEach(l => l.destroy())
@@ -804,17 +805,17 @@ async function endStudySession(minutes) {
   const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5)
   const { data: session } = await db.from('study_sessions').select('*')
     .eq('discord_id', MY_DISCORD_ID).is('end_time', null)
-    .order('start_time', { ascending: false }).limit(1).single()
+    .order('start_time', { ascending: false }).limit(1).single();
   if (session) {
     await db.from('study_sessions').update({
       end_time: new Date().toISOString(), duration_minutes: minutes, xp_earned: xp,
-    }).eq('id', session.id)
-    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
+    }).eq('id', session.id);
+    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single();
     if (user) {
       await db.from('users').update({
         xp: (user.xp || 0) + xp,
         total_minutes: (user.total_minutes || 0) + minutes,
-      }).eq('discord_id', MY_DISCORD_ID)
+      }).eq('discord_id', MY_DISCORD_ID);
     }
   }
 }

@@ -674,7 +674,7 @@ class LibraryScene extends Phaser.Scene {
         map_scene: '圖書館',
         current_zone: '圖書館',
       }).eq('discord_id', MY_DISCORD_ID)
-      .then(function(result) { if(result.error) console.error('sync error:', result.error) });
+      .then(function(result) { if(result.error) console.error('sync error:', result.error) });;
     }
     // 其他玩家插值移動
     Object.entries(this.otherTargets).forEach(([id, target]) => {
@@ -758,7 +758,9 @@ class LibraryScene extends Phaser.Scene {
         map_x: 0,
         map_y: 0,
       }).eq('discord_id', MY_DISCORD_ID)
-      window.location.href = 'index.html'
+      .then(() => {
+        window.location.href = 'index.html'
+      });
       return
     }
     if (this.nearSeat && !this.seated) {
@@ -823,11 +825,11 @@ class LibraryScene extends Phaser.Scene {
     db.from('users').update({
       seat_id: null,
       status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID)
+    }).eq('discord_id', MY_DISCORD_ID);
   }
 
   async updateZone() {
-    await db.from('users').update({ current_zone: '圖書館' }).eq('discord_id', MY_DISCORD_ID)
+    await db.from('users').update({ current_zone: '圖書館', map_scene: '圖書館' }).eq('discord_id', MY_DISCORD_ID);
   }
 
   async loadOtherPlayers() {
@@ -835,9 +837,7 @@ class LibraryScene extends Phaser.Scene {
     .from('users')
     .select('discord_id, username, map_scene, avatar, map_x, map_y, seat_id')
     .eq('map_scene', '圖書館')
-    .neq('discord_id', MY_DISCORD_ID)
-
-    // 清除舊玩家
+      .neq('discord_id', MY_DISCORD_ID);
     Object.values(this.otherPlayers).forEach(p => p.destroy())
     Object.values(this.playerLabels).forEach(l => l.destroy())
     this.otherPlayers = {}
@@ -997,7 +997,7 @@ async function startStudySession() {
     discord_id: MY_DISCORD_ID,
     zone: '圖書館',
     start_time: new Date().toISOString(),
-  })
+  });
 }
 
 async function endStudySession(minutes) {
@@ -1010,20 +1010,20 @@ async function endStudySession(minutes) {
     .is('end_time', null)
     .order('start_time', { ascending: false })
     .limit(1)
-    .single()
+    .single();
 
   if (session) {
     await db.from('study_sessions').update({
       end_time: new Date().toISOString(),
       duration_minutes: minutes,
       xp_earned: xp,
-    }).eq('id', session.id)
+    }).eq('id', session.id);
 
-    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
+    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single();
     if (user) {
       const newXp = (user.xp || 0) + xp
       const newMin = (user.total_minutes || 0) + minutes
-      await db.from('users').update({ xp: newXp, total_minutes: newMin }).eq('discord_id', MY_DISCORD_ID)
+      await db.from('users').update({ xp: newXp, total_minutes: newMin }).eq('discord_id', MY_DISCORD_ID);
     }
   }
 }
