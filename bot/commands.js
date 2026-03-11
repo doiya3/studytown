@@ -254,7 +254,6 @@ if (interaction.commandName === 'checkin') {
   if (interaction.commandName === 'study') {
     const action = interaction.options.getSubcommand()
     const zone = interaction.options.getString('zone')
-    console.log(`[/study ${action}] userId=${userId}, username=${username}`)
 
     await ensureUser(userId, username)
 
@@ -282,8 +281,6 @@ if (interaction.commandName === 'checkin') {
         zone: zone,
         start_time: new Date().toISOString(),
       })
-
-      console.log(`[/study start] 已建立 session: userId=${userId}, zone=${zone}, insertError=${insertError}`)
 
       const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 6, '夜讀室': 4, '草地': null, '湖邊': null }
 const maxSeats = ZONE_SEATS[zone]
@@ -316,8 +313,6 @@ if (maxSeats !== null) {
     }
 
     if (action === 'end') {
-      console.log(`[/study end] userId=${userId}, 查詢進行中...`)
-      
       const { data: sessions, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
@@ -327,10 +322,8 @@ if (maxSeats !== null) {
         .limit(1)
 
       const session = sessions?.[0]
-      console.log(`[/study end] 查詢結果:`, { session, error: sessionError })
 
       if (!session) {
-        console.log(`[/study end] 未找到 session，userId=${userId}`)
         await interaction.editReply('❌ 你還沒開始專注喔！')
         return
       }
@@ -340,22 +333,17 @@ if (maxSeats !== null) {
       const endTime = new Date()
       const durationMs = endTime.getTime() - startTime.getTime()
       const durationMin = Math.floor(durationMs / 1000 / 60)
-      console.log(`[/study end] 時長: ${durationMin} 分鐘 (${Math.round(durationMs / 1000)} 秒)`)
 
       let xpEarned = 0
       if (durationMin >= 50) xpEarned = XP_PER_50MIN
       else if (durationMin >= 25) xpEarned = XP_PER_25MIN
       else if (durationMin >= 5) xpEarned = Math.floor(durationMin * 1.5)
 
-      console.log(`[/study end] XP 計算: ${xpEarned}`)
-
       const { error: updateSessionError } = await supabase.from('study_sessions').update({
         end_time: endTime.toISOString(),
         duration_minutes: durationMin,
         xp_earned: xpEarned,
       }).eq('id', session.id)
-
-      console.log(`[/study end] 更新 session: error=${updateSessionError}`)
 
       const { data: user } = await supabase
         .from('users')
@@ -368,8 +356,6 @@ if (maxSeats !== null) {
         await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
         return
       }
-
-      console.log(`[/study end] 獲取用戶成功，開始更新等級...`)
       const newXp = (user.xp || 0) + xpEarned
       const newLevel = calcLevel(newXp)
       const newTotalMin = (user.total_minutes || 0) + durationMin
@@ -383,8 +369,6 @@ if (maxSeats !== null) {
         status: 'offline',
       }).eq('discord_id', userId)
 
-      console.log(`[/study end] 更新用戶: error=${updateUserError}`)
-
       const levelUp = newLevel > (user.level || 1) ? `\n🆙 **等級提升！Lv${newLevel}**` : ''
 
       const replyMessage = 
@@ -393,11 +377,8 @@ if (maxSeats !== null) {
         `✨ 獲得 XP：**+${xpEarned}**\n` +
         `📊 總 XP：**${newXp}**${levelUp}`
 
-      console.log(`[/study end] 準備發送回覆: ${replyMessage}`)
-
       try {
         await interaction.editReply(replyMessage)
-        console.log(`[/study end] 回覆發送成功`)
       } catch (replyError) {
         console.error(`[/study end] 回覆發送失敗:`, replyError)
       }
