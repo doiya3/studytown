@@ -721,11 +721,14 @@ class CafeScene extends Phaser.Scene {
 
   onPlayerUpdate(payload) {
     const user = payload.new
+    console.log('[onPlayerUpdate] Received:', { discord_id: user?.discord_id, map_scene: user?.map_scene, username: user?.username })
+    
     if (!user || user.discord_id === MY_DISCORD_ID) return
 
     // 如果用户不在咖啡厅，移除该玩家显示
     if (user.map_scene !== '咖啡廳') {
       if (this.otherPlayers[user.discord_id]) {
+        console.log('[onPlayerUpdate] Removing player:', user.discord_id)
         this.otherPlayers[user.discord_id].destroy()
         this.playerLabels[user.discord_id]?.destroy()
         delete this.otherPlayers[user.discord_id]
@@ -739,8 +742,10 @@ class CafeScene extends Phaser.Scene {
     const gy = user.map_y || 10
 
     if (this.otherPlayers[user.discord_id]) {
+      console.log('[onPlayerUpdate] Updating player position:', user.discord_id)
       this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
     } else {
+      console.log('[onPlayerUpdate] Adding new player:', user.discord_id, user.username)
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -748,11 +753,12 @@ class CafeScene extends Phaser.Scene {
       this.otherPlayers[user.discord_id] = g
       this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
 
-      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username, {
+      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username || '玩家', {
         fontSize: '10px', fontFamily: 'Noto Sans TC',
         color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
       }).setOrigin(0.5, 1)
       this.playerLabels[user.discord_id] = label
+    }
     }
 
     document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1
