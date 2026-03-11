@@ -818,7 +818,7 @@ class LibraryScene extends Phaser.Scene {
     }).eq('discord_id', MY_DISCORD_ID)
   }
 
-  standUp() {
+  async standUp() {
     this.seated = false
     this.currentSeat = null
 
@@ -832,11 +832,14 @@ class LibraryScene extends Phaser.Scene {
 
     document.getElementById('focus-panel').classList.remove('visible')
 
-    // 清除座位
-    db.from('users').update({
+    // 清除座位並等待完成
+    await db.from('users').update({
       seat_id: null,
       status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID);
+    }).eq('discord_id', MY_DISCORD_ID)
+    
+    // 重新檢查附近座位（刷新顯示）
+    this.nearSeat = null
   }
 
   async updateZone() {
@@ -993,7 +996,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
   startStudySession()
 })
 
-document.getElementById('btn-stop').addEventListener('click', () => {
+document.getElementById('btn-stop').addEventListener('click', async () => {
   if (timerInterval) clearInterval(timerInterval)
   isRunning = false
   remainSeconds = totalSeconds
@@ -1003,7 +1006,7 @@ document.getElementById('btn-stop').addEventListener('click', () => {
   document.getElementById('btn-start').disabled = false
 
   // 離開座位
-  game.scene.getScene('Library').standUp()
+  await game.scene.getScene('Library').standUp()
 })
 
 async function startStudySession() {

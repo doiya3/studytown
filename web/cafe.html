@@ -644,17 +644,20 @@ class CafeScene extends Phaser.Scene {
     }).eq('discord_id', MY_DISCORD_ID);
   }
 
-  standUp() {
+  async standUp() {
     this.seated = false
     this.currentSeat = null
     this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' })
     document.getElementById('focus-panel').classList.remove('visible')
 
-    // 清除座位
-    db.from('users').update({
+    // 清除座位並等待完成
+    await db.from('users').update({
       seat_id: null,
       status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID);
+    }).eq('discord_id', MY_DISCORD_ID)
+    
+    // 重新檢查附近座位（刷新顯示）
+    this.nearSeat = null
   }
 
   async updateZone() {
@@ -827,7 +830,7 @@ document.getElementById('btn-start').addEventListener('click', async () => {
   }, 1000)
 })
 
-document.getElementById('btn-stop').addEventListener('click', () => {
+document.getElementById('btn-stop').addEventListener('click', async () => {
   if (timerInterval) clearInterval(timerInterval)
   isRunning = false
   remainSeconds = totalSeconds
@@ -835,7 +838,7 @@ document.getElementById('btn-stop').addEventListener('click', () => {
   document.getElementById('focus-timer').className = ''
   document.getElementById('btn-start').textContent = '開始'
   document.getElementById('btn-start').disabled = false
-  game.scene.getScene('Cafe').standUp()
+  await game.scene.getScene('Cafe').standUp()
 })
 
 async function endStudySession(minutes) {
