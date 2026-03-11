@@ -387,12 +387,20 @@ if (maxSeats !== null) {
 
       const levelUp = newLevel > (user.level || 1) ? `\n🆙 **等級提升！Lv${newLevel}**` : ''
 
-      await interaction.editReply(
+      const replyMessage = 
         `✅ 專注結束！\n` +
         `⏱ 時間：**${durationMin} 分鐘**\n` +
         `✨ 獲得 XP：**+${xpEarned}**\n` +
         `📊 總 XP：**${newXp}**${levelUp}`
-      )
+
+      console.log(`[/study end] 準備發送回覆: ${replyMessage}`)
+
+      try {
+        await interaction.editReply(replyMessage)
+        console.log(`[/study end] 回覆發送成功`)
+      } catch (replyError) {
+        console.error(`[/study end] 回覆發送失敗:`, replyError)
+      }
       return
     }
   }
