@@ -67,9 +67,12 @@
     .zone-path { display:none; }
     .header h1 { font-size:2rem; }
   }
+  #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.4s ease forwards; }
+  @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
 </style>
 </head>
 <body>
+<div id="page-fade"></div>
 
 <!-- 登入畫面 -->
 <div id="login-screen">
@@ -226,15 +229,23 @@ async function fetchAndRender() {
     document.getElementById('spinner').classList.remove('active')
   }
 }
+function navigateTo(url) {
+  const el = document.getElementById('page-fade')
+  el.style.animation = 'none'
+  el.style.transition = 'opacity 0.3s ease'
+  el.style.pointerEvents = 'all'
+  el.style.opacity = '1'
+  setTimeout(() => { window.location.href = url }, 320)
+}
 function enterZone(zone) {
   const zonePages = {
     '圖書館': 'library.html',
-    '咖啡廳': 'cafe.html',
+    '咏啦廳': 'cafe.html',
     // 之後其他區域加在這裡
   }
   const page = zonePages[zone]
   if (page) {
-    window.location.href = page
+    navigateTo(page)
   } else {
     alert(`${zone} 場景即將開放！`)
   }

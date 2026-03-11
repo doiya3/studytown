@@ -118,6 +118,9 @@
   #btn-start:hover { opacity: 0.85; transform: translateY(-1px); }
   #btn-stop { background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.3); color: #e94560; }
 
+  #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.4s ease forwards; }
+  @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
+
   #controls-hint {
     position: fixed; bottom: 20px; left: 20px;
     background: rgba(26,18,8,0.7); border: 1px solid rgba(255,255,255,0.06);
@@ -144,6 +147,7 @@
   <a href="index.html" id="hud-back">← 回小鎮</a>
 </div>
 
+<div id="page-fade"></div>
 <div id="game-container"></div>
 <div id="interaction-hint">按 E 互動</div>
 
@@ -223,6 +227,15 @@ if (!MY_DISCORD_ID) {
   window.location.href = 'index.html'
 }
 console.log('✓ User logged in:', { MY_DISCORD_ID, MY_USERNAME })
+
+function navigateTo(url) {
+  const el = document.getElementById('page-fade')
+  el.style.animation = 'none'
+  el.style.transition = 'opacity 0.3s ease'
+  el.style.pointerEvents = 'all'
+  el.style.opacity = '1'
+  setTimeout(() => { window.location.href = url }, 320)
+}
 
 const avatarEmoji = {
   cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰',
@@ -661,7 +674,7 @@ class CafeScene extends Phaser.Scene {
       } catch (e) {
         console.error('Clear location error:', e);
       }
-      window.location.href = 'index.html';
+      navigateTo('index.html');
       return;
     }
     if (this.nearCounter) {
@@ -851,7 +864,7 @@ document.getElementById('hud-back').addEventListener('click', async (e) => {
   } catch (err) {
     console.error('Clear location error:', err);
   }
-  window.location.href = 'index.html';
+  navigateTo('index.html');
 });
 
 // 飲料選單邏輯
