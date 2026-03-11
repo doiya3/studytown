@@ -67,7 +67,7 @@
     .zone-path { display:none; }
     .header h1 { font-size:2rem; }
   }
-  #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.5s ease forwards; }
+  #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
 </style>
 </head>
@@ -232,10 +232,12 @@ async function fetchAndRender() {
 function navigateTo(url) {
   const el = document.getElementById('page-fade')
   el.style.animation = 'none'
-  el.style.transition = 'opacity 0.5s ease'
+  el.style.opacity = '0'          // ensure starting point is transparent
+  void el.offsetWidth             // force reflow so transition fires
+  el.style.transition = 'opacity 0.2s ease'
   el.style.pointerEvents = 'all'
-  el.style.opacity = '1'
-  setTimeout(() => { window.location.href = url }, 530)
+  el.style.opacity = '1'          // fade to black over 0.2s
+  setTimeout(() => { window.location.href = url }, 220)
 }
 function enterZone(zone) {
   const zonePages = {
