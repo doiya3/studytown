@@ -175,7 +175,7 @@ function showMap() {
       map_scene: 'none', 
       current_zone: 'none',
       seat_id: null 
-    }).eq('discord_id', currentUser.id).catch(e => console.error('Clear location error:', e))
+    }).eq('discord_id', currentUser.id).then(() => {}, (e) => console.error('Clear location error:', e))
   }
   
   fetchAndRender()
