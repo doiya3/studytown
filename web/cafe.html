@@ -345,7 +345,7 @@ class CafeScene extends Phaser.Scene {
     }
 
     // 定期重新加載玩家列表（每3秒），確保不會遺漏後進入的玩家
-    this.time.addTimer({
+    this.time.addEvent({
       delay: 3000,
       loop: true,
       callback: () => {
