@@ -99,7 +99,7 @@
   .pomo-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .pomo-row label { color: #8892a4; font-size: 0.72rem; min-width: 52px; }
   .pomo-row input { width: 44px; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: #eaeaea; font-size: 0.78rem; padding: 3px 6px; text-align: center; font-family: 'DotGothic16', monospace; -moz-appearance: textfield; }
-  .pomo-row input::-webkit-inner-spin-button, .pomo-row input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .pomo-row input::-webkit-inner-spin-button, .pomo-row input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
   .pomo-row span { color: #8892a4; font-size: 0.7rem; }
   .pomo-spins { display: flex; gap: 3px; margin-left: auto; }
   .pomo-spin { width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); color: #c0c8d4; font-size: 0.9rem; line-height: 1; cursor: pointer; padding: 0; transition: background 0.15s; }
@@ -126,7 +126,9 @@
     border-radius: 14px; padding: 14px 16px; z-index: 501; min-width: 180px;
     backdrop-filter: blur(10px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
   }
-  #dm-menu h4 { font-family: 'DotGothic16', monospace; color: #f5a623; font-size: 0.78rem; margin-bottom: 10px; }
+  #dm-menu h4 { font-family: 'DotGothic16', monospace; color: #f5a623; font-size: 0.78rem; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  #dm-close { background: none; border: none; color: #8892a4; cursor: pointer; font-size: 0.85rem; padding: 0; line-height: 1; }
+  #dm-close:hover { color: #eaeaea; }
   .dm-btn { display: block; width: 100%; padding: 7px 10px; margin-bottom: 6px; border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06);
     color: #eaeaea; font-size: 0.8rem; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; text-align: left; transition: background 0.15s; }
@@ -229,6 +231,19 @@
 
 <div id="controls-hint">WASD 移動<br>E 互動<br>點擊地板移動</div>
 <div id="player-count">咖啡廳：<span id="online-count">1</span> 人</div>
+
+<div id="dm-overlay">
+  <div id="dm-menu">
+    <h4><span id="dm-target-name">玩家</span><button id="dm-close">✕</button></h4>
+    <button class="dm-btn" id="dm-btn-wave">👋 打招呼</button>
+    <button class="dm-btn" id="dm-btn-msg">💬 傳訊息</button>
+    <div id="dm-input-row">
+      <input id="dm-input" type="text" placeholder="輸入訊息..." maxlength="60">
+      <button id="dm-send">送</button>
+    </div>
+  </div>
+</div>
+<div id="dm-toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -389,6 +404,7 @@ class CafeScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer) => {
       if (this.seated) return;
+      if (this.input.hitTestPointer(pointer).length > 0) return;
       const gx = Math.floor(pointer.x / TILE);
       const gy = Math.floor(pointer.y / TILE);
       if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy };
@@ -588,7 +604,6 @@ class CafeScene extends Phaser.Scene {
           if (!isExiting) {
             db.from('users').update({
               map_x: this.playerGx, map_y: this.playerGy,
-              map_scene: '咖啡廳', current_zone: '咖啡廳',
             }).eq('discord_id', MY_DISCORD_ID)
             .then(({ error }) => { if (error) console.error('move sync error:', error); });
           }
@@ -625,7 +640,6 @@ class CafeScene extends Phaser.Scene {
       if (!isExiting) {
         db.from('users').update({
           map_x: this.playerGx, map_y: this.playerGy,
-          map_scene: '咖啡廳', current_zone: '咖啡廳',
         }).eq('discord_id', MY_DISCORD_ID)
         .then(({ error }) => { if (error) console.error('sync error:', error); });
       }
@@ -698,6 +712,7 @@ class CafeScene extends Phaser.Scene {
 
   async tryInteract() {
     if (this.nearDoor) {
+      clearInterval(pomo.interval);
       isExiting = true;
       try {
         await db.from('users').update({ map_scene: 'none', current_zone: 'none', seat_id: null, status: 'offline', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID);
@@ -910,6 +925,10 @@ dmOverlay.addEventListener('click', (e) => {
   }
 })
 
+document.getElementById('dm-close').addEventListener('click', () => {
+  dmOverlay.classList.remove('visible')
+})
+
 document.getElementById('dm-btn-wave').addEventListener('click', () => {
   dmChannel.send({ type: 'broadcast', event: 'dm', payload: {
     to: dmTarget.id, from: MY_DISCORD_ID, fromName: MY_USERNAME, type: 'wave'
@@ -936,7 +955,7 @@ function sendDM() {
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
 
-const dmChannel = db.channel('dm-咏啦廳')
+const dmChannel = db.channel('dm-咖啡廳')
   .on('broadcast', { event: 'dm' }, ({ payload }) => {
     if (payload.to !== MY_DISCORD_ID) return
     if (payload.type === 'wave') {
@@ -959,6 +978,7 @@ window.addEventListener('beforeunload', () => {
 // 回小鎮按鈕 - 清除位置信息
 document.getElementById('hud-back').addEventListener('click', async (e) => {
   e.preventDefault();
+  clearInterval(pomo.interval);
   isExiting = true;
   try {
     await db.from('users').update({ 
