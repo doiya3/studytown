@@ -686,6 +686,41 @@ class LibraryScene extends Phaser.Scene {
   }
 
   checkNearbySeat() {
+  // 檢查門口
+  const atDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9
+  const hint = document.getElementById('interaction-hint')
+
+  if (atDoor) {
+    hint.textContent = '按 E 返回小鎮'
+    hint.style.display = 'block'
+    this.nearDoor = true
+  } else {
+    this.nearDoor = false
+  }
+
+  // 原本的座位檢查
+  if (!atDoor) {
+    let found = null
+    for (const seat of SEATS) {
+      const dx = Math.abs(this.playerGx - seat.x)
+      const dy = Math.abs(this.playerGy - seat.y)
+      if (dx <= 1 && dy <= 1) {
+        found = seat
+        break
+      }
+    }
+
+    if (found !== this.nearSeat) {
+      this.nearSeat = found
+      if (found && !this.seated) {
+        hint.textContent = `按 E 坐下來讀書（座位 #${found.id}）`
+        hint.style.display = 'block'
+      } else if (!this.seated) {
+        hint.style.display = 'none'
+      }
+    }
+  }
+
     let found = null
     for (const seat of SEATS) {
       const dx = Math.abs(this.playerGx - seat.x)
@@ -709,6 +744,20 @@ class LibraryScene extends Phaser.Scene {
   }
 
   tryInteract() {
+  if (this.nearDoor) {
+    // 離開前清除地圖位置
+    db.from('users').update({
+      map_scene: 'none',
+      map_x: 0,
+      map_y: 0,
+    }).eq('discord_id', MY_DISCORD_ID)
+    window.location.href = 'index.html'
+    return
+  }
+  if (this.nearSeat && !this.seated) {
+    this.sitDown(this.nearSeat)
+  }
+
     if (this.nearSeat && !this.seated) {
       this.sitDown(this.nearSeat)
     }
@@ -756,10 +805,10 @@ class LibraryScene extends Phaser.Scene {
 
   async loadOtherPlayers() {
     const { data: users } = await db
-      .from('users')
-      .select('discord_id, username, current_zone, avatar')
-      .eq('current_zone', '圖書館')
-      .neq('discord_id', MY_DISCORD_ID)
+    .from('users')
+    .select('discord_id, username, map_scene, avatar, map_x, map_y')
+    .eq('map_scene', '圖書館')
+    .neq('discord_id', MY_DISCORD_ID)
 
     // 清除舊玩家
     Object.values(this.otherPlayers).forEach(p => p.destroy())
