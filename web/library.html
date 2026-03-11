@@ -674,7 +674,7 @@ class LibraryScene extends Phaser.Scene {
         map_scene: '圖書館',
         current_zone: '圖書館',
       }).eq('discord_id', MY_DISCORD_ID)
-      .then(function(result) { if(result.error) console.error('sync error:', result.error) });;
+      .then(function(result) { if(result.error) console.error('sync error:', result.error) });
     }
     // 其他玩家插值移動
     Object.entries(this.otherTargets).forEach(([id, target]) => {
@@ -693,20 +693,20 @@ class LibraryScene extends Phaser.Scene {
   }
 
   checkNearbySeat() {
-  // 檢查門口
-  const atDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9
-  const hint = document.getElementById('interaction-hint')
+    const hint = document.getElementById('interaction-hint')
 
-  if (atDoor) {
-    hint.textContent = '按 E 返回小鎮'
-    hint.style.display = 'block'
-    this.nearDoor = true
-  } else {
+    // 檢查門口
+    const atDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9
+    if (atDoor) {
+      hint.textContent = '按 E 返回小鎮'
+      hint.style.display = 'block'
+      this.nearDoor = true
+      this.nearSeat = null
+      return
+    }
     this.nearDoor = false
-  }
 
-  // 原本的座位檢查
-  if (!atDoor) {
+    // 座位檢查
     let found = null
     for (const seat of SEATS) {
       const dx = Math.abs(this.playerGx - seat.x)
@@ -720,32 +720,28 @@ class LibraryScene extends Phaser.Scene {
     if (found !== this.nearSeat) {
       this.nearSeat = found
       if (found && !this.seated) {
-        hint.textContent = `按 E 坐下來讀書（座位 #${found.id}）`
-        hint.style.display = 'block'
+        // 查詢座位是否被佔用
+        db.from('users')
+          .select('discord_id')
+          .eq('current_zone', '圖書館')
+          .eq('seat_id', found.id)
+          .neq('discord_id', MY_DISCORD_ID)
+          .then(({ data }) => {
+            // 確認玩家還在同一個座位旁邊
+            if (this.nearSeat?.id !== found.id) return
+            if (data && data.length > 0) {
+              hint.textContent = `🚫 座位 #${found.id} 已有人`
+              hint.style.display = 'block'
+              this.seatOccupied = true
+            } else {
+              hint.textContent = `按 E 坐下來讀書（座位 #${found.id}）`
+              hint.style.display = 'block'
+              this.seatOccupied = false
+            }
+          });
       } else if (!this.seated) {
         hint.style.display = 'none'
-      }
-    }
-  }
-
-    let found = null
-    for (const seat of SEATS) {
-      const dx = Math.abs(this.playerGx - seat.x)
-      const dy = Math.abs(this.playerGy - seat.y)
-      if (dx <= 1 && dy <= 1) {
-        found = seat
-        break
-      }
-    }
-
-    if (found !== this.nearSeat) {
-      this.nearSeat = found
-      const hint = document.getElementById('interaction-hint')
-      if (found && !this.seated) {
-        hint.textContent = `按 E 坐下來讀書（座位 #${found.id}）`
-        hint.style.display = 'block'
-      } else if (!this.seated) {
-        hint.style.display = 'none'
+        this.seatOccupied = false
       }
     }
   }

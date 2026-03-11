@@ -497,7 +497,6 @@ class CafeScene extends Phaser.Scene {
         label.y += (target.y - 2 - label.y) * 0.2
       }
     })
-    })
   }
 
   checkNearby() {
@@ -534,34 +533,35 @@ class CafeScene extends Phaser.Scene {
       if (dx <= 1 && dy <= 1) { found = seat; break }
     }
 
-if (found !== this.nearSeat) {
-  this.nearSeat = found
-  const hint = document.getElementById('interaction-hint')
+    if (found !== this.nearSeat) {
+      this.nearSeat = found
+      const hint = document.getElementById('interaction-hint')
 
-  if (found && !this.seated) {
-    db.from('users')
-      .select('discord_id')
-      .eq('current_zone', '咖啡廳')
-      .eq('seat_id', found.id)
-      .neq('discord_id', MY_DISCORD_ID)
-      .then(({ data }) => {
-        // 確認玩家還在同一個座位旁邊
-        if (this.nearSeat?.id !== found.id) return
-        if (data && data.length > 0) {
-          hint.textContent = `🚫 座位 #${found.id} 已有人`
-          hint.style.display = 'block'
-          this.seatOccupied = true
-        } else {
-          hint.textContent = `按 E 坐下休息（座位 #${found.id}）`
-          hint.style.display = 'block'
-          this.seatOccupied = false
-        }
-      });
-  } else if (!this.seated) {
-    hint.style.display = 'none'
-    this.seatOccupied = false
+      if (found && !this.seated) {
+        db.from('users')
+          .select('discord_id')
+          .eq('current_zone', '咖啡廳')
+          .eq('seat_id', found.id)
+          .neq('discord_id', MY_DISCORD_ID)
+          .then(({ data }) => {
+            // 確認玩家還在同一個座位旁邊
+            if (this.nearSeat?.id !== found.id) return
+            if (data && data.length > 0) {
+              hint.textContent = `🚫 座位 #${found.id} 已有人`
+              hint.style.display = 'block'
+              this.seatOccupied = true
+            } else {
+              hint.textContent = `按 E 坐下休息（座位 #${found.id}）`
+              hint.style.display = 'block'
+              this.seatOccupied = false
+            }
+          });
+      } else if (!this.seated) {
+        hint.style.display = 'none'
+        this.seatOccupied = false
+      }
+    }
   }
-}
 
   async tryInteract() {
     if (this.nearDoor) {
