@@ -715,6 +715,9 @@ class CafeScene extends Phaser.Scene {
     }
 
     document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1
+    
+    // 其他玩家座位狀態改變時，重新檢查附近座位
+    this.nearSeat = null
   }
 }
 
