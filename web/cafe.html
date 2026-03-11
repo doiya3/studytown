@@ -656,8 +656,9 @@ class CafeScene extends Phaser.Scene {
       status: 'browsing',
     }).eq('discord_id', MY_DISCORD_ID)
     
-    // 重新檢查附近座位（刷新顯示）
+    // 重新檢查附近座位（強制刷新顯示）
     this.nearSeat = null
+    this.checkNearby()
   }
 
   async updateZone() {

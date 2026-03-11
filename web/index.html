@@ -127,7 +127,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
+import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession, clearSession } from './auth.js'
 
 // 🔧 填入你的 Supabase 設定
 const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
@@ -235,9 +235,23 @@ function enterZone(zone) {
     alert(`${zone} 場景即將開放！`)
   }
 }
-document.getElementById('btn-logout').addEventListener('click', () => {
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  // 更新 Supabase：標記用戶為離線
+  const session = loadSession()
+  if (session?.user?.id) {
+    try {
+      await db.from('users').update({ status: 'offline', map_scene: 'none' }).eq('discord_id', session.user.id)
+    } catch (e) {
+      console.error('Logout Supabase update error:', e)
+    }
+  }
+  
+  // 清除所有本地數據
   clearSession()
-  showLogin()
+  currentUser = null
+  
+  // 刷新頁面重新顯示登入畫面
+  location.reload()
 })
 // 讓函式可以從 onclick 呼叫（module 作用域問題）
 window.enterZone = enterZone
