@@ -183,11 +183,11 @@ async function fetchAndRender() {
   try {
     const { data: users, error } = await db
       .from('users')
-      .select('discord_id, username, current_zone, level, xp, avatar')
+      .select('discord_id, username, current_zone, status, level, xp, avatar')
     if (error) throw error
 
     const online = users.filter(u => u.current_zone && u.current_zone !== 'none').length
-    const studying = users.filter(u => ['圖書館','夜讀室','咖啡廳'].includes(u.current_zone)).length
+    const studying = users.filter(u => u.status === 'studying').length
     document.getElementById('stat-online').textContent = online
     document.getElementById('stat-studying').textContent = studying
     document.getElementById('stat-players').textContent = users.length
