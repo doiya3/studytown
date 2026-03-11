@@ -282,15 +282,24 @@ if (interaction.commandName === 'checkin') {
         start_time: new Date().toISOString(),
       })
 
-      const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 6, '夜讀室': 4, '草地': null, '湖邊': null }
+      const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 8, '夜讀室': 4, '草地': null, '湖邊': null }
       const ZONE_SPAWN = {
-        '圖書館': { map_x: 5, map_y: 6 },
-        '咖啡廳': { map_x: 8, map_y: 10 },
-        '夜讀室': { map_x: 8, map_y: 10 },
         '草地': { map_x: 8, map_y: 8 },
         '湖邊': { map_x: 8, map_y: 8 }
       }
-      const spawnPos = ZONE_SPAWN[zone] || { map_x: 8, map_y: 10 }
+      // 與 web 場景 SEATS 定義一致的座位坐標
+      const ZONE_SEAT_COORDS = {
+        '圖書館': [
+          null, // 佔位，seat_id 從 1 開始
+          { x: 4, y: 5 }, { x: 6, y: 5 }, { x: 8, y: 5 }, { x: 10, y: 5 },
+          { x: 4, y: 8 }, { x: 6, y: 8 }, { x: 8, y: 8 }, { x: 10, y: 8 },
+        ],
+        '咖啡廳': [
+          null,
+          { x: 3, y: 5 }, { x: 3, y: 7 }, { x: 5, y: 5 }, { x: 5, y: 7 },
+          { x: 9, y: 5 }, { x: 11, y: 5 }, { x: 9, y: 8 }, { x: 11, y: 8 },
+        ],
+      }
       const maxSeats = ZONE_SEATS[zone]
 
       if (maxSeats !== null) {
@@ -307,11 +316,17 @@ if (interaction.commandName === 'checkin') {
         let assignedSeat = 1
         while (takenSeats.includes(assignedSeat)) assignedSeat++
 
+        // 使用實際座位坐標，若無定義則用預設
+        const seatCoords = ZONE_SEAT_COORDS[zone]?.[assignedSeat]
+        const map_x = seatCoords?.x ?? 8
+        const map_y = seatCoords?.y ?? 10
+
         await supabase.from('users').update({
           current_zone: zone, seat_id: assignedSeat, status: 'studying',
-          map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
+          map_scene: zone, map_x, map_y
         }).eq('discord_id', userId)
       } else {
+        const spawnPos = ZONE_SPAWN[zone] || { map_x: 8, map_y: 8 }
         await supabase.from('users').update({
           current_zone: zone, seat_id: null, status: 'studying',
           map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
@@ -375,6 +390,9 @@ if (interaction.commandName === 'checkin') {
         level: newLevel,
         total_minutes: newTotalMin,
         current_zone: 'none',
+        map_scene: 'none',
+        map_x: 0,
+        map_y: 0,
         seat_id: null,
         status: 'offline',
       }).eq('discord_id', userId)
