@@ -433,6 +433,8 @@ class LibraryScene extends Phaser.Scene {
     this.graphics = null
     this.playerLabels = {}
     this.otherTargets = {}
+    this.otherGrids = {};     // 其他玩家的格子位置
+    this.bumpCooldown = false; // 碰撞特效冷卻
   }
 
   create() {
@@ -672,11 +674,41 @@ class LibraryScene extends Phaser.Scene {
         }
       }
 
-      if (moved && !isBlocked(nx, ny)) {
-        this.playerGx = nx
-        this.playerGy = ny
-        this.updatePlayerPos()
-        this.moveTimer = 0
+      if (moved) {
+        const blockedByPlayer = Object.values(this.otherGrids).some(g => g.x === nx && g.y === ny)
+        if (!isBlocked(nx, ny) && !blockedByPlayer) {
+          this.playerGx = nx
+          this.playerGy = ny
+          this.updatePlayerPos()
+          this.moveTimer = 0
+          // 走一格立即同步，不等心跳
+          if (!isExiting) {
+            db.from('users').update({
+              map_x: this.playerGx,
+              map_y: this.playerGy,
+              map_scene: '圖書館',
+              current_zone: '圖書館',
+            }).eq('discord_id', MY_DISCORD_ID)
+            .then(function(result) { if (result.error) console.error('move sync error:', result.error) })
+          }
+        } else if (blockedByPlayer && !this.bumpCooldown) {
+          // 碰撞特效：縮放 + 閃爍
+          this.bumpCooldown = true;
+          this.tweens.add({
+            targets: this.player,
+            scaleX: 1.25,
+            scaleY: 1.25,
+            alpha: 0.4,
+            duration: 80,
+            yoyo: true,
+            ease: 'Power2',
+            onComplete: () => {
+              this.player.setScale(1);
+              this.player.setAlpha(1);
+              this.bumpCooldown = false;
+            }
+          });
+        }
       }
     }
 
@@ -688,30 +720,32 @@ class LibraryScene extends Phaser.Scene {
     // 檢查附近座位
     this.checkNearbySeat()
 
-    // 同步位置到 Supabase（每1秒）
+    // 同步位置到 Supabase（心跳，每5秒補漏）
     this.syncTimer += delta
-    if (this.syncTimer > 1000) {
+    if (this.syncTimer > 5000) {
       this.syncTimer = 0
-      db.from('users').update({
-        map_x: this.playerGx,
-        map_y: this.playerGy,
-        map_scene: '圖書館',
-        current_zone: '圖書館',
-      }).eq('discord_id', MY_DISCORD_ID)
-      .then(function(result) { if(result.error) console.error('sync error:', result.error) });
+      if (!isExiting) {
+        db.from('users').update({
+          map_x: this.playerGx,
+          map_y: this.playerGy,
+          map_scene: '圖書館',
+          current_zone: '圖書館',
+        }).eq('discord_id', MY_DISCORD_ID)
+        .then(function(result) { if(result.error) console.error('sync error:', result.error) })
+      }
     }
     // 其他玩家插值移動
     Object.entries(this.otherTargets).forEach(([id, target]) => {
       const sprite = this.otherPlayers[id]
       if (!sprite) return
-      sprite.x += (target.x - sprite.x) * 0.05
-      sprite.y += (target.y - sprite.y) * 0.05
+      sprite.x += (target.x - sprite.x) * 0.3
+      sprite.y += (target.y - sprite.y) * 0.3
       
       // 名字也要同步插值移動
       const label = this.playerLabels[id]
       if (label) {
-        label.x += (target.x + TILE / 2 - label.x) * 0.05
-        label.y += (target.y - 2 - label.y) * 0.05
+        label.x += (target.x + TILE / 2 - label.x) * 0.3
+        label.y += (target.y - 2 - label.y) * 0.3
       }
     })
   }
@@ -821,10 +855,10 @@ class LibraryScene extends Phaser.Scene {
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
 
-    // 立即同步座位位置到數據庫（確保其他玩家看到正確位置）
+    // 坐下：同步位置，但狀態為 browsing（尚未開始計時）
     await db.from('users').update({
       seat_id: seat.id,
-      status: 'studying',
+      status: 'browsing',
       current_zone: '圖書館',
       map_x: seat.x,
       map_y: seat.y,
@@ -871,6 +905,7 @@ class LibraryScene extends Phaser.Scene {
     Object.values(this.playerLabels).forEach(l => l.destroy())
     this.otherPlayers = {}
     this.otherTargets = {}
+    this.otherGrids = {}
     this.playerLabels = {}
 
     const count = (users?.length || 0) + 1
@@ -886,6 +921,7 @@ class LibraryScene extends Phaser.Scene {
       g.setPosition(gx * TILE, gy * TILE)
       this.otherPlayers[user.discord_id] = g
       this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+      this.otherGrids[user.discord_id] = { x: gx, y: gy }
 
       const label = this.add.text(
         gx * TILE + TILE / 2,
@@ -918,6 +954,7 @@ class LibraryScene extends Phaser.Scene {
   if (this.otherPlayers[user.discord_id]) {
     // 存目標位置，讓 update() 插值移動
     this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+    this.otherGrids[user.discord_id] = { x: gx, y: gy }
   } else {
     // 新玩家加入
     const g = this.add.graphics()
@@ -926,6 +963,7 @@ class LibraryScene extends Phaser.Scene {
     g.setPosition(gx * TILE, gy * TILE)
     this.otherPlayers[user.discord_id] = g
     this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+    this.otherGrids[user.discord_id] = { x: gx, y: gy }
 
     const label = this.add.text(
       gx * TILE + TILE / 2, gy * TILE - 2,
@@ -1012,12 +1050,22 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
   })
 })
 
-document.getElementById('btn-start').addEventListener('click', () => {
+document.getElementById('btn-start').addEventListener('click', async () => {
   if (isRunning) return
   isRunning = true
   document.getElementById('focus-timer').classList.add('running')
   document.getElementById('btn-start').textContent = '進行中...'
   document.getElementById('btn-start').disabled = true
+
+  // 開始計時才登錄資料庫 + 設為專注中
+  await Promise.all([
+    db.from('study_sessions').insert({
+      discord_id: MY_DISCORD_ID,
+      zone: '圖書館',
+      start_time: new Date().toISOString(),
+    }),
+    db.from('users').update({ status: 'studying' }).eq('discord_id', MY_DISCORD_ID),
+  ]);
 
   timerInterval = setInterval(async () => {
     remainSeconds--
@@ -1049,6 +1097,8 @@ document.getElementById('btn-stop').addEventListener('click', async () => {
   document.getElementById('btn-start').textContent = '開始'
   document.getElementById('btn-start').disabled = false
 
+  // 停止計時：回到 browsing（仍在座位），standUp 才真正離座
+  await db.from('users').update({ status: 'browsing' }).eq('discord_id', MY_DISCORD_ID)
   // 離開座位
   await game.scene.getScene('Library').standUp()
 })
@@ -1084,7 +1134,11 @@ async function endStudySession(minutes) {
     if (user) {
       const newXp = (user.xp || 0) + xp
       const newMin = (user.total_minutes || 0) + minutes
-      await db.from('users').update({ xp: newXp, total_minutes: newMin }).eq('discord_id', MY_DISCORD_ID);
+      await db.from('users').update({
+        xp: newXp,
+        total_minutes: newMin,
+        status: 'browsing', // 計時結束，仍在座位上
+      }).eq('discord_id', MY_DISCORD_ID);
     }
   }
 }
