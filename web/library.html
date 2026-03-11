@@ -635,6 +635,19 @@ class LibraryScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // 其他玩家插値移動（不管自己是否坐下都要跟）
+    Object.entries(this.otherTargets).forEach(([id, target]) => {
+      const sprite = this.otherPlayers[id]
+      if (!sprite) return
+      sprite.x += (target.x - sprite.x) * 0.3
+      sprite.y += (target.y - sprite.y) * 0.3
+      const label = this.playerLabels[id]
+      if (label) {
+        label.x += (target.x + TILE / 2 - label.x) * 0.3
+        label.y += (target.y - 2 - label.y) * 0.3
+      }
+    })
+
     if (this.seated) return
 
     this.moveTimer += delta
@@ -734,20 +747,6 @@ class LibraryScene extends Phaser.Scene {
         .then(function(result) { if(result.error) console.error('sync error:', result.error) })
       }
     }
-    // 其他玩家插值移動
-    Object.entries(this.otherTargets).forEach(([id, target]) => {
-      const sprite = this.otherPlayers[id]
-      if (!sprite) return
-      sprite.x += (target.x - sprite.x) * 0.3
-      sprite.y += (target.y - sprite.y) * 0.3
-      
-      // 名字也要同步插值移動
-      const label = this.playerLabels[id]
-      if (label) {
-        label.x += (target.x + TILE / 2 - label.x) * 0.3
-        label.y += (target.y - 2 - label.y) * 0.3
-      }
-    })
   }
 
   checkNearbySeat() {
