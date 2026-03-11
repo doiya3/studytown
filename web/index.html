@@ -563,10 +563,16 @@
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
+  import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
 
-const { createClient } = supabase
-const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+  // 🔧 填入你的 Supabase 設定
+  const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
+
+  const { createClient } = supabase
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+  
+  // ... 其他程式碼
 
 let currentUser = null
 
