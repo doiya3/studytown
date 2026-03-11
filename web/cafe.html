@@ -770,6 +770,24 @@ const config = {
 
 const game = new Phaser.Game(config)
 
+// 回小鎮按鈕 - 清除位置信息
+document.getElementById('hud-back').addEventListener('click', async (e) => {
+  e.preventDefault()
+  try {
+    await db.from('users').update({ 
+      map_scene: 'none', 
+      current_zone: 'none',
+      seat_id: null, 
+      status: 'offline',
+      map_x: 0, 
+      map_y: 0 
+    }).eq('discord_id', MY_DISCORD_ID)
+  } catch (err) {
+    console.error('Clear location error:', err)
+  }
+  window.location.href = 'index.html'
+})
+
 // 飲料選單邏輯
 let selectedDrink = null
 
