@@ -497,6 +497,21 @@ class CafeScene extends Phaser.Scene {
         label.y += (target.y - 2 - label.y) * 0.2
       }
     })
+
+    if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract()
+
+    this.checkNearby()
+
+    // 同步位置
+    this.syncTimer += delta
+    if (this.syncTimer > 1000) {
+      this.syncTimer = 0
+      db.from('users').update({
+        map_x: this.playerGx, map_y: this.playerGy,
+        map_scene: '咖啡廳', current_zone: '咖啡廳',
+      }).eq('discord_id', MY_DISCORD_ID)
+      .then(({ error }) => { if (error) console.error('sync error:', error) })
+    }
   }
 
   checkNearby() {
