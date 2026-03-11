@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☕ 咖啡廳 — Study Town</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1208;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    font-family: 'Noto Sans TC', sans-serif;
+    overflow: hidden;
+  }
+
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: rgba(26,18,8,0.95);
+    border-bottom: 1px solid rgba(255,200,100,0.1);
+    display: flex; align-items: center; padding: 0 20px; gap: 20px;
+    z-index: 100; backdrop-filter: blur(10px);
+  }
+  #hud-title { font-family: 'DotGothic16', monospace; color: #f5a623; font-size: 0.9rem; letter-spacing: 0.1em; }
+  #hud-player { color: #eaeaea; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
+  #hud-zone { color: #8892a4; font-size: 0.75rem; margin-left: auto; }
+  #hud-back {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: #8892a4; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  #hud-back:hover { background: rgba(255,255,255,0.12); color: #eaeaea; }
+
+  #game-container { margin-top: 48px; position: relative; }
+  canvas { display: block; image-rendering: pixelated; }
+
+  #interaction-hint {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(26,18,8,0.9); border: 1px solid rgba(245,166,35,0.4);
+    border-radius: 12px; padding: 8px 20px; color: #f5a623;
+    font-size: 0.8rem; font-family: 'DotGothic16', monospace;
+    letter-spacing: 0.05em; display: none; z-index: 100;
+    animation: float 2s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-4px); }
+  }
+
+  /* 飲料選單 */
+  #drink-panel {
+    position: fixed; bottom: 20px; right: 20px; width: 200px;
+    background: rgba(26,18,8,0.95); border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 16px; padding: 16px; z-index: 100; display: none;
+    backdrop-filter: blur(10px);
+  }
+  #drink-panel.visible { display: block; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  #drink-panel h3 { font-family: 'DotGothic16', monospace; color: #f5a623; font-size: 0.8rem; margin-bottom: 12px; text-align: center; letter-spacing: 0.1em; }
+
+  .drink-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .drink-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,200,100,0.15);
+    border-radius: 10px; padding: 8px 4px; cursor: pointer; text-align: center;
+    transition: all 0.2s; font-size: 0.75rem; color: #eaeaea;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .drink-btn:hover { background: rgba(245,166,35,0.15); border-color: rgba(245,166,35,0.4); }
+  .drink-btn.selected { background: rgba(245,166,35,0.2); border-color: rgba(245,166,35,0.6); color: #f5a623; }
+  .drink-emoji { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+
+  #btn-order {
+    width: 100%; padding: 8px; border-radius: 10px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #f5a623, #e8961a); color: #1a1208;
+    font-size: 0.85rem; font-family: 'Noto Sans TC', sans-serif; font-weight: 700;
+    transition: all 0.2s; margin-bottom: 6px;
+  }
+  #btn-order:hover { opacity: 0.85; transform: translateY(-1px); }
+  #btn-close-drink {
+    width: 100%; padding: 6px; border-radius: 10px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: #8892a4; font-size: 0.78rem; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  /* 番茄鐘面板 */
+  #focus-panel {
+    position: fixed; bottom: 20px; right: 20px; width: 200px;
+    background: rgba(26,18,8,0.95); border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 16px; padding: 16px; z-index: 100; display: none;
+    backdrop-filter: blur(10px);
+  }
+  #focus-panel.visible { display: block; animation: slideIn 0.3s ease; }
+  #focus-panel h3 { font-family: 'DotGothic16', monospace; color: #f5a623; font-size: 0.8rem; margin-bottom: 12px; text-align: center; }
+  #focus-timer { font-family: 'DotGothic16', monospace; font-size: 2.2rem; color: #eaeaea; text-align: center; margin: 8px 0; }
+  #focus-timer.running { color: #f5a623; }
+  #focus-timer.finished { color: #e94560; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  #focus-seat { text-align: center; font-size: 0.72rem; color: #8892a4; margin-bottom: 8px; }
+  .focus-presets { display: flex; gap: 6px; margin-bottom: 10px; }
+  .preset-btn {
+    flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: #8892a4; padding: 4px 0; border-radius: 8px; font-size: 0.72rem; cursor: pointer;
+    transition: all 0.2s; font-family: 'Noto Sans TC', sans-serif;
+  }
+  .preset-btn:hover, .preset-btn.active { background: rgba(245,166,35,0.15); border-color: rgba(245,166,35,0.4); color: #f5a623; }
+  .focus-controls { display: flex; gap: 6px; }
+  .ctrl-btn { flex: 1; padding: 7px 0; border-radius: 10px; border: none; cursor: pointer; font-size: 0.78rem; font-family: 'Noto Sans TC', sans-serif; font-weight: 700; transition: all 0.2s; }
+  #btn-start { background: linear-gradient(135deg, #f5a623, #e8961a); color: #1a1208; }
+  #btn-start:hover { opacity: 0.85; transform: translateY(-1px); }
+  #btn-stop { background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.3); color: #e94560; }
+
+  #controls-hint {
+    position: fixed; bottom: 20px; left: 20px;
+    background: rgba(26,18,8,0.7); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 8px 12px; font-size: 0.7rem; color: #4a5568; z-index: 100; line-height: 1.8;
+  }
+  #player-count {
+    position: fixed; top: 60px; right: 20px;
+    background: rgba(26,18,8,0.8); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 6px 12px; font-size: 0.75rem; color: #8892a4; z-index: 100;
+  }
+  #player-count span { color: #f5a623; font-family: 'DotGothic16', monospace; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="hud-title">☕ 咖啡廳</div>
+  <div id="hud-player">
+    <span id="hud-avatar">🐱</span>
+    <span id="hud-username">載入中...</span>
+    <span id="hud-drink" style="margin-left:4px;"></span>
+  </div>
+  <div id="hud-zone">📍 咖啡廳</div>
+  <a href="index.html" id="hud-back">← 回小鎮</a>
+</div>
+
+<div id="game-container"></div>
+<div id="interaction-hint">按 E 互動</div>
+
+<!-- 飲料選單 -->
+<div id="drink-panel">
+  <h3>☕ 點一杯吧！</h3>
+  <div class="drink-grid">
+    <button class="drink-btn" data-drink="☕" data-name="拿鐵">
+      <span class="drink-emoji">☕</span>拿鐵
+    </button>
+    <button class="drink-btn" data-drink="🧋" data-name="珍奶">
+      <span class="drink-emoji">🧋</span>珍奶
+    </button>
+    <button class="drink-btn" data-drink="🍵" data-name="抹茶">
+      <span class="drink-emoji">🍵</span>抹茶
+    </button>
+    <button class="drink-btn" data-drink="🧃" data-name="果汁">
+      <span class="drink-emoji">🧃</span>果汁
+    </button>
+    <button class="drink-btn" data-drink="🍫" data-name="可可">
+      <span class="drink-emoji">🍫</span>可可
+    </button>
+    <button class="drink-btn" data-drink="🥤" data-name="汽水">
+      <span class="drink-emoji">🥤</span>汽水
+    </button>
+  </div>
+  <button id="btn-order">點餐 ✓</button>
+  <button id="btn-close-drink">取消</button>
+</div>
+
+<!-- 番茄鐘面板 -->
+<div id="focus-panel">
+  <h3>☕ 輕鬆專注</h3>
+  <div id="focus-seat">座位 #1</div>
+  <div id="focus-timer">25:00</div>
+  <div class="focus-presets">
+    <button class="preset-btn active" data-min="25">25分</button>
+    <button class="preset-btn" data-min="50">50分</button>
+    <button class="preset-btn" data-min="90">90分</button>
+  </div>
+  <div class="focus-controls">
+    <button class="ctrl-btn" id="btn-start">開始</button>
+    <button class="ctrl-btn" id="btn-stop">離開</button>
+  </div>
+</div>
+
+<div id="controls-hint">WASD 移動<br>E 互動<br>點擊地板移動</div>
+<div id="player-count">咖啡廳：<span id="online-count">1</span> 人</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
+
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const sessionRaw = localStorage.getItem('study_user')
+const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
+if (!sessionUser) window.location.href = 'index.html'
+
+const MY_DISCORD_ID = sessionUser?.id
+const MY_USERNAME = sessionUser?.username
+const MY_AVATAR = sessionUser?.avatar || 'cat'
+
+const avatarEmoji = {
+  cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰',
+  fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧'
+}
+
+document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+document.getElementById('hud-username').textContent = MY_USERNAME
+
+const TILE = 48
+const COLS = 16
+const ROWS = 12
+const W = TILE * COLS
+const H = TILE * ROWS
+
+const COLORS = {
+  floor:       0x3d2b1a,
+  floor2:      0x362515,
+  wall:        0x2a1a0a,
+  counter:     0x6b4a2a,
+  counterTop:  0x8b6a3a,
+  sofa:        0x8b3a2a,
+  sofaLight:   0xaa5a3a,
+  table:       0x5c3a1e,
+  chair:       0x7c5a3a,
+  window:      0x6ca0dc,
+  door:        0x8b7355,
+  plant:       0x2d5a2d,
+  playerSelf:  0xf5a623,
+  playerOther: 0x4ecdc4,
+  lamp:        0xf5e642,
+}
+
+// 座位（沙發區＋桌椅區）
+const SEATS = [
+  // 沙發區（左側）
+  { id: 1, x: 3, y: 5 },
+  { id: 2, x: 3, y: 7 },
+  { id: 3, x: 5, y: 5 },
+  { id: 4, x: 5, y: 7 },
+  // 桌椅區（右側）
+  { id: 5, x: 9,  y: 5 },
+  { id: 6, x: 11, y: 5 },
+  { id: 7, x: 9,  y: 8 },
+  { id: 8, x: 11, y: 8 },
+]
+
+// 吧台位置
+const COUNTER_Y = 2
+const COUNTER_INTERACT_Y = 3
+
+const BLOCKED = new Set()
+function blockRect(x, y, w, h) {
+  for (let i = x; i < x + w; i++)
+    for (let j = y; j < y + h; j++)
+      BLOCKED.add(`${i},${j}`)
+}
+
+blockRect(0, 0, 16, 1)   // 上牆
+blockRect(0, 0, 1, 12)   // 左牆
+blockRect(15, 0, 1, 12)  // 右牆
+blockRect(1, 1, 14, 2)   // 吧台
+// 沙發桌子
+for (const seat of SEATS) {
+  if (seat.id <= 4) BLOCKED.add(`${seat.x + 1},${seat.y}`) // 沙發旁小桌
+}
+
+function isBlocked(gx, gy) {
+  return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS
+}
+
+let myDrink = null
+let drinkBubbles = {}
+
+class CafeScene extends Phaser.Scene {
+  constructor() {
+    super('Cafe')
+    this.player = null
+    this.playerGx = 8
+    this.playerGy = 10
+    this.otherPlayers = {}
+    this.otherTargets = {}
+    this.playerLabels = {}
+    this.drinkLabels = {}
+    this.nearSeat = null
+    this.nearCounter = false
+    this.nearDoor = false
+    this.seated = false
+    this.currentSeat = null
+    this.moveTarget = null
+    this.graphics = null
+    this.moveTimer = 0
+    this.moveDelay = 150
+    this.syncTimer = 0
+  }
+
+  create() {
+    this.graphics = this.add.graphics()
+    this.drawMap()
+
+    this.player = this.add.graphics()
+    this.drawPlayer(this.player, COLORS.playerSelf)
+    this.updatePlayerPos()
+
+    this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
+      fontSize: '10px', fontFamily: 'Noto Sans TC',
+      color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
+    }).setOrigin(0.5, 1)
+
+    this.cursors = this.input.keyboard.createCursorKeys()
+    this.wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      interact: Phaser.Input.Keyboard.KeyCodes.E,
+    })
+
+    this.input.on('pointerdown', (pointer) => {
+      if (this.seated) return
+      const gx = Math.floor(pointer.x / TILE)
+      const gy = Math.floor(pointer.y / TILE)
+      if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy }
+    })
+
+    this.updateZone()
+    this.loadOtherPlayers()
+
+    db.channel('cafe-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        this.onPlayerUpdate(payload)
+      })
+      .subscribe()
+  }
+
+  drawMap() {
+    const g = this.graphics
+
+    // 地板
+    for (let x = 0; x < COLS; x++) {
+      for (let y = 0; y < ROWS; y++) {
+        const color = (x + y) % 2 === 0 ? COLORS.floor : COLORS.floor2
+        g.fillStyle(color)
+        g.fillRect(x * TILE, y * TILE, TILE, TILE)
+      }
+    }
+
+    // 牆壁
+    g.fillStyle(COLORS.wall)
+    g.fillRect(0, 0, W, TILE)
+    g.fillRect(0, 0, TILE, H)
+    g.fillRect(15 * TILE, 0, TILE, H)
+
+    // 吧台
+    for (let x = 1; x < 15; x++) {
+      g.fillStyle(COLORS.counter)
+      g.fillRect(x * TILE, TILE, TILE, TILE * 1.5)
+      g.fillStyle(COLORS.counterTop)
+      g.fillRect(x * TILE + 2, TILE + 2, TILE - 4, 10)
+    }
+
+    // 吧台上的裝飾（咖啡機、杯子）
+    g.fillStyle(0x4a4a4a)
+    g.fillRect(3 * TILE + 4, TILE + 4, 20, 20) // 咖啡機
+    g.fillStyle(0xffffff)
+    g.fillRect(3 * TILE + 8, TILE + 8, 12, 12)
+    g.fillStyle(0x8b6a3a)
+    g.fillRect(6 * TILE + 4, TILE + 8, 8, 14)  // 杯子
+    g.fillRect(8 * TILE + 4, TILE + 8, 8, 14)
+    g.fillRect(10 * TILE + 4, TILE + 8, 8, 14)
+
+    // 窗戶
+    g.fillStyle(COLORS.window)
+    g.fillRect(5 * TILE + 4, 4, TILE * 2 - 8, 8)
+    g.fillRect(10 * TILE + 4, 4, TILE * 2 - 8, 8)
+
+    // 沙發區（左側）
+    const sofaSeats = SEATS.filter(s => s.id <= 4)
+    for (const seat of sofaSeats) {
+      // 沙發
+      g.fillStyle(COLORS.sofa)
+      g.fillRect(seat.x * TILE + 2, seat.y * TILE + 2, TILE - 4, TILE - 4)
+      g.fillStyle(COLORS.sofaLight)
+      g.fillRect(seat.x * TILE + 6, seat.y * TILE + 6, TILE - 12, TILE - 20)
+      // 小桌
+      g.fillStyle(COLORS.table)
+      g.fillRect((seat.x + 1) * TILE + 6, seat.y * TILE + 6, TILE - 12, TILE - 12)
+      // 飲料裝飾
+      g.fillStyle(0x8b6a3a)
+      g.fillRect((seat.x + 1) * TILE + 14, seat.y * TILE + 14, 8, 10)
+    }
+
+    // 桌椅區（右側）
+    const tableSeats = SEATS.filter(s => s.id > 4)
+    for (const seat of tableSeats) {
+      // 桌子
+      g.fillStyle(COLORS.table)
+      g.fillRect(seat.x * TILE + 2, (seat.y - 1) * TILE + 2, TILE - 4, TILE - 4)
+      g.fillStyle(0x8b6a3a)
+      g.fillRect(seat.x * TILE + 8, (seat.y - 1) * TILE + 8, 20, 14)
+      // 椅子
+      g.fillStyle(COLORS.chair)
+      g.fillRect(seat.x * TILE + 6, seat.y * TILE + 6, TILE - 12, TILE - 12)
+    }
+
+    // 植物裝飾
+    g.fillStyle(COLORS.plant)
+    g.fillCircle(2 * TILE - 8, 4 * TILE, 16)
+    g.fillCircle(14 * TILE + 8, 4 * TILE, 16)
+    g.fillStyle(0x3d2b1a)
+    g.fillRect(2 * TILE - 14, 4 * TILE + 8, 12, 16)
+    g.fillRect(14 * TILE + 2, 4 * TILE + 8, 12, 16)
+
+    // 燈光
+    for (const seat of SEATS) {
+      g.fillStyle(COLORS.lamp, 0.05)
+      g.fillCircle(seat.x * TILE + TILE / 2, seat.y * TILE, TILE * 1.5)
+    }
+
+    // 門
+    g.fillStyle(COLORS.door)
+    g.fillRect(7 * TILE + 4, 11 * TILE, TILE * 2 - 8, TILE)
+    g.fillStyle(0xc9a87c)
+    g.fillRect(8 * TILE, 11 * TILE + 4, TILE - 4, TILE - 8)
+
+    // 格線
+    g.lineStyle(1, 0xffffff, 0.02)
+    for (let x = 0; x <= COLS; x++) g.lineBetween(x * TILE, 0, x * TILE, H)
+    for (let y = 0; y <= ROWS; y++) g.lineBetween(0, y * TILE, W, y * TILE)
+  }
+
+  drawPlayer(g, color) {
+    g.clear()
+    g.fillStyle(0x000000, 0.3)
+    g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8)
+    g.fillStyle(color, 0.9)
+    g.fillCircle(TILE / 2, TILE / 2 - 2, 14)
+    g.fillStyle(0xffffff, 0.3)
+    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5)
+  }
+
+  updatePlayerPos() {
+    const px = this.playerGx * TILE
+    const py = this.playerGy * TILE
+    this.player.setPosition(px, py)
+    if (this.playerLabel) this.playerLabel.setPosition(px + TILE / 2, py - 2)
+  }
+
+  update(time, delta) {
+    if (this.seated) return
+
+    this.moveTimer += delta
+    if (this.moveTimer >= this.moveDelay) {
+      let moved = false
+      let nx = this.playerGx
+      let ny = this.playerGy
+
+      if (this.cursors.left.isDown || this.wasd.left.isDown) { nx--; moved = true }
+      else if (this.cursors.right.isDown || this.wasd.right.isDown) { nx++; moved = true }
+      else if (this.cursors.up.isDown || this.wasd.up.isDown) { ny--; moved = true }
+      else if (this.cursors.down.isDown || this.wasd.down.isDown) { ny++; moved = true }
+
+      if (!moved && this.moveTarget) {
+        const dx = this.moveTarget.x - this.playerGx
+        const dy = this.moveTarget.y - this.playerGy
+        if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+          if (Math.abs(dx) >= Math.abs(dy)) nx = this.playerGx + Math.sign(dx)
+          else ny = this.playerGy + Math.sign(dy)
+          moved = true
+          if (nx === this.moveTarget.x && ny === this.moveTarget.y) this.moveTarget = null
+        } else { this.moveTarget = null }
+      }
+
+      if (moved && !isBlocked(nx, ny)) {
+        this.playerGx = nx
+        this.playerGy = ny
+        this.updatePlayerPos()
+        this.moveTimer = 0
+      }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract()
+
+    this.checkNearby()
+
+    // 同步位置
+    this.syncTimer += delta
+    if (this.syncTimer > 1000) {
+      this.syncTimer = 0
+      db.from('users').update({
+        map_x: this.playerGx, map_y: this.playerGy,
+        map_scene: '咖啡廳', current_zone: '咖啡廳',
+      }).eq('discord_id', MY_DISCORD_ID)
+      .then(({ error }) => { if (error) console.error('sync error:', error) })
+    }
+
+    // 插值移動
+    Object.entries(this.otherTargets).forEach(([id, target]) => {
+      const sprite = this.otherPlayers[id]
+      if (!sprite) return
+      sprite.x += (target.x - sprite.x) * 0.2
+      sprite.y += (target.y - sprite.y) * 0.2
+    })
+  }
+
+  checkNearby() {
+    const hint = document.getElementById('interaction-hint')
+
+    // 門口
+    const atDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9
+    if (atDoor) {
+      hint.textContent = '按 E 返回小鎮'
+      hint.style.display = 'block'
+      this.nearDoor = true
+      this.nearCounter = false
+      this.nearSeat = null
+      return
+    }
+    this.nearDoor = false
+
+    // 吧台
+    const atCounter = this.playerGy === COUNTER_INTERACT_Y && this.playerGx >= 2 && this.playerGx <= 13
+    if (atCounter) {
+      hint.textContent = '按 E 點一杯飲料'
+      hint.style.display = 'block'
+      this.nearCounter = true
+      this.nearSeat = null
+      return
+    }
+    this.nearCounter = false
+
+    // 座位
+    let found = null
+    for (const seat of SEATS) {
+      const dx = Math.abs(this.playerGx - seat.x)
+      const dy = Math.abs(this.playerGy - seat.y)
+      if (dx <= 1 && dy <= 1) { found = seat; break }
+    }
+
+    if (found !== this.nearSeat) {
+      this.nearSeat = found
+      if (found && !this.seated) {
+        hint.textContent = `按 E 坐下休息（座位 #${found.id}）`
+        hint.style.display = 'block'
+      } else if (!this.seated) {
+        hint.style.display = 'none'
+      }
+    }
+  }
+
+  tryInteract() {
+    if (this.nearDoor) {
+      db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
+      window.location.href = 'index.html'
+      return
+    }
+    if (this.nearCounter) {
+      document.getElementById('drink-panel').classList.add('visible')
+      return
+    }
+    if (this.nearSeat && !this.seated) {
+      this.sitDown(this.nearSeat)
+    }
+  }
+
+  sitDown(seat) {
+    this.seated = true
+    this.currentSeat = seat
+    this.playerGx = seat.x
+    this.playerGy = seat.y
+    this.updatePlayerPos()
+    this.tweens.add({ targets: this.player, scaleX: 0.85, scaleY: 0.85, duration: 200, ease: 'Power2' })
+    document.getElementById('interaction-hint').style.display = 'none'
+    document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
+    document.getElementById('focus-panel').classList.add('visible')
+  }
+
+  standUp() {
+    this.seated = false
+    this.currentSeat = null
+    this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' })
+    document.getElementById('focus-panel').classList.remove('visible')
+  }
+
+  async updateZone() {
+    await db.from('users').update({
+      current_zone: '咖啡廳', map_scene: '咖啡廳',
+      map_x: this.playerGx, map_y: this.playerGy,
+    }).eq('discord_id', MY_DISCORD_ID)
+  }
+
+  async loadOtherPlayers() {
+    const { data: users } = await db
+      .from('users')
+      .select('discord_id, username, map_scene, map_x, map_y, avatar')
+      .eq('map_scene', '咖啡廳')
+      .neq('discord_id', MY_DISCORD_ID)
+
+    Object.values(this.otherPlayers).forEach(p => p.destroy())
+    Object.values(this.playerLabels).forEach(l => l.destroy())
+    this.otherPlayers = {}
+    this.playerLabels = {}
+    this.otherTargets = {}
+
+    document.getElementById('online-count').textContent = (users?.length || 0) + 1
+    if (!users) return
+
+    users.forEach(user => {
+      const gx = user.map_x || 8
+      const gy = user.map_y || 10
+      const g = this.add.graphics()
+      g.fillStyle(COLORS.playerOther, 0.8)
+      g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
+      g.setPosition(gx * TILE, gy * TILE)
+      this.otherPlayers[user.discord_id] = g
+      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+
+      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username, {
+        fontSize: '10px', fontFamily: 'Noto Sans TC',
+        color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
+      }).setOrigin(0.5, 1)
+      this.playerLabels[user.discord_id] = label
+    })
+  }
+
+  onPlayerUpdate(payload) {
+    const user = payload.new
+    if (!user || user.discord_id === MY_DISCORD_ID) return
+
+    if (user.map_scene !== '咖啡廳') {
+      if (this.otherPlayers[user.discord_id]) {
+        this.otherPlayers[user.discord_id].destroy()
+        this.playerLabels[user.discord_id]?.destroy()
+        delete this.otherPlayers[user.discord_id]
+        delete this.playerLabels[user.discord_id]
+        delete this.otherTargets[user.discord_id]
+      }
+      return
+    }
+
+    const gx = user.map_x || 8
+    const gy = user.map_y || 10
+
+    if (this.otherPlayers[user.discord_id]) {
+      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+      this.playerLabels[user.discord_id]?.setPosition(gx * TILE + TILE / 2, gy * TILE - 2)
+    } else {
+      const g = this.add.graphics()
+      g.fillStyle(COLORS.playerOther, 0.8)
+      g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
+      g.setPosition(gx * TILE, gy * TILE)
+      this.otherPlayers[user.discord_id] = g
+      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+
+      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username, {
+        fontSize: '10px', fontFamily: 'Noto Sans TC',
+        color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
+      }).setOrigin(0.5, 1)
+      this.playerLabels[user.discord_id] = label
+    }
+
+    document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1
+  }
+}
+
+const config = {
+  type: Phaser.AUTO, width: W, height: H,
+  parent: 'game-container', backgroundColor: '#2a1a0a',
+  scene: CafeScene, pixelArt: true, antialias: false,
+}
+
+const game = new Phaser.Game(config)
+
+// 飲料選單邏輯
+let selectedDrink = null
+
+document.querySelectorAll('.drink-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.drink-btn').forEach(b => b.classList.remove('selected'))
+    btn.classList.add('selected')
+    selectedDrink = { emoji: btn.dataset.drink, name: btn.dataset.name }
+  })
+})
+
+document.getElementById('btn-order').addEventListener('click', () => {
+  if (!selectedDrink) return
+  myDrink = selectedDrink
+  document.getElementById('hud-drink').textContent = selectedDrink.emoji
+  document.getElementById('drink-panel').classList.remove('visible')
+  document.querySelectorAll('.drink-btn').forEach(b => b.classList.remove('selected'))
+
+  // 存到 Supabase（之後可以加 drink 欄位）
+  console.log(`點了 ${selectedDrink.name} ${selectedDrink.emoji}`)
+})
+
+document.getElementById('btn-close-drink').addEventListener('click', () => {
+  document.getElementById('drink-panel').classList.remove('visible')
+})
+
+// 番茄鐘
+let timerInterval = null
+let totalSeconds = 25 * 60
+let remainSeconds = totalSeconds
+let isRunning = false
+let selectedMin = 25
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0')
+  const s = (sec % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (isRunning) return
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    selectedMin = parseInt(btn.dataset.min)
+    totalSeconds = selectedMin * 60
+    remainSeconds = totalSeconds
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+    document.getElementById('focus-timer').className = ''
+  })
+})
+
+document.getElementById('btn-start').addEventListener('click', async () => {
+  if (isRunning) return
+  isRunning = true
+  document.getElementById('focus-timer').classList.add('running')
+  document.getElementById('btn-start').textContent = '進行中...'
+  document.getElementById('btn-start').disabled = true
+
+  await db.from('study_sessions').insert({
+    discord_id: MY_DISCORD_ID, zone: '咖啡廳',
+    start_time: new Date().toISOString(),
+  })
+
+  timerInterval = setInterval(async () => {
+    remainSeconds--
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+    if (remainSeconds <= 0) {
+      clearInterval(timerInterval)
+      isRunning = false
+      document.getElementById('focus-timer').className = 'finished'
+      document.getElementById('focus-timer').textContent = '時間到！'
+      document.getElementById('btn-start').textContent = '開始'
+      document.getElementById('btn-start').disabled = false
+      await endStudySession(selectedMin)
+    }
+  }, 1000)
+})
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (timerInterval) clearInterval(timerInterval)
+  isRunning = false
+  remainSeconds = totalSeconds
+  document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+  document.getElementById('focus-timer').className = ''
+  document.getElementById('btn-start').textContent = '開始'
+  document.getElementById('btn-start').disabled = false
+  game.scene.getScene('Cafe').standUp()
+})
+
+async function endStudySession(minutes) {
+  const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5)
+  const { data: session } = await db.from('study_sessions').select('*')
+    .eq('discord_id', MY_DISCORD_ID).is('end_time', null)
+    .order('start_time', { ascending: false }).limit(1).single()
+  if (session) {
+    await db.from('study_sessions').update({
+      end_time: new Date().toISOString(), duration_minutes: minutes, xp_earned: xp,
+    }).eq('id', session.id)
+    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
+    if (user) {
+      await db.from('users').update({
+        xp: (user.xp || 0) + xp,
+        total_minutes: (user.total_minutes || 0) + minutes,
+      }).eq('discord_id', MY_DISCORD_ID)
+    }
+  }
+}
+</script>
+</body>
+</html>
