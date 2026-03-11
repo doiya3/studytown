@@ -283,78 +283,78 @@ function isBlocked(gx, gy) {
   return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS
 }
 
-let myDrink = null
-let drinkBubbles = {}
+let myDrink = null;
+let drinkBubbles = {};
 
 class CafeScene extends Phaser.Scene {
   constructor() {
-    super('Cafe')
-    this.player = null
-    this.playerGx = 8
-    this.playerGy = 10
-    this.otherPlayers = {}
-    this.otherTargets = {}
-    this.playerLabels = {}
-    this.drinkLabels = {}
-    this.nearSeat = null
-    this.nearCounter = false
-    this.nearDoor = false
-    this.seated = false
-    this.currentSeat = null
-    this.moveTarget = null
-    this.graphics = null
-    this.moveTimer = 0
-    this.moveDelay = 150
-    this.syncTimer = 0
+    super('Cafe');
+    this.player = null;
+    this.playerGx = 8;
+    this.playerGy = 10;
+    this.otherPlayers = {};
+    this.otherTargets = {};
+    this.playerLabels = {};
+    this.drinkLabels = {};
+    this.nearSeat = null;
+    this.nearCounter = false;
+    this.nearDoor = false;
+    this.seated = false;
+    this.currentSeat = null;
+    this.moveTarget = null;
+    this.graphics = null;
+    this.moveTimer = 0;
+    this.moveDelay = 150;
+    this.syncTimer = 0;
   }
 
   create() {
-    this.graphics = this.add.graphics()
-    this.drawMap()
+    this.graphics = this.add.graphics();
+    this.drawMap();
 
-    this.player = this.add.graphics()
-    this.drawPlayer(this.player, COLORS.playerSelf)
-    this.updatePlayerPos()
+    this.player = this.add.graphics();
+    this.drawPlayer(this.player, COLORS.playerSelf);
+    this.updatePlayerPos();
 
     this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
       fontSize: '10px', fontFamily: 'Noto Sans TC',
       color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
-    }).setOrigin(0.5, 1)
+    }).setOrigin(0.5, 1);
 
-    this.cursors = this.input.keyboard.createCursorKeys()
+    this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
       interact: Phaser.Input.Keyboard.KeyCodes.E,
-    })
+    });
 
     this.input.on('pointerdown', (pointer) => {
-      if (this.seated) return
-      const gx = Math.floor(pointer.x / TILE)
-      const gy = Math.floor(pointer.y / TILE)
-      if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy }
-    })
+      if (this.seated) return;
+      const gx = Math.floor(pointer.x / TILE);
+      const gy = Math.floor(pointer.y / TILE);
+      if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy };
+    });
 
-    this.moveTimer = 0
-    this.moveDelay = 150
-    this.syncTimer = 0
+    this.moveTimer = 0;
+    this.moveDelay = 150;
+    this.syncTimer = 0;
 
     try {
-      this.updateZone().catch(e => console.error('updateZone error:', e))
-      this.loadOtherPlayers().catch(e => console.error('loadOtherPlayers error:', e))
+      this.updateZone().catch(e => console.error('updateZone error:', e));
+      this.loadOtherPlayers().catch(e => console.error('loadOtherPlayers error:', e));
     } catch (e) {
-      console.error('Initialization error:', e)
+      console.error('Initialization error:', e);
     }
 
     this.time.addEvent({
       delay: 3000,
       loop: true,
       callback: () => {
-        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
+        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e));
       }
-    })
+    });
 
     db.channel('users-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
@@ -466,30 +466,30 @@ class CafeScene extends Phaser.Scene {
   }
 
   drawPlayer(g, color) {
-    g.clear()
-    g.fillStyle(0x000000, 0.3)
-    g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8)
-    g.fillStyle(color, 0.9)
-    g.fillCircle(TILE / 2, TILE / 2 - 2, 14)
-    g.fillStyle(0xffffff, 0.3)
-    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5)
+    g.clear();
+    g.fillStyle(0x000000, 0.3);
+    g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8);
+    g.fillStyle(color, 0.9);
+    g.fillCircle(TILE / 2, TILE / 2 - 2, 14);
+    g.fillStyle(0xffffff, 0.3);
+    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5);
   }
 
   updatePlayerPos() {
-    const px = this.playerGx * TILE
-    const py = this.playerGy * TILE
-    this.player.setPosition(px, py)
-    if (this.playerLabel) this.playerLabel.setPosition(px + TILE / 2, py - 2)
+    const px = this.playerGx * TILE;
+    const py = this.playerGy * TILE;
+    this.player.setPosition(px, py);
+    if (this.playerLabel) this.playerLabel.setPosition(px + TILE / 2, py - 2);
   }
 
   update(time, delta) {
-    if (this.seated) return
+    if (this.seated) return;
 
-    this.moveTimer += delta
+    this.moveTimer += delta;
     if (this.moveTimer >= this.moveDelay) {
-      let moved = false
-      let nx = this.playerGx
-      let ny = this.playerGy
+      let moved = false;
+      let nx = this.playerGx;
+      let ny = this.playerGy;
 
       if (this.cursors.left.isDown || this.wasd.left.isDown) { nx--; moved = true }
       else if (this.cursors.right.isDown || this.wasd.right.isDown) { nx++; moved = true }
@@ -508,10 +508,10 @@ class CafeScene extends Phaser.Scene {
       }
 
       if (moved && !isBlocked(nx, ny)) {
-        this.playerGx = nx
-        this.playerGy = ny
-        this.updatePlayerPos()
-        this.moveTimer = 0
+        this.playerGx = nx;
+        this.playerGy = ny;
+        this.updatePlayerPos();
+        this.moveTimer = 0;
       }
     }
 
@@ -534,14 +534,14 @@ class CafeScene extends Phaser.Scene {
     this.checkNearby()
 
     // 同步位置
-    this.syncTimer += delta
+    this.syncTimer += delta;
     if (this.syncTimer > 1000) {
-      this.syncTimer = 0
+      this.syncTimer = 0;
       db.from('users').update({
         map_x: this.playerGx, map_y: this.playerGy,
         map_scene: '咖啡廳', current_zone: '咖啡廳',
       }).eq('discord_id', MY_DISCORD_ID)
-      .then(({ error }) => { if (error) console.error('sync error:', error) })
+      .then(({ error }) => { if (error) console.error('sync error:', error); });
     }
   }
 
@@ -640,15 +640,15 @@ class CafeScene extends Phaser.Scene {
   }
 
   async sitDown(seat) {
-    this.seated = true
-    this.currentSeat = seat
-    this.playerGx = seat.x
-    this.playerGy = seat.y
-    this.updatePlayerPos()
-    this.tweens.add({ targets: this.player, scaleX: 0.85, scaleY: 0.85, duration: 200, ease: 'Power2' })
-    document.getElementById('interaction-hint').style.display = 'none'
-    document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
-    document.getElementById('focus-panel').classList.add('visible')
+    this.seated = true;
+    this.currentSeat = seat;
+    this.playerGx = seat.x;
+    this.playerGy = seat.y;
+    this.updatePlayerPos();
+    this.tweens.add({ targets: this.player, scaleX: 0.85, scaleY: 0.85, duration: 200, ease: 'Power2' });
+    document.getElementById('interaction-hint').style.display = 'none';
+    document.getElementById('focus-seat').textContent = `座位 #${seat.id}`;
+    document.getElementById('focus-panel').classList.add('visible');
 
     // 立即同步座位位置到數據庫（確保其他玩家看到正確位置）
     await db.from('users').update({
@@ -662,27 +662,27 @@ class CafeScene extends Phaser.Scene {
   }
 
   async standUp() {
-    this.seated = false
-    this.currentSeat = null
-    this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' })
-    document.getElementById('focus-panel').classList.remove('visible')
+    this.seated = false;
+    this.currentSeat = null;
+    this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' });
+    document.getElementById('focus-panel').classList.remove('visible');
 
     // 清除座位並等待完成
     await db.from('users').update({
       seat_id: null,
       status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID)
+    }).eq('discord_id', MY_DISCORD_ID);
     
     // 重新檢查附近座位（強制刷新顯示）
-    this.nearSeat = null
-    this.checkNearby()
+    this.nearSeat = null;
+    this.checkNearby();
   }
 
   async updateZone() {
     await db.from('users').update({
       current_zone: '咖啡廳', map_scene: '咖啡廳',
       map_x: this.playerGx, map_y: this.playerGy,
-    }).eq('discord_id', MY_DISCORD_ID)
+    }).eq('discord_id', MY_DISCORD_ID);
   }
 
   async loadOtherPlayers() {
@@ -820,30 +820,30 @@ document.getElementById('btn-close-drink').addEventListener('click', () => {
 })
 
 // 番茄鐘
-let timerInterval = null
-let totalSeconds = 25 * 60
-let remainSeconds = totalSeconds
-let isRunning = false
-let selectedMin = 25
+let timerInterval = null;
+let totalSeconds = 25 * 60;
+let remainSeconds = totalSeconds;
+let isRunning = false;
+let selectedMin = 25;
 
 function formatTime(sec) {
-  const m = Math.floor(sec / 60).toString().padStart(2, '0')
-  const s = (sec % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = (sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 document.querySelectorAll('.preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (isRunning) return
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
-    selectedMin = parseInt(btn.dataset.min)
-    totalSeconds = selectedMin * 60
-    remainSeconds = totalSeconds
-    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
-    document.getElementById('focus-timer').className = ''
-  })
-})
+    if (isRunning) return;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMin = parseInt(btn.dataset.min);
+    totalSeconds = selectedMin * 60;
+    remainSeconds = totalSeconds;
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds);
+    document.getElementById('focus-timer').className = '';
+  });
+});
 
 document.getElementById('btn-start').addEventListener('click', async () => {
   if (isRunning) return
@@ -855,36 +855,36 @@ document.getElementById('btn-start').addEventListener('click', async () => {
   await db.from('study_sessions').insert({
     discord_id: MY_DISCORD_ID, zone: '咖啡廳',
     start_time: new Date().toISOString(),
-  })
+  });
 
   timerInterval = setInterval(async () => {
-    remainSeconds--
-    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+    remainSeconds--;
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds);
     if (remainSeconds <= 0) {
-      clearInterval(timerInterval)
-      isRunning = false
-      document.getElementById('focus-timer').className = 'finished'
-      document.getElementById('focus-timer').textContent = '時間到！'
-      document.getElementById('btn-start').textContent = '開始'
-      document.getElementById('btn-start').disabled = false
-      await endStudySession(selectedMin)
+      clearInterval(timerInterval);
+      isRunning = false;
+      document.getElementById('focus-timer').className = 'finished';
+      document.getElementById('focus-timer').textContent = '時間到！';
+      document.getElementById('btn-start').textContent = '開始';
+      document.getElementById('btn-start').disabled = false;
+      await endStudySession(selectedMin);
     }
-  }, 1000)
+  }, 1000);
 })
 
 document.getElementById('btn-stop').addEventListener('click', async () => {
-  if (timerInterval) clearInterval(timerInterval)
-  isRunning = false
-  remainSeconds = totalSeconds
-  document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
-  document.getElementById('focus-timer').className = ''
-  document.getElementById('btn-start').textContent = '開始'
-  document.getElementById('btn-start').disabled = false
-  await game.scene.getScene('Cafe').standUp()
-})
+  if (timerInterval) clearInterval(timerInterval);
+  isRunning = false;
+  remainSeconds = totalSeconds;
+  document.getElementById('focus-timer').textContent = formatTime(remainSeconds);
+  document.getElementById('focus-timer').className = '';
+  document.getElementById('btn-start').textContent = '開始';
+  document.getElementById('btn-start').disabled = false;
+  await game.scene.getScene('Cafe').standUp();
+});
 
 async function endStudySession(minutes) {
-  const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5)
+  const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5);
   const { data: session } = await db.from('study_sessions').select('*')
     .eq('discord_id', MY_DISCORD_ID).is('end_time', null)
     .order('start_time', { ascending: false }).limit(1).single();
