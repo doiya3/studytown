@@ -610,7 +610,7 @@ class LibraryScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.seated) return
-    console.log(this.playerGx, this.playerGy)
+
     this.moveTimer += delta
 
     if (this.moveTimer >= this.moveDelay) {
@@ -834,6 +834,7 @@ class LibraryScene extends Phaser.Scene {
     Object.values(this.otherPlayers).forEach(p => p.destroy())
     Object.values(this.playerLabels).forEach(l => l.destroy())
     this.otherPlayers = {}
+    this.otherTargets = {}
     this.playerLabels = {}
 
     const count = (users?.length || 0) + 1
@@ -848,6 +849,7 @@ class LibraryScene extends Phaser.Scene {
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       this.otherPlayers[user.discord_id] = g
+      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
 
       const label = this.add.text(
         gx * TILE + TILE / 2,
