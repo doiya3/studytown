@@ -773,6 +773,7 @@ class LibraryScene extends Phaser.Scene {
   async tryInteract() {
     if (this.nearDoor) {
       // 離開前清除地圖位置
+      isExiting = true;
       await db.from('users').update({
         map_scene: 'none',
         current_zone: 'none',
@@ -956,9 +957,19 @@ const config = {
 
 const game = new Phaser.Game(config)
 
+// 關閉分頁時清除位置
+window.addEventListener('beforeunload', () => {
+  if (!isExiting && MY_DISCORD_ID) {
+    const url = `${SUPABASE_URL}/rest/v1/users?discord_id=eq.${MY_DISCORD_ID}`;
+    const data = JSON.stringify({ map_scene: 'none', current_zone: 'none', seat_id: null, status: 'offline', map_x: 0, map_y: 0 });
+    navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+  }
+});
+
 // 回小鎮按鈕 - 清除位置信息
 document.getElementById('hud-back').addEventListener('click', async (e) => {
   e.preventDefault()
+  isExiting = true;
   try {
     await db.from('users').update({ 
       map_scene: 'none', 
@@ -976,6 +987,7 @@ document.getElementById('hud-back').addEventListener('click', async (e) => {
 
 // 番茄鐘邏輯
 let timerInterval = null
+let isExiting = false
 let totalSeconds = 25 * 60
 let remainSeconds = totalSeconds
 let isRunning = false
