@@ -344,6 +344,15 @@ class CafeScene extends Phaser.Scene {
       console.error('Initialization error:', e)
     }
 
+    // 定期重新加載玩家列表（每3秒），確保不會遺漏後進入的玩家
+    this.time.addTimer({
+      delay: 3000,
+      loop: true,
+      callback: () => {
+        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
+      }
+    })
+
     db.channel('cafe-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         try {
