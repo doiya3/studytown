@@ -356,7 +356,7 @@ class CafeScene extends Phaser.Scene {
       }
     })
 
-    db.channel('cafe-realtime')
+    db.channel('users-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         try {
           this.onPlayerUpdate(payload)
@@ -695,11 +695,11 @@ class CafeScene extends Phaser.Scene {
     Object.values(this.otherPlayers).forEach(p => p.destroy())
     Object.values(this.playerLabels).forEach(l => l.destroy())
     this.otherPlayers = {}
-    this.playerLabels = {}
-    this.otherTargets = {}
+    this.playerLabels = {};
+    this.otherTargets = {};
 
-    document.getElementById('online-count').textContent = (users?.length || 0) + 1
-    if (!users) return
+    document.getElementById('online-count').textContent = (users?.length || 0) + 1;
+    if (!users) return;
 
     users.forEach(user => {
       const gx = user.map_x || 8
@@ -714,8 +714,8 @@ class CafeScene extends Phaser.Scene {
       const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username, {
         fontSize: '10px', fontFamily: 'Noto Sans TC',
         color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
-      }).setOrigin(0.5, 1)
-      this.playerLabels[user.discord_id] = label
+      }).setOrigin(0.5, 1);
+      this.playerLabels[user.discord_id] = label;
     })
   }
 
@@ -756,15 +756,14 @@ class CafeScene extends Phaser.Scene {
       const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username || '玩家', {
         fontSize: '10px', fontFamily: 'Noto Sans TC',
         color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
-      }).setOrigin(0.5, 1)
-      this.playerLabels[user.discord_id] = label
-    }
+      }).setOrigin(0.5, 1);
+      this.playerLabels[user.discord_id] = label;
     }
 
-    document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1
+    document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1;;
     
     // 其他玩家座位狀態改變時，重新檢查附近座位
-    this.nearSeat = null
+    this.nearSeat = null;
   }
 }
 
