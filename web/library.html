@@ -326,14 +326,18 @@
 // 🔧 填入你的 Supabase 設定
 const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
-// 暫時填入你的 Discord ID 和使用者名稱（之後會改成 OAuth 登入）
-//const MY_DISCORD_ID = '943022361651847219'
-//const MY_USERNAME = 'bear.nishi'
-//const MY_AVATAR = 'bear' // 你的 avatar
-const params = new URLSearchParams(window.location.search)
-const MY_DISCORD_ID = params.get('id') || 'YOUR_DISCORD_ID'
-const MY_USERNAME = params.get('name') || 'YOUR_USERNAME'
-const MY_AVATAR = params.get('avatar') || 'bear'
+// 從 localStorage 讀取登入的使用者
+const sessionRaw = localStorage.getItem('study_user')
+const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
+
+if (!sessionUser) {
+  // 沒有登入，回主頁
+  window.location.href = 'index.html'
+}
+
+const MY_DISCORD_ID = sessionUser?.id
+const MY_USERNAME = sessionUser?.username
+const MY_AVATAR = sessionUser?.avatar || 'bear'
 // ==========================================
 
 const { createClient } = supabase
@@ -768,8 +772,8 @@ class LibraryScene extends Phaser.Scene {
 
     if (!users) return
     users.forEach((user, i) => {
-      const gx = 5 + (i % 4) * 2
-      const gy = 6
+      const gx = user.map_x || 8
+      const gy = user.map_y || 10
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)

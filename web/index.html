@@ -91,6 +91,10 @@
       <div class="stat-item"><div class="stat-num" id="stat-studying">0</div><div class="stat-label">專注中</div></div>
       <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
     </div>
+    <div style="position:fixed; top:16px; right:20px; z-index:100;">
+      <span id="hud-username" style="color:#8892a4; font-size:0.8rem; margin-right:10px;"></span>
+      <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>
+    </div>
     <div class="map-grid">
       <div class="zone-card zone-cafe" id="zone-咖啡廳" onclick="enterZone('咖啡廳')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">☕</span><div class="zone-info"><h3>咖啡廳</h3><span class="zone-desc">輕度專注・聊天</span><div><span class="xp-badge normal">XP +0%</span></div></div><div class="zone-count" id="count-咖啡廳">0人</div></div>
@@ -230,7 +234,10 @@ function enterZone(zone) {
     alert(`${zone} 場景即將開放！`)
   }
 }
-
+document.getElementById('btn-logout').addEventListener('click', () => {
+  clearSession()
+  showLogin()
+})
 // 讓函式可以從 onclick 呼叫（module 作用域問題）
 window.enterZone = enterZone
 init()
