@@ -283,7 +283,15 @@ if (interaction.commandName === 'checkin') {
       })
 
       const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 6, '夜讀室': 4, '草地': null, '湖邊': null }
-const maxSeats = ZONE_SEATS[zone]
+      const ZONE_SPAWN = {
+        '圖書館': { map_x: 5, map_y: 6 },
+        '咖啡廳': { map_x: 8, map_y: 10 },
+        '夜讀室': { map_x: 8, map_y: 10 },
+        '草地': { map_x: 8, map_y: 8 },
+        '湖邊': { map_x: 8, map_y: 8 }
+      }
+      const spawnPos = ZONE_SPAWN[zone] || { map_x: 8, map_y: 10 }
+      const maxSeats = ZONE_SEATS[zone]
 
 if (maxSeats !== null) {
   const { data: occupied } = await supabase
@@ -300,11 +308,13 @@ if (maxSeats !== null) {
   while (takenSeats.includes(assignedSeat)) assignedSeat++
 
   await supabase.from('users').update({
-    current_zone: zone, seat_id: assignedSeat, status: 'studying'
+    current_zone: zone, seat_id: assignedSeat, status: 'studying',
+    map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
   }).eq('discord_id', userId)
 } else {
   await supabase.from('users').update({
-    current_zone: zone, seat_id: null, status: 'studying'
+    current_zone: zone, seat_id: null, status: 'studying',
+    map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
   }).eq('discord_id', userId)
 }
 
