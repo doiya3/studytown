@@ -542,15 +542,30 @@ class CafeScene extends Phaser.Scene {
       if (dx <= 1 && dy <= 1) { found = seat; break }
     }
 
-    if (found !== this.nearSeat) {
-      this.nearSeat = found
-      if (found && !this.seated) {
-        hint.textContent = `按 E 坐下休息（座位 #${found.id}）`
-        hint.style.display = 'block'
-      } else if (!this.seated) {
-        hint.style.display = 'none'
-      }
-    }
+if (found !== this.nearSeat) {
+  this.nearSeat = found
+  if (found && !this.seated) {
+    // 檢查座位有沒有人
+    db.from('users')
+      .select('discord_id')
+      .eq('current_zone', '咖啡廳')
+      .eq('seat_id', found.id)
+      .neq('discord_id', MY_DISCORD_ID)
+      .then(({ data }) => {
+        const hint = document.getElementById('interaction-hint')
+        if (data && data.length > 0) {
+          hint.textContent = `座位 #${found.id} 已有人`
+          hint.style.display = 'block'
+          this.nearSeat = null // 不能坐
+        } else {
+          hint.textContent = `按 E 坐下休息（座位 #${found.id}）`
+          hint.style.display = 'block'
+        }
+      })
+  } else if (!this.seated) {
+    document.getElementById('interaction-hint').style.display = 'none'
+  }
+}
   }
 
   tryInteract() {
@@ -578,6 +593,13 @@ class CafeScene extends Phaser.Scene {
     document.getElementById('interaction-hint').style.display = 'none'
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
+
+    // 寫入座位佔用
+    db.from('users').update({
+    seat_id: seat.id,
+    status: 'studying',
+    current_zone: '咖啡廳',
+    }).eq('discord_id', MY_DISCORD_ID)
   }
 
   standUp() {
@@ -585,6 +607,12 @@ class CafeScene extends Phaser.Scene {
     this.currentSeat = null
     this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' })
     document.getElementById('focus-panel').classList.remove('visible')
+
+    // 清除座位
+    db.from('users').update({
+    seat_id: null,
+    status: 'browsing',
+    }).eq('discord_id', MY_DISCORD_ID)
   }
 
   async updateZone() {
