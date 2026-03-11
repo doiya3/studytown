@@ -345,13 +345,10 @@ class CafeScene extends Phaser.Scene {
     }
 
     // 定期重新加載玩家列表（每3秒），確保不會遺漏後進入的玩家
-    this.time.addEvent({
-      delay: 3000,
-      loop: true,
-      callback: () => {
-        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
-      }
-    })
+    const scene = this
+    this.reloadInterval = setInterval(() => {
+      scene.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
+    }, 3000)
 
     db.channel('cafe-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
@@ -752,6 +749,11 @@ class CafeScene extends Phaser.Scene {
     
     // 其他玩家座位狀態改變時，重新檢查附近座位
     this.nearSeat = null
+  }
+
+  shutdown() {
+    // 清理定時器
+    if (this.reloadInterval) clearInterval(this.reloadInterval)
   }
 }
 
