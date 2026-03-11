@@ -254,6 +254,7 @@ if (interaction.commandName === 'checkin') {
   if (interaction.commandName === 'study') {
     const action = interaction.options.getSubcommand()
     const zone = interaction.options.getString('zone')
+    console.log(`[/study ${action}] userId=${userId}, username=${username}`)
 
     await ensureUser(userId, username)
 
@@ -275,11 +276,13 @@ if (interaction.commandName === 'checkin') {
         return
       }
 
-      await supabase.from('study_sessions').insert({
+      const { error: insertError } = await supabase.from('study_sessions').insert({
         discord_id: userId,
         zone: zone,
         start_time: new Date().toISOString(),
       })
+
+      console.log(`[/study start] 已建立 session: userId=${userId}, zone=${zone}, insertError=${insertError}`)
 
       const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 6, '夜讀室': 4, '草地': null, '湖邊': null }
 const maxSeats = ZONE_SEATS[zone]
@@ -312,6 +315,8 @@ if (maxSeats !== null) {
     }
 
     if (action === 'end') {
+      console.log(`[/study end] userId=${userId}, 查詢進行中...`)
+      
       const { data: session, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
@@ -319,7 +324,10 @@ if (maxSeats !== null) {
         .is('end_time', null)
         .maybeSingle()
 
+      console.log(`[/study end] 查詢結果:`, { session, error: sessionError })
+
       if (!session) {
+        console.log(`[/study end] 未找到 session，userId=${userId}`)
         await interaction.editReply('❌ 你還沒開始專注喔！')
         return
       }
