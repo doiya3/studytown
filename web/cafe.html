@@ -484,40 +484,19 @@ class CafeScene extends Phaser.Scene {
       }
     }
 
-    Object.entries(this.otherTargets).forEach(([id, target]) => {
-  const sprite = this.otherPlayers[id]
-  if (!sprite) return
-  sprite.x += (target.x - sprite.x) * 0.2
-  sprite.y += (target.y - sprite.y) * 0.2
-  // label 跟著動
-  const label = this.playerLabels[id]
-  if (label) {
-    label.x += (target.x + TILE / 2 - label.x) * 0.2
-    label.y += (target.y - 2 - label.y) * 0.2
-  }
-    })
-
-    if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract()
-
-    this.checkNearby()
-
-    // 同步位置
-    this.syncTimer += delta
-    if (this.syncTimer > 1000) {
-      this.syncTimer = 0
-      db.from('users').update({
-        map_x: this.playerGx, map_y: this.playerGy,
-        map_scene: '咖啡廳', current_zone: '咖啡廳',
-      }).eq('discord_id', MY_DISCORD_ID)
-      .then(({ error }) => { if (error) console.error('sync error:', error) })
-    }
-
     // 插值移動
     Object.entries(this.otherTargets).forEach(([id, target]) => {
       const sprite = this.otherPlayers[id]
       if (!sprite) return
       sprite.x += (target.x - sprite.x) * 0.2
       sprite.y += (target.y - sprite.y) * 0.2
+      // label 跟著動
+      const label = this.playerLabels[id]
+      if (label) {
+        label.x += (target.x + TILE / 2 - label.x) * 0.2
+        label.y += (target.y - 2 - label.y) * 0.2
+      }
+    })
     })
   }
 
@@ -611,7 +590,7 @@ async tryInteract() {
   }
 }
 
-  sitDown(seat) {
+  async sitDown(seat) {
     this.seated = true
     this.currentSeat = seat
     this.playerGx = seat.x
@@ -622,11 +601,11 @@ async tryInteract() {
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
 
-    // 寫入座位佔用
-    db.from('users').update({
-    seat_id: seat.id,
-    status: 'studying',
-    current_zone: '咖啡廳',
+    // 寫入座位佔用（等待完成）
+    await db.from('users').update({
+      seat_id: seat.id,
+      status: 'studying',
+      current_zone: '咖啡廳',
     }).eq('discord_id', MY_DISCORD_ID)
   }
 
@@ -704,7 +683,6 @@ async tryInteract() {
 
     if (this.otherPlayers[user.discord_id]) {
       this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
-      this.playerLabels[user.discord_id]?.setPosition(gx * TILE + TILE / 2, gy * TILE - 2)
     } else {
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)

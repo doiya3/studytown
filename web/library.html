@@ -682,7 +682,14 @@ class LibraryScene extends Phaser.Scene {
       if (!sprite) return
       sprite.x += (target.x - sprite.x) * 0.05
       sprite.y += (target.y - sprite.y) * 0.05
-})
+      
+      // 名字也要同步插值移動
+      const label = this.playerLabels[id]
+      if (label) {
+        label.x += (target.x + TILE / 2 - label.x) * 0.05
+        label.y += (target.y - 2 - label.y) * 0.05
+      }
+    })
   }
 
   checkNearbySeat() {
@@ -770,7 +777,7 @@ class LibraryScene extends Phaser.Scene {
     }
   }
 
-  sitDown(seat) {
+  async sitDown(seat) {
     this.seated = true
     this.currentSeat = seat
     this.playerGx = seat.x
@@ -790,8 +797,8 @@ class LibraryScene extends Phaser.Scene {
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
 
-    // 寫入座位佔用
-    db.from('users').update({
+    // 寫入座位佔用（等待完成）
+    await db.from('users').update({
       seat_id: seat.id,
       status: 'studying',
       current_zone: '圖書館',
@@ -882,7 +889,6 @@ class LibraryScene extends Phaser.Scene {
   if (this.otherPlayers[user.discord_id]) {
     // 存目標位置，讓 update() 插值移動
     this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
-    this.playerLabels[user.discord_id]?.setPosition(gx * TILE + TILE / 2, gy * TILE - 2)
   } else {
     // 新玩家加入
     const g = this.add.graphics()
