@@ -111,130 +111,33 @@
 
   /* 番茄鐘面板 */
   #focus-panel {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 200px;
-    background: rgba(13, 17, 23, 0.95);
-    border: 1px solid rgba(78, 205, 196, 0.3);
-    border-radius: 16px;
-    padding: 16px;
-    z-index: 100;
-    display: none;
+    position: fixed; bottom: 20px; right: 20px; width: 215px;
+    background: rgba(13,17,23,0.95); border: 1px solid rgba(78,205,196,0.3);
+    border-radius: 16px; padding: 16px; z-index: 100; display: none;
     backdrop-filter: blur(10px);
   }
-
-  #focus-panel.visible {
-    display: block;
-    animation: slideIn 0.3s ease;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  #focus-panel h3 {
-    font-family: 'DotGothic16', monospace;
-    color: #4ecdc4;
-    font-size: 0.8rem;
-    margin-bottom: 12px;
-    text-align: center;
-    letter-spacing: 0.1em;
-  }
-
-  #focus-timer {
-    font-family: 'DotGothic16', monospace;
-    font-size: 2.2rem;
-    color: #eaeaea;
-    text-align: center;
-    margin: 8px 0;
-    letter-spacing: 0.05em;
-  }
-
-  #focus-timer.running {
-    color: #4ecdc4;
-  }
-
-  #focus-timer.finished {
-    color: #f5a623;
-    animation: pulse 1s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  .focus-presets {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .preset-btn {
-    flex: 1;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #8892a4;
-    padding: 4px 0;
-    border-radius: 8px;
-    font-size: 0.72rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Noto Sans TC', sans-serif;
-  }
-
-  .preset-btn:hover, .preset-btn.active {
-    background: rgba(78, 205, 196, 0.15);
-    border-color: rgba(78, 205, 196, 0.4);
-    color: #4ecdc4;
-  }
-
-  .focus-controls {
-    display: flex;
-    gap: 6px;
-  }
-
-  .ctrl-btn {
-    flex: 1;
-    padding: 7px 0;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.78rem;
-    font-family: 'Noto Sans TC', sans-serif;
-    font-weight: 700;
-    transition: all 0.2s;
-  }
-
-  #btn-start {
-    background: linear-gradient(135deg, #4ecdc4, #45b7d1);
-    color: #0d1117;
-  }
-
-  #btn-start:hover {
-    opacity: 0.85;
-    transform: translateY(-1px);
-  }
-
-  #btn-stop {
-    background: rgba(233, 69, 96, 0.2);
-    border: 1px solid rgba(233, 69, 96, 0.3);
-    color: #e94560;
-  }
-
-  #btn-stop:hover {
-    background: rgba(233, 69, 96, 0.3);
-  }
-
-  #focus-seat {
-    text-align: center;
-    font-size: 0.72rem;
-    color: #8892a4;
-    margin-bottom: 8px;
-  }
+  #focus-panel.visible { display: block; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  #focus-panel h3 { font-family: 'DotGothic16', monospace; color: #4ecdc4; font-size: 0.8rem; margin-bottom: 8px; text-align: center; }
+  #focus-seat { text-align: center; font-size: 0.72rem; color: #8892a4; margin-bottom: 8px; }
+  #pomo-settings { margin-bottom: 8px; }
+  .pomo-row { display: flex; align-items: center; gap: 4px; margin-bottom: 5px; }
+  .pomo-row label { color: #8892a4; font-size: 0.68rem; min-width: 38px; }
+  .pomo-row input { width: 38px; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: #eaeaea; font-size: 0.72rem; padding: 2px 4px; text-align: center; font-family: 'DotGothic16', monospace; }
+  .pomo-row span { color: #8892a4; font-size: 0.66rem; }
+  #pomo-phase { text-align: center; font-size: 0.76rem; color: #4ecdc4; font-family: 'DotGothic16', monospace; margin: 4px 0 2px; }
+  #pomo-dots { text-align: center; font-size: 0.85rem; letter-spacing: 2px; min-height: 1.2em; margin-bottom: 2px; }
+  #focus-timer { font-family: 'DotGothic16', monospace; font-size: 2.2rem; color: #eaeaea; text-align: center; margin: 6px 0; }
+  #focus-timer.running { color: #4ecdc4; }
+  #focus-timer.break-mode { color: #f5a623; }
+  #focus-timer.finished { color: #e94560; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  #pomo-xp-preview { text-align: center; font-size: 0.66rem; color: #8892a4; min-height: 1em; margin-bottom: 6px; }
+  .focus-controls { display: flex; gap: 6px; }
+  .ctrl-btn { flex: 1; padding: 7px 0; border-radius: 10px; border: none; cursor: pointer; font-size: 0.78rem; font-family: 'Noto Sans TC', sans-serif; font-weight: 700; transition: all 0.2s; }
+  #btn-start { background: linear-gradient(135deg, #4ecdc4, #45b7d1); color: #0d1117; }
+  #btn-start:hover { opacity: 0.85; transform: translateY(-1px); }
+  #btn-stop { background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.3); color: #e94560; }
 
   /* 控制提示 */
   #controls-hint {
@@ -294,12 +197,17 @@
 <div id="focus-panel">
   <h3>📚 專注模式</h3>
   <div id="focus-seat">座位 #1</div>
-  <div id="focus-timer">25:00</div>
-  <div class="focus-presets">
-    <button class="preset-btn active" data-min="25">25分</button>
-    <button class="preset-btn" data-min="50">50分</button>
-    <button class="preset-btn" data-min="90">90分</button>
+  <div id="pomo-settings">
+    <div class="pomo-row"><label>學習</label><input type="number" id="pomo-work" value="25" min="1" max="120"><span>分鐘</span></div>
+    <div class="pomo-row"><label>短休息</label><input type="number" id="pomo-break" value="5" min="1" max="60"><span>分鐘</span></div>
+    <div class="pomo-row"><label>長休息</label><input type="number" id="pomo-long-break" value="15" min="1" max="60"><span>分鐘</span></div>
+    <div class="pomo-row"><label>每幾輪</label><input type="number" id="pomo-long-after" value="4" min="1" max="10"><span>輪長休</span></div>
+    <div class="pomo-row"><label>目標</label><input type="number" id="pomo-rounds" value="4" min="1" max="20"><span>輪</span></div>
   </div>
+  <div id="pomo-phase">準備開始</div>
+  <div id="pomo-dots"></div>
+  <div id="focus-timer">25:00</div>
+  <div id="pomo-xp-preview"></div>
   <div class="focus-controls">
     <button class="ctrl-btn" id="btn-start">開始</button>
     <button class="ctrl-btn" id="btn-stop">離開</button>
@@ -1025,125 +933,170 @@ document.getElementById('hud-back').addEventListener('click', async (e) => {
   window.location.href = 'index.html'
 })
 
-// 番茄鐘邏輯
-let timerInterval = null
+// ─── 番茄鐘邏輯 ────────────────────────────────────────
 let isExiting = false
-let totalSeconds = 25 * 60
-let remainSeconds = totalSeconds
-let isRunning = false
-let selectedMin = 25
+
+const pomo = {
+  workMin: 25, breakMin: 5, longBreakMin: 15,
+  longAfter: 4, targetRounds: 4,
+  round: 0, phase: 'idle',
+  remainSec: 0, sessionStart: null, interval: null, running: false,
+}
 
 function formatTime(sec) {
-  const m = Math.floor(sec / 60).toString().padStart(2, '0')
-  const s = (sec % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
+  return `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`
 }
 
-document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (isRunning) return
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
-    selectedMin = parseInt(btn.dataset.min)
-    totalSeconds = selectedMin * 60
-    remainSeconds = totalSeconds
-    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
-    document.getElementById('focus-timer').className = ''
-  })
-})
+function readPomoSettings() {
+  pomo.workMin      = Math.max(1, parseInt(document.getElementById('pomo-work').value) || 25)
+  pomo.breakMin     = Math.max(1, parseInt(document.getElementById('pomo-break').value) || 5)
+  pomo.longBreakMin = Math.max(1, parseInt(document.getElementById('pomo-long-break').value) || 15)
+  pomo.longAfter    = Math.max(1, parseInt(document.getElementById('pomo-long-after').value) || 4)
+  pomo.targetRounds = Math.max(1, parseInt(document.getElementById('pomo-rounds').value) || 4)
+}
 
-document.getElementById('btn-start').addEventListener('click', async () => {
-  if (isRunning) return
-  isRunning = true
-  document.getElementById('focus-timer').classList.add('running')
+function updatePomoDots() {
+  document.getElementById('pomo-dots').innerHTML =
+    Array.from({length: pomo.targetRounds}, (_, i) => {
+      if (i < pomo.round) return '🍅'
+      if (i === pomo.round && pomo.phase === 'work') return '⏳'
+      return '○'
+    }).join('')
+}
+
+function updatePomoPhase() {
+  const labels = { idle:'準備開始', work:'🍅 學習中', break:'☕ 短休息', longbreak:'🌙 長休息' }
+  document.getElementById('pomo-phase').textContent = labels[pomo.phase] || ''
+  const t = document.getElementById('focus-timer')
+  if (pomo.phase === 'work') t.className = 'running'
+  else if (pomo.phase === 'break' || pomo.phase === 'longbreak') t.className = 'break-mode'
+  else t.className = ''
+}
+
+function updateXpPreview() {
+  const el = document.getElementById('pomo-xp-preview')
+  if (pomo.phase === 'work' && pomo.sessionStart) {
+    const elapsed = Math.floor((Date.now() - pomo.sessionStart) / 60000)
+    el.textContent = `已計 ${elapsed} 分 · 暫得 ${elapsed * 2} XP`
+  } else if (pomo.phase === 'idle') {
+    el.textContent = `完成1輪可得 ${(pomo.workMin * 2) + 20} XP`
+  } else {
+    el.textContent = ''
+  }
+}
+
+function startPomoCountdown(seconds, onComplete) {
+  clearInterval(pomo.interval)
+  pomo.remainSec = seconds
+  document.getElementById('focus-timer').textContent = formatTime(pomo.remainSec)
+  pomo.interval = setInterval(() => {
+    pomo.remainSec--
+    document.getElementById('focus-timer').textContent = formatTime(pomo.remainSec)
+    if (pomo.phase === 'work') updateXpPreview()
+    if (pomo.remainSec <= 0) { clearInterval(pomo.interval); onComplete() }
+  }, 1000)
+}
+
+async function pomoStartWorkPhase() {
+  pomo.phase = 'work'
+  pomo.running = true
+  pomo.sessionStart = new Date()
+  document.getElementById('pomo-settings').style.display = 'none'
   document.getElementById('btn-start').textContent = '進行中...'
   document.getElementById('btn-start').disabled = true
-
-  // 開始計時才登錄資料庫 + 設為專注中
+  updatePomoPhase()
+  updatePomoDots()
   await Promise.all([
-    db.from('study_sessions').insert({
-      discord_id: MY_DISCORD_ID,
-      zone: '圖書館',
-      start_time: new Date().toISOString(),
-    }),
+    db.from('study_sessions').insert({ discord_id: MY_DISCORD_ID, zone: '圖書館', start_time: pomo.sessionStart.toISOString() }),
     db.from('users').update({ status: 'studying' }).eq('discord_id', MY_DISCORD_ID),
-  ]);
-
-  timerInterval = setInterval(async () => {
-    remainSeconds--
-    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
-
-    if (remainSeconds <= 0) {
-      clearInterval(timerInterval)
-      isRunning = false
-      document.getElementById('focus-timer').className = 'finished'
-      document.getElementById('focus-timer').textContent = '時間到！'
-      document.getElementById('btn-start').textContent = '開始'
-      document.getElementById('btn-start').disabled = false
-
-      // 結算 XP
-      await endStudySession(selectedMin)
-    }
-  }, 1000)
-
-  // 開始 study session
-  startStudySession()
-})
-
-document.getElementById('btn-stop').addEventListener('click', async () => {
-  if (timerInterval) clearInterval(timerInterval)
-  isRunning = false
-  remainSeconds = totalSeconds
-  document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
-  document.getElementById('focus-timer').className = ''
-  document.getElementById('btn-start').textContent = '開始'
-  document.getElementById('btn-start').disabled = false
-
-  // 停止計時：回到 browsing（仍在座位），standUp 才真正離座
-  await db.from('users').update({ status: 'browsing' }).eq('discord_id', MY_DISCORD_ID)
-  // 離開座位
-  await game.scene.getScene('Library').standUp()
-})
-
-async function startStudySession() {
-  await db.from('study_sessions').insert({
-    discord_id: MY_DISCORD_ID,
-    zone: '圖書館',
-    start_time: new Date().toISOString(),
-  });
+  ])
+  startPomoCountdown(pomo.workMin * 60, pomoOnWorkComplete)
 }
 
-async function endStudySession(minutes) {
-  const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5)
+async function pomoOnWorkComplete() {
+  pomo.round++
+  await pomoSaveSession(true)
+  updatePomoDots()
+  if (pomo.round >= pomo.targetRounds) { await pomoFinishAll(); return }
+  if (pomo.round % pomo.longAfter === 0) pomoStartBreak('longbreak', pomo.longBreakMin)
+  else pomoStartBreak('break', pomo.breakMin)
+}
 
-  const { data: session } = await db
-    .from('study_sessions')
-    .select('*')
-    .eq('discord_id', MY_DISCORD_ID)
-    .is('end_time', null)
-    .order('start_time', { ascending: false })
-    .limit(1)
-    .single();
+function pomoStartBreak(type, minutes) {
+  pomo.phase = type
+  updatePomoPhase()
+  updatePomoDots()
+  updateXpPreview()
+  startPomoCountdown(minutes * 60, pomoStartWorkPhase)
+}
 
+async function pomoFinishAll() {
+  pomo.phase = 'idle'
+  pomo.running = false
+  const doneRounds = pomo.round
+  pomo.round = 0
+  document.getElementById('focus-timer').textContent = '🎉 完成！'
+  document.getElementById('focus-timer').className = 'finished'
+  document.getElementById('pomo-phase').textContent = `全 ${doneRounds} 輪完成！`
+  document.getElementById('pomo-dots').innerHTML = '🍅'.repeat(doneRounds)
+  document.getElementById('pomo-xp-preview').textContent = ''
+  document.getElementById('pomo-settings').style.display = 'block'
+  document.getElementById('btn-start').textContent = '再來一輪'
+  document.getElementById('btn-start').disabled = false
+}
+
+async function pomoSaveSession(completed) {
+  const now = new Date()
+  const elapsedMin = Math.max(1, Math.floor((now - pomo.sessionStart) / 60000))
+  const minutes = completed ? pomo.workMin : elapsedMin
+  const xp = Math.round(minutes * 2) + (completed ? 20 : 0)
+  const { data: session } = await db.from('study_sessions').select('*')
+    .eq('discord_id', MY_DISCORD_ID).is('end_time', null)
+    .order('start_time', { ascending: false }).limit(1).single()
   if (session) {
     await db.from('study_sessions').update({
-      end_time: new Date().toISOString(),
-      duration_minutes: minutes,
-      xp_earned: xp,
-    }).eq('id', session.id);
-
-    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single();
+      end_time: now.toISOString(), duration_minutes: minutes, xp_earned: xp,
+    }).eq('id', session.id)
+    const { data: user } = await db.from('users').select('xp, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
     if (user) {
-      const newXp = (user.xp || 0) + xp
-      const newMin = (user.total_minutes || 0) + minutes
       await db.from('users').update({
-        xp: newXp,
-        total_minutes: newMin,
-        status: 'browsing', // 計時結束，仍在座位上
-      }).eq('discord_id', MY_DISCORD_ID);
+        xp: (user.xp || 0) + xp,
+        total_minutes: (user.total_minutes || 0) + minutes,
+        status: 'browsing',
+      }).eq('discord_id', MY_DISCORD_ID)
     }
   }
 }
+
+document.getElementById('btn-start').addEventListener('click', async () => {
+  if (pomo.running) return
+  readPomoSettings()
+  pomo.round = 0
+  updatePomoDots()
+  updateXpPreview()
+  await pomoStartWorkPhase()
+})
+
+document.getElementById('btn-stop').addEventListener('click', async () => {
+  clearInterval(pomo.interval)
+  const wasInWork = pomo.phase === 'work' && pomo.sessionStart
+  if (wasInWork) await pomoSaveSession(false)
+  pomo.phase = 'idle'
+  pomo.running = false
+  pomo.round = 0
+  pomo.sessionStart = null
+  const workMin = parseInt(document.getElementById('pomo-work').value) || 25
+  document.getElementById('focus-timer').textContent = formatTime(workMin * 60)
+  document.getElementById('focus-timer').className = ''
+  document.getElementById('pomo-phase').textContent = '準備開始'
+  document.getElementById('pomo-dots').innerHTML = ''
+  document.getElementById('pomo-xp-preview').textContent = ''
+  document.getElementById('pomo-settings').style.display = 'block'
+  document.getElementById('btn-start').textContent = '開始'
+  document.getElementById('btn-start').disabled = false
+  if (!wasInWork) await db.from('users').update({ status: 'browsing' }).eq('discord_id', MY_DISCORD_ID)
+  await game.scene.getScene('Library').standUp()
+})
 </script>
 
 </body>
