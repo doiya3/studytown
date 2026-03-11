@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 圖書館 — Study Town</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d1117;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Noto Sans TC', sans-serif;
+    overflow: hidden;
+  }
+
+  /* 頂部 HUD */
+  #hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: rgba(13, 17, 23, 0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  #hud-title {
+    font-family: 'DotGothic16', monospace;
+    color: #4ecdc4;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+
+  #hud-player {
+    color: #eaeaea;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #hud-zone {
+    color: #8892a4;
+    font-size: 0.75rem;
+    margin-left: auto;
+  }
+
+  #hud-back {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #8892a4;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  #hud-back:hover {
+    background: rgba(255,255,255,0.12);
+    color: #eaeaea;
+  }
+
+  /* 遊戲畫布 */
+  #game-container {
+    margin-top: 48px;
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  /* 互動提示 */
+  #interaction-hint {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(13, 17, 23, 0.9);
+    border: 1px solid rgba(78, 205, 196, 0.4);
+    border-radius: 12px;
+    padding: 8px 20px;
+    color: #4ecdc4;
+    font-size: 0.8rem;
+    font-family: 'DotGothic16', monospace;
+    letter-spacing: 0.05em;
+    display: none;
+    z-index: 100;
+    animation: float 2s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-4px); }
+  }
+
+  /* 番茄鐘面板 */
+  #focus-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    background: rgba(13, 17, 23, 0.95);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+    z-index: 100;
+    display: none;
+    backdrop-filter: blur(10px);
+  }
+
+  #focus-panel.visible {
+    display: block;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #focus-panel h3 {
+    font-family: 'DotGothic16', monospace;
+    color: #4ecdc4;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  #focus-timer {
+    font-family: 'DotGothic16', monospace;
+    font-size: 2.2rem;
+    color: #eaeaea;
+    text-align: center;
+    margin: 8px 0;
+    letter-spacing: 0.05em;
+  }
+
+  #focus-timer.running {
+    color: #4ecdc4;
+  }
+
+  #focus-timer.finished {
+    color: #f5a623;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .focus-presets {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #8892a4;
+    padding: 4px 0;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  .preset-btn:hover, .preset-btn.active {
+    background: rgba(78, 205, 196, 0.15);
+    border-color: rgba(78, 205, 196, 0.4);
+    color: #4ecdc4;
+  }
+
+  .focus-controls {
+    display: flex;
+    gap: 6px;
+  }
+
+  .ctrl-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+
+  #btn-start {
+    background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+    color: #0d1117;
+  }
+
+  #btn-start:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+
+  #btn-stop {
+    background: rgba(233, 69, 96, 0.2);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    color: #e94560;
+  }
+
+  #btn-stop:hover {
+    background: rgba(233, 69, 96, 0.3);
+  }
+
+  #focus-seat {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #8892a4;
+    margin-bottom: 8px;
+  }
+
+  /* 控制提示 */
+  #controls-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(13, 17, 23, 0.7);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    color: #4a5568;
+    z-index: 100;
+    line-height: 1.8;
+  }
+
+  /* 玩家數 */
+  #player-count {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: #8892a4;
+    z-index: 100;
+  }
+
+  #player-count span {
+    color: #4ecdc4;
+    font-family: 'DotGothic16', monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-title">🏫 圖書館</div>
+  <div id="hud-player">
+    <span id="hud-avatar">🐱</span>
+    <span id="hud-username">載入中...</span>
+  </div>
+  <div id="hud-zone">📍 圖書館</div>
+  <a href="index.html" id="hud-back">← 回小鎮</a>
+</div>
+
+<!-- 遊戲容器 -->
+<div id="game-container"></div>
+
+<!-- 互動提示 -->
+<div id="interaction-hint">按 E 坐下來讀書</div>
+
+<!-- 番茄鐘面板 -->
+<div id="focus-panel">
+  <h3>📚 專注模式</h3>
+  <div id="focus-seat">座位 #1</div>
+  <div id="focus-timer">25:00</div>
+  <div class="focus-presets">
+    <button class="preset-btn active" data-min="25">25分</button>
+    <button class="preset-btn" data-min="50">50分</button>
+    <button class="preset-btn" data-min="90">90分</button>
+  </div>
+  <div class="focus-controls">
+    <button class="ctrl-btn" id="btn-start">開始</button>
+    <button class="ctrl-btn" id="btn-stop">離開</button>
+  </div>
+</div>
+
+<!-- 控制提示 -->
+<div id="controls-hint">
+  WASD 移動<br>
+  E 互動<br>
+  點擊地板移動
+</div>
+
+<!-- 玩家數 -->
+<div id="player-count">圖書館：<span id="online-count">1</span> 人</div>
+
+<!-- Phaser -->
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ==========================================
+// 🔧 填入你的 Supabase 設定
+const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
+// 暫時填入你的 Discord ID 和使用者名稱（之後會改成 OAuth 登入）
+const MY_DISCORD_ID = '943022361651847219'
+const MY_USERNAME = 'bear.nishi'
+const MY_AVATAR = 'bear' // 你的 avatar
+// ==========================================
+
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const avatarEmoji = {
+  cat: '🐱', dog: '🐶', bear: '🐻',
+  rabbit: '🐰', fox: '🦊', panda: '🐼',
+  frog: '🐸', penguin: '🐧'
+}
+
+// 更新 HUD
+document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+document.getElementById('hud-username').textContent = MY_USERNAME
+
+// 地圖設定
+const TILE = 48        // 每格像素
+const COLS = 16        // 地圖寬度（格）
+const ROWS = 12        // 地圖高度（格）
+const W = TILE * COLS  // 768px
+const H = TILE * ROWS  // 576px
+
+// 顏色
+const COLORS = {
+  floor:      0x2d4a3e,  // 深綠地板
+  floor2:     0x2a4538,  // 地板深色格
+  wall:       0x1a2e25,  // 牆壁
+  shelf:      0x4a3728,  // 書架棕色
+  shelfBook:  0x8b5e3c,  // 書架書本
+  desk:       0x5c4a3a,  // 桌子
+  chair:      0x7c6a5a,  // 椅子
+  window:     0x6ca0dc,  // 窗戶
+  carpet:     0x3d5a4a,  // 地毯
+  lamp:       0xf5e642,  // 燈光
+  door:       0x8b7355,  // 門
+  playerSelf: 0x4ecdc4,  // 自己的角色
+  playerOther:0xe94560,  // 其他玩家
+}
+
+// 座位定義（格座標）
+const SEATS = [
+  { id: 1, x: 4, y: 5 },
+  { id: 2, x: 6, y: 5 },
+  { id: 3, x: 8, y: 5 },
+  { id: 4, x: 10, y: 5 },
+  { id: 5, x: 4, y: 8 },
+  { id: 6, x: 6, y: 8 },
+  { id: 7, x: 8, y: 8 },
+  { id: 8, x: 10, y: 8 },
+]
+
+// 碰撞格（格座標）
+const BLOCKED = new Set()
+function blockRect(x, y, w, h) {
+  for (let i = x; i < x + w; i++)
+    for (let j = y; j < y + h; j++)
+      BLOCKED.add(`${i},${j}`)
+}
+
+// 書架
+blockRect(1, 1, 14, 2)   // 上方書架
+blockRect(1, 1, 1, 9)    // 左側書架
+blockRect(14, 1, 1, 9)   // 右側書架
+
+// 桌子（桌子本身擋住，但旁邊座位不擋）
+for (const seat of SEATS) {
+  BLOCKED.add(`${seat.x},${seat.y - 1}`) // 桌子在座位上方
+}
+
+function isBlocked(gx, gy) {
+  return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS
+}
+
+// Phaser 場景
+class LibraryScene extends Phaser.Scene {
+  constructor() {
+    super('Library')
+    this.player = null
+    this.playerGx = 8
+    this.playerGy = 10
+    this.otherPlayers = {}
+    this.nearSeat = null
+    this.seated = false
+    this.currentSeat = null
+    this.moveTarget = null
+    this.graphics = null
+    this.playerLabels = {}
+  }
+
+  create() {
+    this.graphics = this.add.graphics()
+    this.drawMap()
+
+    // 玩家
+    this.player = this.add.graphics()
+    this.drawPlayer(this.player, COLORS.playerSelf, avatarEmoji[MY_AVATAR] || '🐻')
+    this.updatePlayerPos()
+
+    // 玩家名稱
+    this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
+      fontSize: '10px',
+      fontFamily: 'Noto Sans TC',
+      color: '#4ecdc4',
+      stroke: '#0d1117',
+      strokeThickness: 3,
+    }).setOrigin(0.5, 1)
+
+    // 鍵盤
+    this.cursors = this.input.keyboard.createCursorKeys()
+    this.wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      interact: Phaser.Input.Keyboard.KeyCodes.E,
+    })
+
+    // 點擊移動
+    this.input.on('pointerdown', (pointer) => {
+      if (this.seated) return
+      const gx = Math.floor(pointer.x / TILE)
+      const gy = Math.floor(pointer.y / TILE)
+      if (!isBlocked(gx, gy)) {
+        this.moveTarget = { x: gx, y: gy }
+      }
+    })
+
+    // 移動計時
+    this.moveTimer = 0
+    this.moveDelay = 150
+
+    // 同步計時
+    this.syncTimer = 0
+
+    // 更新 Supabase 位置
+    this.updateZone()
+
+    // 載入其他玩家
+    this.loadOtherPlayers()
+    setInterval(() => this.loadOtherPlayers(), 5000)
+  }
+
+  drawMap() {
+    const g = this.graphics
+
+    // 地板（棋盤格）
+    for (let x = 0; x < COLS; x++) {
+      for (let y = 0; y < ROWS; y++) {
+        const color = (x + y) % 2 === 0 ? COLORS.floor : COLORS.floor2
+        g.fillStyle(color)
+        g.fillRect(x * TILE, y * TILE, TILE, TILE)
+      }
+    }
+
+    // 地毯（中間走道）
+    g.fillStyle(COLORS.carpet)
+    for (let x = 3; x < 13; x++) {
+      for (let y = 3; y < 10; y++) {
+        g.fillRect(x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4)
+      }
+    }
+
+    // 上方書架
+    for (let x = 1; x < 15; x++) {
+      g.fillStyle(COLORS.shelf)
+      g.fillRect(x * TILE, TILE, TILE, TILE * 2)
+      // 書本裝飾
+      for (let b = 0; b < 3; b++) {
+        g.fillStyle(0x6b4226 + b * 0x111111)
+        g.fillRect(x * TILE + b * 14 + 2, TILE + 4, 10, TILE * 2 - 8)
+      }
+    }
+
+    // 左側書架
+    for (let y = 1; y < 10; y++) {
+      g.fillStyle(COLORS.shelf)
+      g.fillRect(TILE, y * TILE, TILE, TILE)
+      g.fillStyle(COLORS.shelfBook)
+      g.fillRect(TILE + 4, y * TILE + 4, 8, TILE - 8)
+    }
+
+    // 右側書架
+    for (let y = 1; y < 10; y++) {
+      g.fillStyle(COLORS.shelf)
+      g.fillRect(14 * TILE, y * TILE, TILE, TILE)
+      g.fillStyle(COLORS.shelfBook)
+      g.fillRect(14 * TILE + 4, y * TILE + 4, 8, TILE - 8)
+    }
+
+    // 桌子和椅子
+    for (const seat of SEATS) {
+      // 桌子（座位上方一格）
+      g.fillStyle(COLORS.desk)
+      g.fillRect(seat.x * TILE + 2, (seat.y - 1) * TILE + 2, TILE - 4, TILE - 4)
+      // 桌面裝飾（書本）
+      g.fillStyle(0x8b5e3c)
+      g.fillRect(seat.x * TILE + 8, (seat.y - 1) * TILE + 8, 20, 14)
+      g.fillStyle(0xf5e642, 0.3)
+      g.fillRect(seat.x * TILE + 30, (seat.y - 1) * TILE + 10, 10, 8) // 檯燈光
+
+      // 椅子
+      g.fillStyle(COLORS.chair)
+      g.fillRect(seat.x * TILE + 6, seat.y * TILE + 6, TILE - 12, TILE - 12)
+      // 椅子中心
+      g.fillStyle(0x9b8a7a)
+      g.fillRect(seat.x * TILE + 12, seat.y * TILE + 12, TILE - 24, TILE - 24)
+    }
+
+    // 窗戶（上方書架間）
+    g.fillStyle(COLORS.window)
+    g.fillRect(6 * TILE + 4, 4, TILE * 2 - 8, 8)
+    g.fillRect(10 * TILE + 4, 4, TILE * 2 - 8, 8)
+
+    // 門（下方中間）
+    g.fillStyle(COLORS.door)
+    g.fillRect(7 * TILE + 4, 11 * TILE, TILE * 2 - 8, TILE)
+    g.fillStyle(0xc9a87c)
+    g.fillRect(8 * TILE, 11 * TILE + 4, TILE - 4, TILE - 8)
+
+    // 燈光效果（暈染）
+    for (const seat of SEATS) {
+      g.fillStyle(0xf5e642, 0.06)
+      g.fillCircle(seat.x * TILE + TILE / 2, (seat.y - 1) * TILE, TILE * 1.2)
+    }
+
+    // 格線（淡）
+    g.lineStyle(1, 0xffffff, 0.03)
+    for (let x = 0; x <= COLS; x++) {
+      g.lineBetween(x * TILE, 0, x * TILE, H)
+    }
+    for (let y = 0; y <= ROWS; y++) {
+      g.lineBetween(0, y * TILE, W, y * TILE)
+    }
+  }
+
+  drawPlayer(g, color, emoji) {
+    g.clear()
+    // 陰影
+    g.fillStyle(0x000000, 0.3)
+    g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8)
+    // 身體
+    g.fillStyle(color, 0.9)
+    g.fillCircle(TILE / 2, TILE / 2 - 2, 14)
+    // 高光
+    g.fillStyle(0xffffff, 0.3)
+    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5)
+  }
+
+  updatePlayerPos() {
+    const px = this.playerGx * TILE
+    const py = this.playerGy * TILE
+    this.player.setPosition(px, py)
+    if (this.playerLabel) {
+      this.playerLabel.setPosition(px + TILE / 2, py - 2)
+    }
+  }
+
+  update(time, delta) {
+    if (this.seated) return
+
+    this.moveTimer += delta
+
+    if (this.moveTimer >= this.moveDelay) {
+      let moved = false
+      let nx = this.playerGx
+      let ny = this.playerGy
+
+      // 鍵盤移動
+      if (this.cursors.left.isDown || this.wasd.left.isDown) {
+        nx--; moved = true
+      } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
+        nx++; moved = true
+      } else if (this.cursors.up.isDown || this.wasd.up.isDown) {
+        ny--; moved = true
+      } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
+        ny++; moved = true
+      }
+
+      // 點擊移動
+      if (!moved && this.moveTarget) {
+        const dx = this.moveTarget.x - this.playerGx
+        const dy = this.moveTarget.y - this.playerGy
+        if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            nx = this.playerGx + Math.sign(dx)
+          } else {
+            ny = this.playerGy + Math.sign(dy)
+          }
+          moved = true
+          if (nx === this.moveTarget.x && ny === this.moveTarget.y) {
+            this.moveTarget = null
+          }
+        } else {
+          this.moveTarget = null
+        }
+      }
+
+      if (moved && !isBlocked(nx, ny)) {
+        this.playerGx = nx
+        this.playerGy = ny
+        this.updatePlayerPos()
+        this.moveTimer = 0
+      }
+    }
+
+    // E 鍵互動
+    if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) {
+      this.tryInteract()
+    }
+
+    // 檢查附近座位
+    this.checkNearbySeat()
+
+    // 同步位置到 Supabase
+    this.syncTimer += delta
+    if (this.syncTimer > 3000) {
+      this.syncTimer = 0
+    }
+  }
+
+  checkNearbySeat() {
+    let found = null
+    for (const seat of SEATS) {
+      const dx = Math.abs(this.playerGx - seat.x)
+      const dy = Math.abs(this.playerGy - seat.y)
+      if (dx <= 1 && dy <= 1) {
+        found = seat
+        break
+      }
+    }
+
+    if (found !== this.nearSeat) {
+      this.nearSeat = found
+      const hint = document.getElementById('interaction-hint')
+      if (found && !this.seated) {
+        hint.textContent = `按 E 坐下來讀書（座位 #${found.id}）`
+        hint.style.display = 'block'
+      } else if (!this.seated) {
+        hint.style.display = 'none'
+      }
+    }
+  }
+
+  tryInteract() {
+    if (this.nearSeat && !this.seated) {
+      this.sitDown(this.nearSeat)
+    }
+  }
+
+  sitDown(seat) {
+    this.seated = true
+    this.currentSeat = seat
+    this.playerGx = seat.x
+    this.playerGy = seat.y
+    this.updatePlayerPos()
+
+    // 坐下動畫（縮小）
+    this.tweens.add({
+      targets: this.player,
+      scaleX: 0.85,
+      scaleY: 0.85,
+      duration: 200,
+      ease: 'Power2'
+    })
+
+    document.getElementById('interaction-hint').style.display = 'none'
+    document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
+    document.getElementById('focus-panel').classList.add('visible')
+  }
+
+  standUp() {
+    this.seated = false
+    this.currentSeat = null
+
+    this.tweens.add({
+      targets: this.player,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 200,
+      ease: 'Power2'
+    })
+
+    document.getElementById('focus-panel').classList.remove('visible')
+  }
+
+  async updateZone() {
+    await db.from('users').update({ current_zone: '圖書館' }).eq('discord_id', MY_DISCORD_ID)
+  }
+
+  async loadOtherPlayers() {
+    const { data: users } = await db
+      .from('users')
+      .select('discord_id, username, current_zone, avatar')
+      .eq('current_zone', '圖書館')
+      .neq('discord_id', MY_DISCORD_ID)
+
+    // 清除舊玩家
+    Object.values(this.otherPlayers).forEach(p => p.destroy())
+    Object.values(this.playerLabels).forEach(l => l.destroy())
+    this.otherPlayers = {}
+    this.playerLabels = {}
+
+    const count = (users?.length || 0) + 1
+    document.getElementById('online-count').textContent = count
+
+    if (!users) return
+    users.forEach((user, i) => {
+      const gx = 5 + (i % 4) * 2
+      const gy = 6
+      const g = this.add.graphics()
+      g.fillStyle(COLORS.playerOther, 0.8)
+      g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
+      g.setPosition(gx * TILE, gy * TILE)
+      this.otherPlayers[user.discord_id] = g
+
+      const label = this.add.text(
+        gx * TILE + TILE / 2,
+        gy * TILE - 2,
+        user.username,
+        { fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#e94560', stroke: '#0d1117', strokeThickness: 3 }
+      ).setOrigin(0.5, 1)
+      this.playerLabels[user.discord_id] = label
+    })
+  }
+}
+
+// 初始化 Phaser
+const config = {
+  type: Phaser.AUTO,
+  width: W,
+  height: H,
+  parent: 'game-container',
+  backgroundColor: '#1a2e25',
+  scene: LibraryScene,
+  pixelArt: true,
+  antialias: false,
+}
+
+const game = new Phaser.Game(config)
+
+// 番茄鐘邏輯
+let timerInterval = null
+let totalSeconds = 25 * 60
+let remainSeconds = totalSeconds
+let isRunning = false
+let selectedMin = 25
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0')
+  const s = (sec % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (isRunning) return
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    selectedMin = parseInt(btn.dataset.min)
+    totalSeconds = selectedMin * 60
+    remainSeconds = totalSeconds
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+    document.getElementById('focus-timer').className = ''
+  })
+})
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (isRunning) return
+  isRunning = true
+  document.getElementById('focus-timer').classList.add('running')
+  document.getElementById('btn-start').textContent = '進行中...'
+  document.getElementById('btn-start').disabled = true
+
+  timerInterval = setInterval(async () => {
+    remainSeconds--
+    document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+
+    if (remainSeconds <= 0) {
+      clearInterval(timerInterval)
+      isRunning = false
+      document.getElementById('focus-timer').className = 'finished'
+      document.getElementById('focus-timer').textContent = '時間到！'
+      document.getElementById('btn-start').textContent = '開始'
+      document.getElementById('btn-start').disabled = false
+
+      // 結算 XP
+      await endStudySession(selectedMin)
+    }
+  }, 1000)
+
+  // 開始 study session
+  startStudySession()
+})
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (timerInterval) clearInterval(timerInterval)
+  isRunning = false
+  remainSeconds = totalSeconds
+  document.getElementById('focus-timer').textContent = formatTime(remainSeconds)
+  document.getElementById('focus-timer').className = ''
+  document.getElementById('btn-start').textContent = '開始'
+  document.getElementById('btn-start').disabled = false
+
+  // 離開座位
+  game.scene.getScene('Library').standUp()
+})
+
+async function startStudySession() {
+  await db.from('study_sessions').insert({
+    discord_id: MY_DISCORD_ID,
+    zone: '圖書館',
+    start_time: new Date().toISOString(),
+  })
+}
+
+async function endStudySession(minutes) {
+  const xp = minutes >= 50 ? 120 : minutes >= 25 ? 50 : Math.floor(minutes * 1.5)
+
+  const { data: session } = await db
+    .from('study_sessions')
+    .select('*')
+    .eq('discord_id', MY_DISCORD_ID)
+    .is('end_time', null)
+    .order('start_time', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (session) {
+    await db.from('study_sessions').update({
+      end_time: new Date().toISOString(),
+      duration_minutes: minutes,
+      xp_earned: xp,
+    }).eq('id', session.id)
+
+    const { data: user } = await db.from('users').select('xp, level, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
+    if (user) {
+      const newXp = (user.xp || 0) + xp
+      const newMin = (user.total_minutes || 0) + minutes
+      await db.from('users').update({ xp: newXp, total_minutes: newMin }).eq('discord_id', MY_DISCORD_ID)
+    }
+  }
+}
+</script>
+
+</body>
+</html>
