@@ -352,7 +352,9 @@ class CafeScene extends Phaser.Scene {
           console.error('onPlayerUpdate error:', e)
         }
       })
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Realtime café 狀態：', status)
+      })
   }
 
   drawMap() {
