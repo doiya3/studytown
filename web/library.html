@@ -890,8 +890,8 @@ class LibraryScene extends Phaser.Scene {
   const user = payload.new
   if (!user || user.discord_id === MY_DISCORD_ID) return
 
-  // 如果離線或離開圖書館，移除
-  if (user.status === 'offline' || user.map_scene !== '圖書館') {
+  // 如果用户不在图书馆，移除
+  if (user.map_scene !== '圖書館') {
     if (this.otherPlayers[user.discord_id]) {
       this.otherPlayers[user.discord_id].destroy()
       this.playerLabels[user.discord_id]?.destroy()

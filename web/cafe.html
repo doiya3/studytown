@@ -707,8 +707,8 @@ class CafeScene extends Phaser.Scene {
     const user = payload.new
     if (!user || user.discord_id === MY_DISCORD_ID) return
 
-    // 如果用户离线或不在咖啡厅，移除该玩家显示
-    if (user.status === 'offline' || user.map_scene !== '咖啡廳') {
+    // 如果用户不在咖啡厅，移除该玩家显示
+    if (user.map_scene !== '咖啡廳') {
       if (this.otherPlayers[user.discord_id]) {
         this.otherPlayers[user.discord_id].destroy()
         this.playerLabels[user.discord_id]?.destroy()
