@@ -616,7 +616,8 @@ function showLogin() {
 function showMap() {
   document.getElementById('login-screen').style.display = 'none'
   document.getElementById('map-screen').style.display = 'block'
-  document.getElementById('hud-username').textContent = currentUser.username
+  const hudUsername = document.getElementById('hud-username')
+  if (hudUsername) hudUsername.textContent = currentUser.username
   fetchAndRender()
   setInterval(fetchAndRender, 10000)
 }
