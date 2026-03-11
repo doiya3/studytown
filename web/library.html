@@ -810,11 +810,14 @@ class LibraryScene extends Phaser.Scene {
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
 
-    // 寫入座位佔用（等待完成）
+    // 立即同步座位位置到數據庫（確保其他玩家看到正確位置）
     await db.from('users').update({
       seat_id: seat.id,
       status: 'studying',
       current_zone: '圖書館',
+      map_x: seat.x,
+      map_y: seat.y,
+      map_scene: '圖書館',
     }).eq('discord_id', MY_DISCORD_ID)
   }
 
