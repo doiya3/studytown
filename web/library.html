@@ -327,9 +327,13 @@
 const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
 // 暫時填入你的 Discord ID 和使用者名稱（之後會改成 OAuth 登入）
-const MY_DISCORD_ID = '943022361651847219'
-const MY_USERNAME = 'bear.nishi'
-const MY_AVATAR = 'bear' // 你的 avatar
+//const MY_DISCORD_ID = '943022361651847219'
+//const MY_USERNAME = 'bear.nishi'
+//const MY_AVATAR = 'bear' // 你的 avatar
+const params = new URLSearchParams(window.location.search)
+const MY_DISCORD_ID = params.get('id') || 'YOUR_DISCORD_ID'
+const MY_USERNAME = params.get('name') || 'YOUR_USERNAME'
+const MY_AVATAR = params.get('avatar') || 'bear'
 // ==========================================
 
 const { createClient } = supabase
@@ -417,6 +421,7 @@ class LibraryScene extends Phaser.Scene {
     this.moveTarget = null
     this.graphics = null
     this.playerLabels = {}
+    this.otherTargets = {}
   }
 
   create() {
@@ -469,7 +474,19 @@ class LibraryScene extends Phaser.Scene {
 
     // 載入其他玩家
     this.loadOtherPlayers()
-    setInterval(() => this.loadOtherPlayers(), 5000)
+
+    // Supabase Realtime 訂閱
+    db.channel('users-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'users',
+      }, (payload) => {
+        this.onPlayerUpdate(payload)
+      })
+      .subscribe((status) => {
+        console.log('Realtime 狀態：', status)
+      })
   }
 
   drawMap() {
@@ -643,11 +660,25 @@ class LibraryScene extends Phaser.Scene {
     // 檢查附近座位
     this.checkNearbySeat()
 
-    // 同步位置到 Supabase
+    // 同步位置到 Supabase（每1秒）
     this.syncTimer += delta
-    if (this.syncTimer > 3000) {
+    if (this.syncTimer > 1000) {
       this.syncTimer = 0
+      db.from('users').update({
+        map_x: this.playerGx,
+        map_y: this.playerGy,
+        map_scene: '圖書館',
+        current_zone: '圖書館',
+      }).eq('discord_id', MY_DISCORD_ID)
+      .then(function(result) { if(result.error) console.error('sync error:', result.error) });
     }
+    // 其他玩家插值移動
+    Object.entries(this.otherTargets).forEach(([id, target]) => {
+      const sprite = this.otherPlayers[id]
+      if (!sprite) return
+      sprite.x += (target.x - sprite.x) * 0.05
+      sprite.y += (target.y - sprite.y) * 0.05
+})
   }
 
   checkNearbySeat() {
@@ -754,6 +785,49 @@ class LibraryScene extends Phaser.Scene {
       this.playerLabels[user.discord_id] = label
     })
   }
+ onPlayerUpdate(payload) {
+  const user = payload.new
+  if (!user || user.discord_id === MY_DISCORD_ID) return
+
+  // 如果離開圖書館，移除
+  if (user.map_scene !== '圖書館') {
+    if (this.otherPlayers[user.discord_id]) {
+      this.otherPlayers[user.discord_id].destroy()
+      this.playerLabels[user.discord_id]?.destroy()
+      delete this.otherPlayers[user.discord_id]
+      delete this.playerLabels[user.discord_id]
+      delete this.otherTargets[user.discord_id]
+    }
+    return
+  }
+
+  const gx = user.map_x || 5
+  const gy = user.map_y || 6
+
+  if (this.otherPlayers[user.discord_id]) {
+    // 存目標位置，讓 update() 插值移動
+    this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+    this.playerLabels[user.discord_id]?.setPosition(gx * TILE + TILE / 2, gy * TILE - 2)
+  } else {
+    // 新玩家加入
+    const g = this.add.graphics()
+    g.fillStyle(COLORS.playerOther, 0.8)
+    g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
+    g.setPosition(gx * TILE, gy * TILE)
+    this.otherPlayers[user.discord_id] = g
+    this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
+
+    const label = this.add.text(
+      gx * TILE + TILE / 2, gy * TILE - 2,
+      user.username,
+      { fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#e94560', stroke: '#0d1117', strokeThickness: 3 }
+    ).setOrigin(0.5, 1)
+    this.playerLabels[user.discord_id] = label
+  }
+
+  const count = Object.keys(this.otherPlayers).length + 1
+  document.getElementById('online-count').textContent = count
+}
 }
 
 // 初始化 Phaser

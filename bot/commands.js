@@ -140,17 +140,24 @@ function calcLevel(xp) {
 
 // 指令處理
 async function handleCommand(interaction) {
-  const userId = interaction.user.id
-  const username = interaction.user.username
+  try {
+    const userId = interaction.user.id
+    const username = interaction.user.username
 
-  // /ping 不需要 defer（很快）
-  if (interaction.commandName === 'ping') {
-    await interaction.reply('🏫 Study Town Bot 上線中！')
-    return
-  }
+    // /ping 不需要 defer（很快）
+    if (interaction.commandName === 'ping') {
+      await interaction.reply('🏫 Study Town Bot 上線中！')
+      return
+    }
 
-  // 其他指令都先 defer（因為要查資料庫）
-  await interaction.deferReply()
+    // 其他指令都先 defer（因為要查資料庫）
+    try {
+      await interaction.deferReply()
+    } catch (deferError) {
+      console.error('❌ Defer 失敗 (可能是交互過期):', deferError.message)
+      // 交互已過期，無法繼續，直接返回
+      return
+    }
   if (interaction.commandName === 'avatar') {
   await ensureUser(userId, username)
 
@@ -269,7 +276,31 @@ if (interaction.commandName === 'checkin') {
         start_time: new Date().toISOString(),
       })
 
-      await supabase.from('users').update({ current_zone: zone }).eq('discord_id', userId)
+      const ZONE_SEATS = { '圖書館': 8, '咖啡廳': 6, '夜讀室': 4, '草地': null, '湖邊': null }
+const maxSeats = ZONE_SEATS[zone]
+
+if (maxSeats !== null) {
+  const { data: occupied } = await supabase
+    .from('users').select('seat_id')
+    .eq('current_zone', zone).not('seat_id', 'is', null)
+
+  if (occupied && occupied.length >= maxSeats) {
+    await interaction.editReply(`❌ **${zone}** 座位已滿（${maxSeats}/${maxSeats}）`)
+    return
+  }
+
+  const takenSeats = occupied.map(u => u.seat_id)
+  let assignedSeat = 1
+  while (takenSeats.includes(assignedSeat)) assignedSeat++
+
+  await supabase.from('users').update({
+    current_zone: zone, seat_id: assignedSeat, status: 'studying'
+  }).eq('discord_id', userId)
+} else {
+  await supabase.from('users').update({
+    current_zone: zone, seat_id: null, status: 'studying'
+  }).eq('discord_id', userId)
+}
 
       await interaction.editReply(`📚 開始專注！\n區域：**${zone}**\n加油！`)
       return
@@ -288,7 +319,7 @@ if (interaction.commandName === 'checkin') {
         return
       }
 
-      const startTime = new Date(session.start_time + 'z')
+      const startTime = new Date(session.start_time + 'Z')
       const endTime = new Date()
       const durationMs = endTime.getTime() - startTime.getTime()
       const durationMin = Math.floor(durationMs / 1000 / 60)
@@ -319,6 +350,8 @@ if (interaction.commandName === 'checkin') {
         level: newLevel,
         total_minutes: newTotalMin,
         current_zone: 'none',
+        seat_id: null,
+        status: 'offline',
       }).eq('discord_id', userId)
 
       const levelUp = newLevel > (user.level || 1) ? `\n🆙 **等級提升！Lv${newLevel}**` : ''
@@ -625,6 +658,23 @@ if (interaction.commandName === 'fishbook') {
     bookLines
   )
 }
+  } catch (error) {
+    console.error('❌ 指令處理錯誤:', error.message)
+    
+    // 只在交互還能回應的時候才嘗試
+    try {
+      if (interaction.deferred) {
+        // 如果已經 defer，只能用 editReply
+        await interaction.editReply('❌ 發生錯誤，請稍後重試。')
+      } else if (!interaction.replied) {
+        // 如果還沒有任何回應，用 reply
+        await interaction.reply({ content: '❌ 發生錯誤，請稍後重試。', flags: 64 })
+      }
+    } catch (replyError) {
+      // 交互已過期或無法回應，只記錄到console
+      console.error('❌ 無法回應交互:', replyError.message)
+    }
+  }
 }
 
 module.exports = { commands, handleCommand }

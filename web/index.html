@@ -92,24 +92,24 @@
       <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
     </div>
     <div class="map-grid">
-      <div class="zone-card zone-cafe" id="zone-咖啡廳">
+      <div class="zone-card zone-cafe" id="zone-咖啡廳" onclick="enterZone('咖啡廳')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">☕</span><div class="zone-info"><h3>咖啡廳</h3><span class="zone-desc">輕度專注・聊天</span><div><span class="xp-badge normal">XP +0%</span></div></div><div class="zone-count" id="count-咖啡廳">0人</div></div>
         <div class="users-list" id="users-咖啡廳"></div><div class="buff-notice" id="buff-咖啡廳"></div>
       </div>
-      <div class="zone-card zone-library" id="zone-圖書館">
+      <div class="zone-card zone-library" id="zone-圖書館" onclick="enterZone('圖書館')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">🏫</span><div class="zone-info"><h3>圖書館</h3><span class="zone-desc">專注讀書</span><div><span class="xp-badge bonus">XP +10%</span></div></div><div class="zone-count" id="count-圖書館">0人</div></div>
         <div class="users-list" id="users-圖書館"></div><div class="buff-notice" id="buff-圖書館"></div>
       </div>
-      <div class="zone-card zone-night" id="zone-夜讀室">
+      <div class="zone-card zone-night" id="zone-夜讀室" onclick="enterZone('夜讀室')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">🌙</span><div class="zone-info"><h3>夜讀室</h3><span class="zone-desc">深夜專注</span><div><span class="xp-badge bonus">22:00後 +20%</span></div></div><div class="zone-count" id="count-夜讀室">0人</div></div>
         <div class="users-list" id="users-夜讀室"></div><div class="buff-notice" id="buff-夜讀室"></div>
       </div>
-      <div class="zone-card zone-grass" id="zone-草地">
+      <div class="zone-card zone-grass" id="zone-草地" onclick="enterZone('草地')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">🌿</span><div class="zone-info"><h3>草地</h3><span class="zone-desc">放鬆・掛機</span><div><span class="xp-badge normal">XP +5%</span></div></div><div class="zone-count" id="count-草地">0人</div></div>
         <div class="users-list" id="users-草地"></div><div class="buff-notice" id="buff-草地"></div>
       </div>
       <div class="zone-path"><div class="zone-path-inner">🌸<br>🛤️<br>🌸</div></div>
-      <div class="zone-card zone-lake" id="zone-湖邊">
+      <div class="zone-card zone-lake" id="zone-湖邊" onclick="enterZone('湖邊')" style="cursor:pointer;">
         <div class="zone-header"><span class="zone-emoji">🎣</span><div class="zone-info"><h3>湖邊</h3><span class="zone-desc">釣魚・收集</span><div><span class="xp-badge normal">釣魚 +XP</span></div></div><div class="zone-count" id="count-湖邊">0人</div></div>
         <div class="users-list" id="users-湖邊"></div><div class="buff-notice" id="buff-湖邊"></div>
       </div>
@@ -218,7 +218,21 @@ async function fetchAndRender() {
     document.getElementById('spinner').classList.remove('active')
   }
 }
+function enterZone(zone) {
+  const zonePages = {
+    '圖書館': 'library.html',
+    // 之後其他區域加在這裡
+  }
+  const page = zonePages[zone]
+  if (page) {
+    window.location.href = page
+  } else {
+    alert(`${zone} 場景即將開放！`)
+  }
+}
 
+// 讓函式可以從 onclick 呼叫（module 作用域問題）
+window.enterZone = enterZone
 init()
 </script>
 
