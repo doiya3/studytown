@@ -293,30 +293,30 @@ if (interaction.commandName === 'checkin') {
       const spawnPos = ZONE_SPAWN[zone] || { map_x: 8, map_y: 10 }
       const maxSeats = ZONE_SEATS[zone]
 
-if (maxSeats !== null) {
-  const { data: occupied } = await supabase
-    .from('users').select('seat_id')
-    .eq('current_zone', zone).not('seat_id', 'is', null)
+      if (maxSeats !== null) {
+        const { data: occupied } = await supabase
+          .from('users').select('seat_id')
+          .eq('current_zone', zone).not('seat_id', 'is', null)
 
-  if (occupied && occupied.length >= maxSeats) {
-    await interaction.editReply(`❌ **${zone}** 座位已滿（${maxSeats}/${maxSeats}）`)
-    return
-  }
+        if (occupied && occupied.length >= maxSeats) {
+          await interaction.editReply(`❌ **${zone}** 座位已滿（${maxSeats}/${maxSeats}）`)
+          return
+        }
 
-  const takenSeats = occupied.map(u => u.seat_id)
-  let assignedSeat = 1
-  while (takenSeats.includes(assignedSeat)) assignedSeat++
+        const takenSeats = occupied.map(u => u.seat_id)
+        let assignedSeat = 1
+        while (takenSeats.includes(assignedSeat)) assignedSeat++
 
-  await supabase.from('users').update({
-    current_zone: zone, seat_id: assignedSeat, status: 'studying',
-    map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
-  }).eq('discord_id', userId)
-} else {
-  await supabase.from('users').update({
-    current_zone: zone, seat_id: null, status: 'studying',
-    map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
-  }).eq('discord_id', userId)
-}
+        await supabase.from('users').update({
+          current_zone: zone, seat_id: assignedSeat, status: 'studying',
+          map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
+        }).eq('discord_id', userId)
+      } else {
+        await supabase.from('users').update({
+          current_zone: zone, seat_id: null, status: 'studying',
+          map_scene: zone, map_x: spawnPos.map_x, map_y: spawnPos.map_y
+        }).eq('discord_id', userId)
+      }
 
       await interaction.editReply(`📚 開始專注！\n區域：**${zone}**\n加油！`)
       return
