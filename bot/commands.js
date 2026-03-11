@@ -335,21 +335,27 @@ if (maxSeats !== null) {
         return
       }
 
+      console.log(`[/study end] 找到 session，開始計算 XP...`)
       const startTime = new Date(session.start_time + 'Z')
       const endTime = new Date()
       const durationMs = endTime.getTime() - startTime.getTime()
       const durationMin = Math.floor(durationMs / 1000 / 60)
+      console.log(`[/study end] 時長: ${durationMin} 分鐘 (${Math.round(durationMs / 1000)} 秒)`)
 
       let xpEarned = 0
       if (durationMin >= 50) xpEarned = XP_PER_50MIN
       else if (durationMin >= 25) xpEarned = XP_PER_25MIN
       else if (durationMin >= 5) xpEarned = Math.floor(durationMin * 1.5)
 
-      await supabase.from('study_sessions').update({
+      console.log(`[/study end] XP 計算: ${xpEarned}`)
+
+      const { error: updateSessionError } = await supabase.from('study_sessions').update({
         end_time: endTime.toISOString(),
         duration_minutes: durationMin,
         xp_earned: xpEarned,
       }).eq('id', session.id)
+
+      console.log(`[/study end] 更新 session: error=${updateSessionError}`)
 
       const { data: user } = await supabase
         .from('users')
@@ -358,15 +364,17 @@ if (maxSeats !== null) {
         .maybeSingle()
 
       if (!user) {
+        console.log(`[/study end] 無法獲取用戶，userId=${userId}`)
         await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
         return
       }
 
+      console.log(`[/study end] 獲取用戶成功，開始更新等級...`)
       const newXp = (user.xp || 0) + xpEarned
       const newLevel = calcLevel(newXp)
       const newTotalMin = (user.total_minutes || 0) + durationMin
 
-      await supabase.from('users').update({
+      const { error: updateUserError } = await supabase.from('users').update({
         xp: newXp,
         level: newLevel,
         total_minutes: newTotalMin,
@@ -374,6 +382,8 @@ if (maxSeats !== null) {
         seat_id: null,
         status: 'offline',
       }).eq('discord_id', userId)
+
+      console.log(`[/study end] 更新用戶: error=${updateUserError}`)
 
       const levelUp = newLevel > (user.level || 1) ? `\n🆙 **等級提升！Lv${newLevel}**` : ''
 
