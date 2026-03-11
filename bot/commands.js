@@ -117,7 +117,7 @@ async function ensureUser(discordId, username) {
     .from('users')
     .select('*')
     .eq('discord_id', discordId)
-    .single()
+    .maybeSingle()
 
   if (!data) {
     await supabase.from('users').insert({
@@ -186,7 +186,12 @@ if (interaction.commandName === 'checkin') {
     .from('users')
     .select('*')
     .eq('discord_id', userId)
-    .single()
+    .maybeSingle()
+
+  if (!user) {
+    await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
+    return
+  }
 
   const today = new Date().toISOString().split('T')[0]
   const lastCheckin = user.last_checkin
@@ -258,12 +263,12 @@ if (interaction.commandName === 'checkin') {
         return
       }
 
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         await interaction.editReply('⏱ 你已經在專注中了！先用 `/study end` 結束。')
@@ -307,12 +312,12 @@ if (maxSeats !== null) {
     }
 
     if (action === 'end') {
-      const { data: session } = await supabase
+      const { data: session, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .single()
+        .maybeSingle()
 
       if (!session) {
         await interaction.editReply('❌ 你還沒開始專注喔！')
@@ -339,7 +344,12 @@ if (maxSeats !== null) {
         .from('users')
         .select('*')
         .eq('discord_id', userId)
-        .single()
+        .maybeSingle()
+
+      if (!user) {
+        await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
+        return
+      }
 
       const newXp = (user.xp || 0) + xpEarned
       const newLevel = calcLevel(newXp)
@@ -368,12 +378,12 @@ if (maxSeats !== null) {
     if (interaction.commandName === 'move') {
     const zone = interaction.options.getString('zone')
 
-    const { data: session } = await supabase
+    const { data: session, error: sessionError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('discord_id', userId)
         .is('end_time', null)
-        .single()
+        .maybeSingle()
 
     if (!session) {
         await interaction.editReply('❌ 你還沒開始專注！先用 `/study start` 開始。')
@@ -406,7 +416,12 @@ if (maxSeats !== null) {
       .from('users')
       .select('*')
       .eq('discord_id', userId)
-      .single()
+      .maybeSingle()
+
+    if (!user) {
+      await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
+      return
+    }
 
     const hours = Math.floor((user.total_minutes || 0) / 60)
     const mins = (user.total_minutes || 0) % 60
@@ -529,7 +544,12 @@ if (interaction.commandName === 'fish') {
     .from('users')
     .select('*')
     .eq('discord_id', userId)
-    .single()
+    .maybeSingle()
+
+  if (!user) {
+    await interaction.editReply('❌ 無法獲取用戶數據，請重試。')
+    return
+  }
 
   // 只能在湖邊釣魚
   if (user.current_zone !== '湖邊') {
@@ -576,7 +596,12 @@ if (interaction.commandName === 'fish') {
     .from('users')
     .select('xp, level')
     .eq('discord_id', userId)
-    .single()
+    .maybeSingle()
+
+  if (!currentUser) {
+    await interaction.editReply('❌ 無法更新等級，請重試。')
+    return
+  }
 
   const newXp = (currentUser.xp || 0) + caught.xp
   const newLevel = calcLevel(newXp)
