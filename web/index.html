@@ -562,123 +562,54 @@
 
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // ==========================================
-  // 🔧 填入你的 Supabase 設定
-  const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
-  // ==========================================
+<script type="module">
+import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
 
-  const { createClient } = supabase
-  const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-  const ZONES = ['圖書館', '咖啡廳', '夜讀室', '草地', '湖邊']
+let currentUser = null
 
-  // 群體 buff 計算
-  function getBuffText(count) {
-    if (count >= 5) return '🔥 5人同區！XP +30%'
-    if (count >= 3) return '✨ 3人同區！XP +20%'
-    if (count >= 2) return '💫 2人同區！XP +10%'
-    return null
-  }
-
-  // Avatar 顏色
-  const avatarColors = [
-    'linear-gradient(135deg, #e94560, #f5a623)',
-    'linear-gradient(135deg, #4ecdc4, #45b7d1)',
-    'linear-gradient(135deg, #a8dadc, #7c83e5)',
-    'linear-gradient(135deg, #f5a623, #f7d794)',
-    'linear-gradient(135deg, #64c896, #4ecdc4)',
-  ]
-
-  function getAvatarColor(username) {
-    let hash = 0
-    for (let c of username) hash = c.charCodeAt(0) + ((hash << 5) - hash)
-    return avatarColors[Math.abs(hash) % avatarColors.length]
-  }
-  const avatarEmoji = {
-    cat: '🐱', dog: '🐶', bear: '🐻',
-    rabbit: '🐰', fox: '🦊', panda: '🐼',
-    frog: '🐸', penguin: '🐧'
-    }
-  async function fetchAndRender() {
-    const spinner = document.getElementById('spinner')
-    spinner.classList.add('active')
-
-    try {
-      // 讀取所有玩家
-      const { data: users } = await db
-        .from('users')
-        .select('discord_id, username, current_zone, level, xp, avatar')
-
-      if (!users) return
-
-      // 統計
-      const activeUsers = users.filter(u => u.current_zone && u.current_zone !== 'none')
-      document.getElementById('stat-online').textContent = activeUsers.length
-      document.getElementById('stat-studying').textContent = activeUsers.length
-      document.getElementById('stat-players').textContent = users.length
-
-      // 每個區域
-      ZONES.forEach(zone => {
-        const zoneUsers = activeUsers.filter(u => u.current_zone === zone)
-        const count = zoneUsers.length
-
-        // 更新人數
-        const countEl = document.getElementById(`count-${zone}`)
-        countEl.textContent = `${count}人`
-        countEl.className = 'zone-count' + (count > 0 ? ' active' : '')
-
-        // 更新卡片
-        const card = document.getElementById(`zone-${zone}`)
-        card.classList.toggle('has-users', count > 0)
-
-        // 更新玩家列表
-        const usersEl = document.getElementById(`users-${zone}`)
-        usersEl.innerHTML = ''
-
-        if (zoneUsers.length === 0) {
-          usersEl.innerHTML = '<span class="empty-zone">💤 空無一人</span>'
-        } else {
-          zoneUsers.forEach(user => {
-            const chip = document.createElement('div')
-            chip.className = 'user-chip'
-            const emoji = avatarEmoji[user.avatar] || '🐱'
-            chip.innerHTML = `
-              <span style="font-size: 1.4rem; vertical-align: middle;">${emoji}</span>
-              <span class="user-name">${user.username || '未知'}</span>
-            `
-            usersEl.appendChild(chip)
-          })
-        }
-
-        // Buff 通知
-        const buffEl = document.getElementById(`buff-${zone}`)
-        const buffText = getBuffText(count)
-        if (buffText) {
-          buffEl.textContent = buffText
-          buffEl.classList.add('show')
-        } else {
-          buffEl.classList.remove('show')
-        }
-      })
-
-      // 更新時間
-      const now = new Date()
-      document.getElementById('last-update').textContent =
-        `上次更新：${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`
-
-    } catch (err) {
-      console.error('讀取資料失敗：', err)
-      document.getElementById('last-update').textContent = '讀取失敗，重試中...'
-    } finally {
-      spinner.classList.remove('active')
+async function init() {
+  // 先檢查 URL 有沒有 token（剛從 Discord 回來）
+  const token = getTokenFromURL()
+  if (token) {
+    const discordUser = await fetchDiscordUser(token)
+    saveSession(discordUser, token)
+    // 清掉 URL 上的 token
+    window.history.replaceState({}, '', window.location.pathname)
+    currentUser = discordUser
+  } else {
+    // 檢查有沒有舊的 session
+    const session = loadSession()
+    if (session) {
+      currentUser = session.user
     }
   }
 
-  // 初始載入 + 每10秒更新
+  if (currentUser) {
+    showMap()
+  } else {
+    showLogin()
+  }
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex'
+  document.getElementById('map-screen').style.display = 'none'
+}
+
+function showMap() {
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('map-screen').style.display = 'block'
+  document.getElementById('hud-username').textContent = currentUser.username
   fetchAndRender()
   setInterval(fetchAndRender, 10000)
+}
+
+document.getElementById('btn-login').addEventListener('click', loginWithDiscord)
+
+init()
 </script>
 
 </body>
