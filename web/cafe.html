@@ -599,10 +599,8 @@ class CafeScene extends Phaser.Scene {
 
   async tryInteract() {
     if (this.nearDoor) {
-      db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
-      .then(() => {
-        window.location.href = 'index.html'
-      });
+      await db.from('users').update({ map_scene: 'none', current_zone: 'none', seat_id: null, status: 'offline', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
+      window.location.href = 'index.html'
       return
     }
     if (this.nearCounter) {
@@ -709,7 +707,8 @@ class CafeScene extends Phaser.Scene {
     const user = payload.new
     if (!user || user.discord_id === MY_DISCORD_ID) return
 
-    if (user.map_scene !== '咖啡廳') {
+    // 如果用户离线或不在咖啡厅，移除该玩家显示
+    if (user.status === 'offline' || user.map_scene !== '咖啡廳') {
       if (this.otherPlayers[user.discord_id]) {
         this.otherPlayers[user.discord_id].destroy()
         this.playerLabels[user.discord_id]?.destroy()

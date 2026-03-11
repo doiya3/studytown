@@ -764,14 +764,15 @@ class LibraryScene extends Phaser.Scene {
   async tryInteract() {
     if (this.nearDoor) {
       // 離開前清除地圖位置
-      db.from('users').update({
+      await db.from('users').update({
         map_scene: 'none',
+        current_zone: 'none',
+        seat_id: null,
+        status: 'offline',
         map_x: 0,
         map_y: 0,
       }).eq('discord_id', MY_DISCORD_ID)
-      .then(() => {
-        window.location.href = 'index.html'
-      });
+      window.location.href = 'index.html'
       return
     }
     if (this.nearSeat && !this.seated) {
@@ -889,8 +890,8 @@ class LibraryScene extends Phaser.Scene {
   const user = payload.new
   if (!user || user.discord_id === MY_DISCORD_ID) return
 
-  // 如果離開圖書館，移除
-  if (user.map_scene !== '圖書館') {
+  // 如果離線或離開圖書館，移除
+  if (user.status === 'offline' || user.map_scene !== '圖書館') {
     if (this.otherPlayers[user.discord_id]) {
       this.otherPlayers[user.discord_id].destroy()
       this.playerLabels[user.discord_id]?.destroy()
