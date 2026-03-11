@@ -309,60 +309,64 @@ class CafeScene extends Phaser.Scene {
   }
 
   create() {
+    this.graphics = this.add.graphics()
+    this.drawMap()
+
+    this.player = this.add.graphics()
+    this.drawPlayer(this.player, COLORS.playerSelf)
+    this.updatePlayerPos()
+
+    this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
+      fontSize: '10px', fontFamily: 'Noto Sans TC',
+      color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
+    }).setOrigin(0.5, 1)
+
+    this.cursors = this.input.keyboard.createCursorKeys()
+    this.wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      interact: Phaser.Input.Keyboard.KeyCodes.E,
+    })
+
+    this.input.on('pointerdown', (pointer) => {
+      if (this.seated) return
+      const gx = Math.floor(pointer.x / TILE)
+      const gy = Math.floor(pointer.y / TILE)
+      if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy }
+    })
+
+    this.moveTimer = 0
+    this.moveDelay = 150
+    this.syncTimer = 0
+
     try {
-      this.graphics = this.add.graphics()
-      this.drawMap()
-
-      this.player = this.add.graphics()
-      this.drawPlayer(this.player, COLORS.playerSelf)
-      this.updatePlayerPos()
-
-      this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
-        fontSize: '10px', fontFamily: 'Noto Sans TC',
-        color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
-      }).setOrigin(0.5, 1)
-
-      this.cursors = this.input.keyboard.createCursorKeys()
-      this.wasd = this.input.keyboard.addKeys({
-        up: Phaser.Input.Keyboard.KeyCodes.W,
-        down: Phaser.Input.Keyboard.KeyCodes.S,
-        left: Phaser.Input.Keyboard.KeyCodes.A,
-        right: Phaser.Input.Keyboard.KeyCodes.D,
-        interact: Phaser.Input.Keyboard.KeyCodes.E,
-      })
-
-      this.input.on('pointerdown', (pointer) => {
-        if (this.seated) return
-        const gx = Math.floor(pointer.x / TILE)
-        const gy = Math.floor(pointer.y / TILE)
-        if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy }
-      })
-
-      // 異步初始化（不阻止場景顯示）
       this.updateZone().catch(e => console.error('updateZone error:', e))
       this.loadOtherPlayers().catch(e => console.error('loadOtherPlayers error:', e))
-
-      // 定期重新加載玩家列表（每3秒），確保不會遺漏後進入的玩家
-      const scene = this
-      this.reloadInterval = setInterval(() => {
-        scene.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
-      }, 3000)
-
-      db.channel('cafe-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-          try {
-            this.onPlayerUpdate(payload)
-          } catch (e) {
-            console.error('onPlayerUpdate error:', e)
-          }
-        })
-        .subscribe((status) => {
-          console.log('Realtime café 狀態：', status)
-        })
     } catch (e) {
-      console.error('Scene create 失敗:', e)
-      window.location.href = 'index.html'
+      console.error('Initialization error:', e)
     }
+
+    this.time.addEvent({
+      delay: 3000,
+      loop: true,
+      callback: () => {
+        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e))
+      }
+    })
+
+    db.channel('cafe-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        try {
+          this.onPlayerUpdate(payload)
+        } catch (e) {
+          console.error('onPlayerUpdate error:', e)
+        }
+      })
+      .subscribe((status) => {
+        console.log('Realtime café 狀態：', status)
+      })
   }
 
   drawMap() {
@@ -612,8 +616,6 @@ class CafeScene extends Phaser.Scene {
       } catch (e) {
         console.error('Clear location error:', e)
       }
-      // 清理定時器
-      if (this.reloadInterval) clearInterval(this.reloadInterval)
       window.location.href = 'index.html'
       return
     }
@@ -757,11 +759,6 @@ class CafeScene extends Phaser.Scene {
     
     // 其他玩家座位狀態改變時，重新檢查附近座位
     this.nearSeat = null
-  }
-
-  shutdown() {
-    // 清理定時器
-    if (this.reloadInterval) clearInterval(this.reloadInterval)
   }
 }
 
