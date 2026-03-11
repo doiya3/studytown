@@ -743,22 +743,29 @@ class LibraryScene extends Phaser.Scene {
     }
   }
 
-  tryInteract() {
-  if (this.nearDoor) {
-    // 離開前清除地圖位置
-    db.from('users').update({
-      map_scene: 'none',
-      map_x: 0,
-      map_y: 0,
-    }).eq('discord_id', MY_DISCORD_ID)
-    window.location.href = 'index.html'
-    return
-  }
-  if (this.nearSeat && !this.seated) {
-    this.sitDown(this.nearSeat)
-  }
-
+  async tryInteract() {
+    if (this.nearDoor) {
+      // 離開前清除地圖位置
+      db.from('users').update({
+        map_scene: 'none',
+        map_x: 0,
+        map_y: 0,
+      }).eq('discord_id', MY_DISCORD_ID)
+      window.location.href = 'index.html'
+      return
+    }
     if (this.nearSeat && !this.seated) {
+      // 即時檢查座位
+      const { data } = await db.from('users')
+        .select('discord_id')
+        .eq('current_zone', '圖書館')
+        .eq('seat_id', this.nearSeat.id)
+        .neq('discord_id', MY_DISCORD_ID)
+
+      if (data && data.length > 0) {
+        document.getElementById('interaction-hint').textContent = `🚫 座位 #${this.nearSeat.id} 已有人`
+        return
+      }
       this.sitDown(this.nearSeat)
     }
   }
@@ -782,6 +789,13 @@ class LibraryScene extends Phaser.Scene {
     document.getElementById('interaction-hint').style.display = 'none'
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`
     document.getElementById('focus-panel').classList.add('visible')
+
+    // 寫入座位佔用
+    db.from('users').update({
+      seat_id: seat.id,
+      status: 'studying',
+      current_zone: '圖書館',
+    }).eq('discord_id', MY_DISCORD_ID)
   }
 
   standUp() {
@@ -797,6 +811,12 @@ class LibraryScene extends Phaser.Scene {
     })
 
     document.getElementById('focus-panel').classList.remove('visible')
+
+    // 清除座位
+    db.from('users').update({
+      seat_id: null,
+      status: 'browsing',
+    }).eq('discord_id', MY_DISCORD_ID)
   }
 
   async updateZone() {
@@ -806,7 +826,7 @@ class LibraryScene extends Phaser.Scene {
   async loadOtherPlayers() {
     const { data: users } = await db
     .from('users')
-    .select('discord_id, username, map_scene, avatar, map_x, map_y')
+    .select('discord_id, username, map_scene, avatar, map_x, map_y, seat_id')
     .eq('map_scene', '圖書館')
     .neq('discord_id', MY_DISCORD_ID)
 

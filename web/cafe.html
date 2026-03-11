@@ -484,6 +484,19 @@ class CafeScene extends Phaser.Scene {
       }
     }
 
+    Object.entries(this.otherTargets).forEach(([id, target]) => {
+  const sprite = this.otherPlayers[id]
+  if (!sprite) return
+  sprite.x += (target.x - sprite.x) * 0.2
+  sprite.y += (target.y - sprite.y) * 0.2
+  // label 跟著動
+  const label = this.playerLabels[id]
+  if (label) {
+    label.x += (target.x + TILE / 2 - label.x) * 0.2
+    label.y += (target.y - 2 - label.y) * 0.2
+  }
+    })
+
     if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract()
 
     this.checkNearby()
@@ -572,23 +585,31 @@ if (found !== this.nearSeat) {
 }
   }
 
-  tryInteract() {
-    if (this.nearDoor) {
-      db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
-      window.location.href = 'index.html'
-      return
-    }
-    if (this.nearCounter) {
-      document.getElementById('drink-panel').classList.add('visible')
-      return
-    }
-    if (this.nearSeat && !this.seated) {
-      this.sitDown(this.nearSeat)
-    }
-    if (this.nearSeat && !this.seated && !this.seatOccupied) {
-      this.sitDown(this.nearSeat)
-    }
+async tryInteract() {
+  if (this.nearDoor) {
+    db.from('users').update({ map_scene: 'none', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID)
+    window.location.href = 'index.html'
+    return
   }
+  if (this.nearCounter) {
+    document.getElementById('drink-panel').classList.add('visible')
+    return
+  }
+  if (this.nearSeat && !this.seated) {
+    // 即時檢查座位
+    const { data } = await db.from('users')
+      .select('discord_id')
+      .eq('current_zone', '咖啡廳')
+      .eq('seat_id', this.nearSeat.id)
+      .neq('discord_id', MY_DISCORD_ID)
+
+    if (data && data.length > 0) {
+      document.getElementById('interaction-hint').textContent = `🚫 座位 #${this.nearSeat.id} 已有人`
+      return
+    }
+    this.sitDown(this.nearSeat)
+  }
+}
 
   sitDown(seat) {
     this.seated = true
@@ -632,7 +653,7 @@ if (found !== this.nearSeat) {
   async loadOtherPlayers() {
     const { data: users } = await db
       .from('users')
-      .select('discord_id, username, map_scene, map_x, map_y, avatar')
+      .select('discord_id, username, map_scene, map_x, map_y, avatar, seat_id')
       .eq('map_scene', '咖啡廳')
       .neq('discord_id', MY_DISCORD_ID)
 
