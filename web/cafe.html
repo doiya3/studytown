@@ -716,6 +716,7 @@ class CafeScene extends Phaser.Scene {
     await db.from('users').update({
       current_zone: '咖啡廳', map_scene: '咖啡廳',
       map_x: this.playerGx, map_y: this.playerGy,
+      status: 'browsing', // 進入區域就重設，防止舊資料殘留
     }).eq('discord_id', MY_DISCORD_ID);
   }
 

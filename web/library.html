@@ -892,7 +892,10 @@ class LibraryScene extends Phaser.Scene {
   }
 
   async updateZone() {
-    await db.from('users').update({ current_zone: '圖書館', map_scene: '圖書館' }).eq('discord_id', MY_DISCORD_ID);
+    await db.from('users').update({
+      current_zone: '圖書館', map_scene: '圖書館',
+      status: 'browsing', // 進入區域就重設，防止舊資料殘留
+    }).eq('discord_id', MY_DISCORD_ID);
   }
 
   async loadOtherPlayers() {
