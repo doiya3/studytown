@@ -143,6 +143,34 @@
   #btn-start:hover { opacity: 0.85; transform: translateY(-1px); }
   #btn-stop { background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.3); color: #e94560; }
 
+  /* 私訊 UI */
+  #dm-overlay { position: fixed; inset: 0; z-index: 500; display: none; }
+  #dm-overlay.visible { display: block; }
+  #dm-menu {
+    position: fixed; background: rgba(13,17,23,0.97); border: 1px solid rgba(78,205,196,0.35);
+    border-radius: 14px; padding: 14px 16px; z-index: 501; min-width: 180px;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  #dm-menu h4 { font-family: 'DotGothic16', monospace; color: #4ecdc4; font-size: 0.78rem; margin-bottom: 10px; }
+  .dm-btn { display: block; width: 100%; padding: 7px 10px; margin-bottom: 6px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06);
+    color: #eaeaea; font-size: 0.8rem; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; text-align: left; transition: background 0.15s; }
+  .dm-btn:hover { background: rgba(255,255,255,0.14); }
+  #dm-input-row { display: none; margin-top: 4px; }
+  #dm-input-row.visible { display: flex; gap: 6px; }
+  #dm-input { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: #eaeaea; font-size: 0.8rem; padding: 5px 8px; font-family: 'Noto Sans TC', sans-serif; outline: none; }
+  #dm-send { padding: 5px 12px; border-radius: 8px; border: none; background: linear-gradient(135deg,#4ecdc4,#45b7d1);
+    color: #0d1117; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+  #dm-toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(13,17,23,0.97); border: 1px solid rgba(78,205,196,0.4);
+    border-radius: 12px; padding: 10px 18px; z-index: 600; font-size: 0.82rem; color: #eaeaea;
+    backdrop-filter: blur(10px); pointer-events: none; opacity: 0;
+    transition: opacity 0.3s, transform 0.3s; max-width: 280px; text-align: center;
+  }
+  #dm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
   #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
 
@@ -231,6 +259,18 @@
 
 <!-- 玩家數 -->
 <div id="player-count">圖書館：<span id="online-count">1</span> 人</div>
+
+<div id="dm-overlay"></div>
+<div id="dm-menu">
+  <h4 id="dm-target-name">玩家</h4>
+  <button class="dm-btn" id="dm-btn-wave">👋 打招呼</button>
+  <button class="dm-btn" id="dm-btn-msg">💬 傳訊息</button>
+  <div id="dm-input-row">
+    <input id="dm-input" type="text" placeholder="輸入訊息..." maxlength="60">
+    <button id="dm-send">送</button>
+  </div>
+</div>
+<div id="dm-toast"></div>
 
 <!-- Phaser -->
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
@@ -848,6 +888,10 @@ class LibraryScene extends Phaser.Scene {
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
+      g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
+      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, user.username, ptr.x, ptr.y))
+      g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
+      g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
       this.otherPlayers[user.discord_id] = g
       this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
       this.otherGrids[user.discord_id] = { x: gx, y: gy }
@@ -890,6 +934,10 @@ class LibraryScene extends Phaser.Scene {
     g.fillStyle(COLORS.playerOther, 0.8)
     g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
     g.setPosition(gx * TILE, gy * TILE)
+    g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
+    g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, user.username || '玩家', ptr.x, ptr.y))
+    g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
+    g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
     this.otherPlayers[user.discord_id] = g
     this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
     this.otherGrids[user.discord_id] = { x: gx, y: gy }
@@ -923,6 +971,75 @@ const config = {
 }
 
 const game = new Phaser.Game(config)
+
+// ─── 私訊 ────────────────────────────────────────────────
+let toastTimer = null
+function showToast(msg) {
+  const t = document.getElementById('dm-toast')
+  t.textContent = msg
+  t.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500)
+}
+
+let dmTarget = { id: null, name: '' }
+const dmMenu = document.getElementById('dm-menu')
+const dmOverlay = document.getElementById('dm-overlay')
+
+function openDmMenu(targetId, targetName, px, py) {
+  dmTarget = { id: targetId, name: targetName }
+  document.getElementById('dm-target-name').textContent = targetName
+  document.getElementById('dm-input-row').classList.remove('visible')
+  document.getElementById('dm-input').value = ''
+  const W = window.innerWidth, H = window.innerHeight
+  const mw = 200, mh = 110
+  dmMenu.style.left = Math.min(px + 8, W - mw - 8) + 'px'
+  dmMenu.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
+  dmOverlay.classList.add('visible')
+}
+
+dmOverlay.addEventListener('click', (e) => {
+  if (e.target === dmOverlay) {
+    dmOverlay.classList.remove('visible')
+  }
+})
+
+document.getElementById('dm-btn-wave').addEventListener('click', () => {
+  dmChannel.send({ type: 'broadcast', event: 'dm', payload: {
+    to: dmTarget.id, from: MY_DISCORD_ID, fromName: MY_USERNAME, type: 'wave'
+  }})
+  showToast(`已對 ${dmTarget.name} 揮手 👋`)
+  dmOverlay.classList.remove('visible')
+})
+
+document.getElementById('dm-btn-msg').addEventListener('click', () => {
+  document.getElementById('dm-input-row').classList.add('visible')
+  document.getElementById('dm-input').focus()
+})
+
+function sendDM() {
+  const msg = document.getElementById('dm-input').value.trim()
+  if (!msg) return
+  dmChannel.send({ type: 'broadcast', event: 'dm', payload: {
+    to: dmTarget.id, from: MY_DISCORD_ID, fromName: MY_USERNAME, type: 'msg', msg
+  }})
+  showToast(`對 ${dmTarget.name}: ${msg}`)
+  dmOverlay.classList.remove('visible')
+}
+
+document.getElementById('dm-send').addEventListener('click', sendDM)
+document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
+
+const dmChannel = db.channel('dm-圖書館')
+  .on('broadcast', { event: 'dm' }, ({ payload }) => {
+    if (payload.to !== MY_DISCORD_ID) return
+    if (payload.type === 'wave') {
+      showToast(`${payload.fromName} 對你揮手 👋`)
+    } else if (payload.type === 'msg') {
+      showToast(`${payload.fromName}: ${payload.msg}`)
+    }
+  })
+  .subscribe()
 
 // 關閉分頁時清除位置
 window.addEventListener('beforeunload', () => {
