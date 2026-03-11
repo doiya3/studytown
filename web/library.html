@@ -332,12 +332,19 @@ const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
 
 if (!sessionUser) {
   // 沒有登入，回主頁
+  console.error('❌ sessionUser not found in localStorage')
   window.location.href = 'index.html'
 }
 
 const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR = sessionUser?.avatar || 'bear'
+
+if (!MY_DISCORD_ID) {
+  console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
+  window.location.href = 'index.html'
+}
+console.log('✓ User logged in:', { MY_DISCORD_ID, MY_USERNAME })
 // ==========================================
 
 const { createClient } = supabase
@@ -474,10 +481,14 @@ class LibraryScene extends Phaser.Scene {
     this.syncTimer = 0
 
     // 更新 Supabase 位置
-    this.updateZone()
+    try {
+      this.updateZone().catch(e => console.error('updateZone error:', e))
 
-    // 載入其他玩家
-    this.loadOtherPlayers()
+      // 載入其他玩家
+      this.loadOtherPlayers().catch(e => console.error('loadOtherPlayers error:', e))
+    } catch (e) {
+      console.error('Initialization error:', e)
+    }
 
     // Supabase Realtime 訂閱
     db.channel('users-realtime')
@@ -486,7 +497,12 @@ class LibraryScene extends Phaser.Scene {
         schema: 'public',
         table: 'users',
       }, (payload) => {
-        this.onPlayerUpdate(payload)
+        try {
+          this.onPlayerUpdate(payload)
+        } catch (e) {
+          console.error('onPlayerUpdate error:', e)
+        }
+      })
       })
       .subscribe((status) => {
         console.log('Realtime 狀態：', status)

@@ -198,11 +198,20 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const sessionRaw = localStorage.getItem('study_user')
 const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
-if (!sessionUser) window.location.href = 'index.html'
+if (!sessionUser) {
+  console.error('❌ sessionUser not found in localStorage')
+  window.location.href = 'index.html'
+}
 
 const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR = sessionUser?.avatar || 'cat'
+
+if (!MY_DISCORD_ID) {
+  console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
+  window.location.href = 'index.html'
+}
+console.log('✓ User logged in:', { MY_DISCORD_ID, MY_USERNAME })
 
 const avatarEmoji = {
   cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰',
@@ -328,12 +337,20 @@ class CafeScene extends Phaser.Scene {
       if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy }
     })
 
-    this.updateZone()
-    this.loadOtherPlayers()
+    try {
+      this.updateZone().catch(e => console.error('updateZone error:', e))
+      this.loadOtherPlayers().catch(e => console.error('loadOtherPlayers error:', e))
+    } catch (e) {
+      console.error('Initialization error:', e)
+    }
 
     db.channel('cafe-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-        this.onPlayerUpdate(payload)
+        try {
+          this.onPlayerUpdate(payload)
+        } catch (e) {
+          console.error('onPlayerUpdate error:', e)
+        }
       })
       .subscribe()
   }
