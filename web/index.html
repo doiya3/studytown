@@ -6,606 +6,154 @@
 <title>Study Town 🏫</title>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #1a1a2e;
-    --bg2: #16213e;
-    --card: #0f3460;
-    --accent: #e94560;
-    --yellow: #f5a623;
-    --green: #4ecdc4;
-    --purple: #a8dadc;
-    --text: #eaeaea;
-    --muted: #8892a4;
-    --border: rgba(255,255,255,0.08);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans TC', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* 星星背景 */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
-      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
-      radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
-      radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 80% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
-      radial-gradient(1px 1px at 45% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
-      radial-gradient(1px 1px at 60% 35%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.5) 0%, transparent 100%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    position: relative;
-    z-index: 1;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 32px 20px;
-  }
-
-  /* Header */
-  .header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-
-  .header h1 {
-    font-family: 'DotGothic16', monospace;
-    font-size: 2.8rem;
-    letter-spacing: 0.1em;
-    background: linear-gradient(135deg, var(--yellow), var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 8px;
-  }
-
-  .header .subtitle {
-    color: var(--muted);
-    font-size: 0.9rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-  }
-
-  .live-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(233, 69, 96, 0.15);
-    border: 1px solid rgba(233, 69, 96, 0.3);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 0.75rem;
-    color: var(--accent);
-    margin-top: 10px;
-    letter-spacing: 0.1em;
-  }
-
-  .live-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.4); }
-  }
-
-  /* Stats bar */
-  .stats-bar {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-bottom: 36px;
-    flex-wrap: wrap;
-  }
-
-  .stat-item {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 24px;
-    text-align: center;
-    backdrop-filter: blur(10px);
-  }
-
-  .stat-num {
-    font-family: 'DotGothic16', monospace;
-    font-size: 1.6rem;
-    color: var(--yellow);
-  }
-
-  .stat-label {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 2px;
-    letter-spacing: 0.1em;
-  }
-
-  /* Map grid */
-  .map-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .zone-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 24px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    cursor: default;
-  }
-
-  .zone-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--zone-color, rgba(255,255,255,0.02));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    border-radius: 20px;
-  }
-
-  .zone-card:hover::before {
-    opacity: 1;
-  }
-
-  .zone-card.has-users {
-    border-color: var(--zone-accent, rgba(255,255,255,0.2));
-    box-shadow: 0 0 20px var(--zone-glow, transparent);
-  }
-
-  /* 圖書館 - 中間頂部 */
-  .zone-library {
-    grid-column: 2;
-    grid-row: 1;
-    --zone-color: rgba(78, 205, 196, 0.05);
-    --zone-accent: rgba(78, 205, 196, 0.3);
-    --zone-glow: rgba(78, 205, 196, 0.1);
-  }
-
-  /* 咖啡廳 - 左邊 */
-  .zone-cafe {
-    grid-column: 1;
-    grid-row: 1;
-    --zone-color: rgba(245, 166, 35, 0.05);
-    --zone-accent: rgba(245, 166, 35, 0.3);
-    --zone-glow: rgba(245, 166, 35, 0.1);
-  }
-
-  /* 夜讀室 - 右邊 */
-  .zone-night {
-    grid-column: 3;
-    grid-row: 1;
-    --zone-color: rgba(168, 218, 220, 0.05);
-    --zone-accent: rgba(168, 218, 220, 0.3);
-    --zone-glow: rgba(168, 218, 220, 0.1);
-  }
-
-  /* 草地 - 左下 */
-  .zone-grass {
-    grid-column: 1;
-    grid-row: 2;
-    --zone-color: rgba(100, 200, 100, 0.05);
-    --zone-accent: rgba(100, 200, 100, 0.3);
-    --zone-glow: rgba(100, 200, 100, 0.1);
-  }
-
-  /* 湖邊 - 右下 */
-  .zone-lake {
-    grid-column: 3;
-    grid-row: 2;
-    --zone-color: rgba(100, 150, 255, 0.05);
-    --zone-accent: rgba(100, 150, 255, 0.3);
-    --zone-glow: rgba(100, 150, 255, 0.1);
-  }
-
-  /* 空白中間 - 路徑 */
-  .zone-path {
-    grid-column: 2;
-    grid-row: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.3;
-    pointer-events: none;
-  }
-
-  .zone-path-inner {
-    font-size: 2rem;
-    text-align: center;
-    line-height: 1.5;
-  }
-
-  .zone-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .zone-emoji {
-    font-size: 1.8rem;
-    line-height: 1;
-    
-  }
-
-  .zone-info h3 {
-    font-family: 'DotGothic16', monospace;
-    font-size: 1rem;
-    letter-spacing: 0.05em;
-  }
-
-  .zone-info .zone-desc {
-    font-size: 0.72rem;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  .zone-count {
-    margin-left: auto;
-    background: rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 0.75rem;
-    font-family: 'DotGothic16', monospace;
-    color: var(--muted);
-    transition: all 0.3s ease;
-  }
-
-  .zone-count.active {
-    background: var(--zone-accent, rgba(255,255,255,0.15));
-    color: var(--text);
-  }
-
-  /* XP 加成標籤 */
-  .xp-badge {
-    display: inline-block;
-    font-size: 0.65rem;
-    padding: 2px 7px;
-    border-radius: 6px;
-    margin-top: 6px;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-  }
-
-  .xp-badge.bonus {
-    background: rgba(233, 69, 96, 0.2);
-    color: var(--accent);
-    border: 1px solid rgba(233, 69, 96, 0.3);
-  }
-
-  .xp-badge.normal {
-    background: rgba(255,255,255,0.05);
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-
-  /* 玩家 avatars */
-  .users-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
-    min-height: 36px;
-  }
-
-  .user-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 4px 10px 4px 8px;
-    font-size: 0.78rem;
-    animation: fadeIn 0.4s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .user-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--yellow));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: white;
-    text-transform: uppercase;
-    flex-shrink: 0;
-  }
-
-  .user-name {
-    color: var(--text);
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .empty-zone {
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-style: italic;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 14px;
-    opacity: 0.6;
-  }
-
-  /* 群體 buff 提示 */
-  .buff-notice {
-    display: none;
-    margin-top: 10px;
-    padding: 6px 10px;
-    background: rgba(233, 69, 96, 0.1);
-    border: 1px solid rgba(233, 69, 96, 0.2);
-    border-radius: 8px;
-    font-size: 0.72rem;
-    color: var(--accent);
-  }
-
-  .buff-notice.show {
-    display: block;
-    animation: fadeIn 0.3s ease;
-  }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.78rem;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    letter-spacing: 0.1em;
-  }
-
-  .refresh-info {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    font-size: 0.72rem;
-    opacity: 0.7;
-  }
-
-  .spinner {
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--muted);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    display: none;
-  }
-
-  .spinner.active {
-    display: block;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* Responsive */
-  @media (max-width: 700px) {
-    .map-grid {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto;
-    }
-    .zone-library { grid-column: 1 / -1; grid-row: auto; }
-    .zone-cafe { grid-column: 1; grid-row: auto; }
-    .zone-night { grid-column: 2; grid-row: auto; }
-    .zone-grass { grid-column: 1; grid-row: auto; }
-    .zone-lake { grid-column: 2; grid-row: auto; }
-    .zone-path { display: none; }
-    .header h1 { font-size: 2rem; }
+  :root { --bg:#1a1a2e; --accent:#e94560; --yellow:#f5a623; --green:#4ecdc4; --text:#eaeaea; --muted:#8892a4; --border:rgba(255,255,255,0.08); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Noto Sans TC',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image: radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,0.6) 0%,transparent 100%), radial-gradient(1px 1px at 30% 60%,rgba(255,255,255,0.4) 0%,transparent 100%), radial-gradient(1px 1px at 50% 10%,rgba(255,255,255,0.5) 0%,transparent 100%), radial-gradient(1px 1px at 70% 80%,rgba(255,255,255,0.3) 0%,transparent 100%), radial-gradient(1px 1px at 90% 40%,rgba(255,255,255,0.6) 0%,transparent 100%); pointer-events:none; z-index:0; }
+  #login-screen { display:none; position:fixed; inset:0; background:var(--bg); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+  #login-screen h1 { font-family:'DotGothic16',monospace; font-size:2.5rem; background:linear-gradient(135deg,var(--yellow),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  #login-screen p { color:var(--muted); font-size:0.9rem; letter-spacing:0.2em; }
+  #btn-login { background:linear-gradient(135deg,#5865f2,#7289da); color:white; border:none; padding:12px 32px; border-radius:12px; font-size:1rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; font-weight:700; transition:all 0.2s; }
+  #btn-login:hover { opacity:0.85; transform:translateY(-2px); }
+  .container { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:32px 20px; }
+  .header { text-align:center; margin-bottom:40px; }
+  .header h1 { font-family:'DotGothic16',monospace; font-size:2.8rem; letter-spacing:0.1em; background:linear-gradient(135deg,var(--yellow),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
+  .header .subtitle { color:var(--muted); font-size:0.9rem; letter-spacing:0.2em; text-transform:uppercase; }
+  .live-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); border-radius:20px; padding:4px 12px; font-size:0.75rem; color:var(--accent); margin-top:10px; letter-spacing:0.1em; }
+  .live-dot { width:6px; height:6px; background:var(--accent); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+  .stats-bar { display:flex; justify-content:center; gap:24px; margin-bottom:36px; flex-wrap:wrap; }
+  .stat-item { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:12px 24px; text-align:center; }
+  .stat-num { font-family:'DotGothic16',monospace; font-size:1.6rem; color:var(--yellow); }
+  .stat-label { font-size:0.75rem; color:var(--muted); margin-top:2px; letter-spacing:0.1em; }
+  .map-grid { display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:auto auto; gap:16px; margin-bottom:32px; }
+  .zone-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:20px; padding:24px; transition:all 0.3s ease; position:relative; overflow:hidden; }
+  .zone-card::before { content:''; position:absolute; inset:0; background:var(--zone-color,rgba(255,255,255,0.02)); opacity:0; transition:opacity 0.3s ease; border-radius:20px; }
+  .zone-card:hover::before { opacity:1; }
+  .zone-card.has-users { border-color:var(--zone-accent,rgba(255,255,255,0.2)); box-shadow:0 0 20px var(--zone-glow,transparent); }
+  .zone-library { grid-column:2; grid-row:1; --zone-color:rgba(78,205,196,0.05); --zone-accent:rgba(78,205,196,0.3); --zone-glow:rgba(78,205,196,0.1); }
+  .zone-cafe { grid-column:1; grid-row:1; --zone-color:rgba(245,166,35,0.05); --zone-accent:rgba(245,166,35,0.3); --zone-glow:rgba(245,166,35,0.1); }
+  .zone-night { grid-column:3; grid-row:1; --zone-color:rgba(168,218,220,0.05); --zone-accent:rgba(168,218,220,0.3); --zone-glow:rgba(168,218,220,0.1); }
+  .zone-grass { grid-column:1; grid-row:2; --zone-color:rgba(100,200,100,0.05); --zone-accent:rgba(100,200,100,0.3); --zone-glow:rgba(100,200,100,0.1); }
+  .zone-lake { grid-column:3; grid-row:2; --zone-color:rgba(100,150,255,0.05); --zone-accent:rgba(100,150,255,0.3); --zone-glow:rgba(100,150,255,0.1); }
+  .zone-path { grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:center; opacity:0.3; pointer-events:none; }
+  .zone-path-inner { font-size:2rem; text-align:center; line-height:1.5; }
+  .zone-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .zone-emoji { font-size:1.8rem; line-height:1; }
+  .zone-info h3 { font-family:'DotGothic16',monospace; font-size:1rem; letter-spacing:0.05em; }
+  .zone-info .zone-desc { font-size:0.72rem; color:var(--muted); margin-top:2px; }
+  .zone-count { margin-left:auto; background:rgba(255,255,255,0.08); border-radius:20px; padding:3px 10px; font-size:0.75rem; font-family:'DotGothic16',monospace; color:var(--muted); transition:all 0.3s ease; }
+  .zone-count.active { background:var(--zone-accent,rgba(255,255,255,0.15)); color:var(--text); }
+  .xp-badge { display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:6px; margin-top:6px; letter-spacing:0.05em; font-weight:700; }
+  .xp-badge.bonus { background:rgba(233,69,96,0.2); color:var(--accent); border:1px solid rgba(233,69,96,0.3); }
+  .xp-badge.normal { background:rgba(255,255,255,0.05); color:var(--muted); border:1px solid var(--border); }
+  .users-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; min-height:36px; }
+  .user-chip { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:4px 10px 4px 8px; font-size:0.78rem; animation:fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .user-name { color:var(--text); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .empty-zone { color:var(--muted); font-size:0.78rem; font-style:italic; display:flex; align-items:center; gap:6px; margin-top:14px; opacity:0.6; }
+  .buff-notice { display:none; margin-top:10px; padding:6px 10px; background:rgba(233,69,96,0.1); border:1px solid rgba(233,69,96,0.2); border-radius:8px; font-size:0.72rem; color:var(--accent); }
+  .buff-notice.show { display:block; animation:fadeIn 0.3s ease; }
+  .footer { text-align:center; color:var(--muted); font-size:0.78rem; padding-top:20px; border-top:1px solid var(--border); letter-spacing:0.1em; }
+  .refresh-info { display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:0.72rem; opacity:0.7; }
+  .spinner { width:10px; height:10px; border:2px solid var(--muted); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; display:none; }
+  .spinner.active { display:block; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  @media (max-width:700px) {
+    .map-grid { grid-template-columns:1fr 1fr; }
+    .zone-library { grid-column:1/-1; grid-row:auto; }
+    .zone-cafe,.zone-grass { grid-column:1; grid-row:auto; }
+    .zone-night,.zone-lake { grid-column:2; grid-row:auto; }
+    .zone-path { display:none; }
+    .header h1 { font-size:2rem; }
   }
 </style>
 </head>
 <body>
+
 <!-- 登入畫面 -->
-<div id="login-screen" style="display:none; position:fixed; inset:0; background:#1a1a2e; z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
-  <h1 style="font-family:'DotGothic16',monospace; font-size:2.5rem; background:linear-gradient(135deg,#f5a623,#e94560); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">📚 Study Town</h1>
-  <p style="color:#8892a4; font-size:0.9rem;">校園學習小鎮</p>
-  <button id="btn-login" style="background:linear-gradient(135deg,#5865f2,#7289da); color:white; border:none; padding:12px 32px; border-radius:12px; font-size:1rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; font-weight:700;">
-    🎮 用 Discord 登入
-  </button>
-</div>
-<div id="map-screen" style="display:none;"></div>
-<div class="container">
-
-  <!-- Header -->
-  <div class="header">
-    <h1>📚 Study Town</h1>
-    <p class="subtitle">校園學習小鎮</p>
-    <div class="live-badge">
-      <span class="live-dot"></span>
-      LIVE
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-num" id="stat-online">0</div>
-      <div class="stat-label">目前在線</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" id="stat-studying">0</div>
-      <div class="stat-label">專注中</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" id="stat-players">0</div>
-      <div class="stat-label">總玩家數</div>
-    </div>
-  </div>
-
-  <!-- Map -->
-  <div class="map-grid">
-
-    <!-- 咖啡廳 -->
-    <div class="zone-card zone-cafe" id="zone-咖啡廳">
-      <div class="zone-header">
-        <span class="zone-emoji">☕</span>
-        <div class="zone-info">
-          <h3>咖啡廳</h3>
-          <span class="zone-desc">輕度專注・聊天</span>
-          <div><span class="xp-badge normal">XP +0%</span></div>
-        </div>
-        <div class="zone-count" id="count-咖啡廳">0人</div>
-      </div>
-      <div class="users-list" id="users-咖啡廳"></div>
-      <div class="buff-notice" id="buff-咖啡廳"></div>
-    </div>
-
-    <!-- 圖書館 -->
-    <div class="zone-card zone-library" id="zone-圖書館">
-      <div class="zone-header">
-        <span class="zone-emoji">🏫</span>
-        <div class="zone-info">
-          <h3>圖書館</h3>
-          <span class="zone-desc">專注讀書</span>
-          <div><span class="xp-badge bonus">XP +10%</span></div>
-        </div>
-        <div class="zone-count" id="count-圖書館">0人</div>
-      </div>
-      <div class="users-list" id="users-圖書館"></div>
-      <div class="buff-notice" id="buff-圖書館"></div>
-    </div>
-
-    <!-- 夜讀室 -->
-    <div class="zone-card zone-night" id="zone-夜讀室">
-      <div class="zone-header">
-        <span class="zone-emoji">🌙</span>
-        <div class="zone-info">
-          <h3>夜讀室</h3>
-          <span class="zone-desc">深夜專注</span>
-          <div><span class="xp-badge bonus">22:00後 +20%</span></div>
-        </div>
-        <div class="zone-count" id="count-夜讀室">0人</div>
-      </div>
-      <div class="users-list" id="users-夜讀室"></div>
-      <div class="buff-notice" id="buff-夜讀室"></div>
-    </div>
-
-    <!-- 草地 -->
-    <div class="zone-card zone-grass" id="zone-草地">
-      <div class="zone-header">
-        <span class="zone-emoji">🌿</span>
-        <div class="zone-info">
-          <h3>草地</h3>
-          <span class="zone-desc">放鬆・掛機</span>
-          <div><span class="xp-badge normal">XP +5%</span></div>
-        </div>
-        <div class="zone-count" id="count-草地">0人</div>
-      </div>
-      <div class="users-list" id="users-草地"></div>
-      <div class="buff-notice" id="buff-草地"></div>
-    </div>
-
-    <!-- 中間路徑裝飾 -->
-    <div class="zone-path">
-      <div class="zone-path-inner">🌸<br>🛤️<br>🌸</div>
-    </div>
-
-    <!-- 湖邊 -->
-    <div class="zone-card zone-lake" id="zone-湖邊">
-      <div class="zone-header">
-        <span class="zone-emoji">🎣</span>
-        <div class="zone-info">
-          <h3>湖邊</h3>
-          <span class="zone-desc">釣魚・收集</span>
-          <div><span class="xp-badge normal">釣魚 +XP</span></div>
-        </div>
-        <div class="zone-count" id="count-湖邊">0人</div>
-      </div>
-      <div class="users-list" id="users-湖邊"></div>
-      <div class="buff-notice" id="buff-湖邊"></div>
-    </div>
-
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    Study Town · 校園學習小鎮
-    <div class="refresh-info">
-      <div class="spinner" id="spinner"></div>
-      <span id="last-update">載入中...</span>
-    </div>
-  </div>
-
+<div id="login-screen">
+  <h1>📚 Study Town</h1>
+  <p>校園學習小鎮</p>
+  <button id="btn-login">🎮 用 Discord 登入</button>
 </div>
 
-<!-- Supabase SDK -->
+<!-- 地圖畫面 -->
+<div id="map-screen" style="display:none;">
+  <div class="container">
+    <div class="header">
+      <h1>📚 Study Town</h1>
+      <p class="subtitle">校園學習小鎮</p>
+      <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-num" id="stat-online">0</div><div class="stat-label">目前在線</div></div>
+      <div class="stat-item"><div class="stat-num" id="stat-studying">0</div><div class="stat-label">專注中</div></div>
+      <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
+    </div>
+    <div class="map-grid">
+      <div class="zone-card zone-cafe" id="zone-咖啡廳">
+        <div class="zone-header"><span class="zone-emoji">☕</span><div class="zone-info"><h3>咖啡廳</h3><span class="zone-desc">輕度專注・聊天</span><div><span class="xp-badge normal">XP +0%</span></div></div><div class="zone-count" id="count-咖啡廳">0人</div></div>
+        <div class="users-list" id="users-咖啡廳"></div><div class="buff-notice" id="buff-咖啡廳"></div>
+      </div>
+      <div class="zone-card zone-library" id="zone-圖書館">
+        <div class="zone-header"><span class="zone-emoji">🏫</span><div class="zone-info"><h3>圖書館</h3><span class="zone-desc">專注讀書</span><div><span class="xp-badge bonus">XP +10%</span></div></div><div class="zone-count" id="count-圖書館">0人</div></div>
+        <div class="users-list" id="users-圖書館"></div><div class="buff-notice" id="buff-圖書館"></div>
+      </div>
+      <div class="zone-card zone-night" id="zone-夜讀室">
+        <div class="zone-header"><span class="zone-emoji">🌙</span><div class="zone-info"><h3>夜讀室</h3><span class="zone-desc">深夜專注</span><div><span class="xp-badge bonus">22:00後 +20%</span></div></div><div class="zone-count" id="count-夜讀室">0人</div></div>
+        <div class="users-list" id="users-夜讀室"></div><div class="buff-notice" id="buff-夜讀室"></div>
+      </div>
+      <div class="zone-card zone-grass" id="zone-草地">
+        <div class="zone-header"><span class="zone-emoji">🌿</span><div class="zone-info"><h3>草地</h3><span class="zone-desc">放鬆・掛機</span><div><span class="xp-badge normal">XP +5%</span></div></div><div class="zone-count" id="count-草地">0人</div></div>
+        <div class="users-list" id="users-草地"></div><div class="buff-notice" id="buff-草地"></div>
+      </div>
+      <div class="zone-path"><div class="zone-path-inner">🌸<br>🛤️<br>🌸</div></div>
+      <div class="zone-card zone-lake" id="zone-湖邊">
+        <div class="zone-header"><span class="zone-emoji">🎣</span><div class="zone-info"><h3>湖邊</h3><span class="zone-desc">釣魚・收集</span><div><span class="xp-badge normal">釣魚 +XP</span></div></div><div class="zone-count" id="count-湖邊">0人</div></div>
+        <div class="users-list" id="users-湖邊"></div><div class="buff-notice" id="buff-湖邊"></div>
+      </div>
+    </div>
+    <div class="footer">
+      Study Town · 校園學習小鎮
+      <div class="refresh-info"><div class="spinner" id="spinner"></div><span id="last-update">載入中...</span></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-  import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
+import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession } from './auth.js'
 
-  // 🔧 填入你的 Supabase 設定
-  const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
+// 🔧 填入你的 Supabase 設定
+const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
 
-  const { createClient } = supabase
-  const db = createClient(SUPABASE_URL, SUPABASE_KEY)
-  
-  // ... 其他程式碼
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const avatarEmoji = { cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰', fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧' }
+const ZONES = ['咖啡廳','圖書館','夜讀室','草地','湖邊']
+const BUFF_RULES = [
+  { min:5, msg:'🔥 五人聚集！XP +30%' },
+  { min:3, msg:'✨ 三人同行！XP +20%' },
+  { min:2, msg:'👥 一起讀書！XP +10%' },
+]
 
 let currentUser = null
 
 async function init() {
-  // 先檢查 URL 有沒有 token（剛從 Discord 回來）
   const token = getTokenFromURL()
   if (token) {
     const discordUser = await fetchDiscordUser(token)
     saveSession(discordUser, token)
-    // 清掉 URL 上的 token
     window.history.replaceState({}, '', window.location.pathname)
     currentUser = discordUser
   } else {
-    // 檢查有沒有舊的 session
     const session = loadSession()
-    if (session) {
-      currentUser = session.user
-    }
+    if (session) currentUser = session.user
   }
-
-  if (currentUser) {
-    showMap()
-  } else {
-    showLogin()
-  }
+  if (currentUser) { showMap() } else { showLogin() }
 }
 
 function showLogin() {
@@ -616,16 +164,63 @@ function showLogin() {
 function showMap() {
   document.getElementById('login-screen').style.display = 'none'
   document.getElementById('map-screen').style.display = 'block'
-  const hudUsername = document.getElementById('hud-username')
-  if (hudUsername) hudUsername.textContent = currentUser.username
   fetchAndRender()
   setInterval(fetchAndRender, 10000)
 }
 
 document.getElementById('btn-login').addEventListener('click', loginWithDiscord)
 
+async function fetchAndRender() {
+  document.getElementById('spinner').classList.add('active')
+  try {
+    const { data: users, error } = await db
+      .from('users')
+      .select('discord_id, username, current_zone, level, xp, avatar')
+    if (error) throw error
+
+    const online = users.filter(u => u.current_zone && u.current_zone !== 'none').length
+    const studying = users.filter(u => ['圖書館','夜讀室','咖啡廳'].includes(u.current_zone)).length
+    document.getElementById('stat-online').textContent = online
+    document.getElementById('stat-studying').textContent = studying
+    document.getElementById('stat-players').textContent = users.length
+
+    ZONES.forEach(zone => {
+      const zoneUsers = users.filter(u => u.current_zone === zone)
+      const listEl = document.getElementById(`users-${zone}`)
+      const countEl = document.getElementById(`count-${zone}`)
+      const cardEl = document.getElementById(`zone-${zone}`)
+      const buffEl = document.getElementById(`buff-${zone}`)
+
+      countEl.textContent = `${zoneUsers.length}人`
+      countEl.classList.toggle('active', zoneUsers.length > 0)
+      cardEl.classList.toggle('has-users', zoneUsers.length > 0)
+
+      if (zoneUsers.length === 0) {
+        listEl.innerHTML = '<div class="empty-zone">🌿 空無一人</div>'
+      } else {
+        listEl.innerHTML = zoneUsers.map(user => {
+          const emoji = avatarEmoji[user.avatar] || '🐱'
+          return `<div class="user-chip"><span style="font-size:1.4rem;">${emoji}</span><span class="user-name">${user.username || '未知'}</span></div>`
+        }).join('')
+      }
+
+      const buff = BUFF_RULES.find(r => zoneUsers.length >= r.min)
+      if (buff) { buffEl.textContent = buff.msg; buffEl.classList.add('show') }
+      else { buffEl.classList.remove('show') }
+    })
+
+    const now = new Date()
+    document.getElementById('last-update').textContent = `上次更新：${now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
+  } catch (err) {
+    console.error('讀取資料失敗：', err)
+    document.getElementById('last-update').textContent = '讀取失敗，重試中...'
+  } finally {
+    document.getElementById('spinner').classList.remove('active')
+  }
+}
+
 init()
 </script>
-</div>
+
 </body>
 </html>
