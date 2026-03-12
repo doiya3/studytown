@@ -568,6 +568,7 @@ class LibraryScene extends Phaser.Scene {
   }
 
   create() {
+    try {
     this.graphics = this.add.graphics()
     this.drawMap()
 
@@ -635,6 +636,9 @@ class LibraryScene extends Phaser.Scene {
 
     // WebSocket 即時同步（onPlayerMove 會自動處理後進入的玩家）
     initWebSocket(this)
+    } catch (e) {
+      console.error('[create] 場景初始化失敗:', e)
+    }
   }
 
   drawMap() {
@@ -1151,18 +1155,27 @@ onPlayerLeave(discord_id) {
 }
 
 // 初始化 Phaser
-const config = {
-  type: Phaser.CANVAS,
-  width: W,
-  height: H,
-  parent: 'game-container',
-  backgroundColor: '#1e3828',
-  scene: LibraryScene,
-  pixelArt: true,
-  antialias: false,
+let game
+try {
+  const config = {
+    type: Phaser.CANVAS,
+    width: W,
+    height: H,
+    parent: 'game-container',
+    backgroundColor: '#1e3828',
+    scene: LibraryScene,
+    pixelArt: true,
+    antialias: false,
+    callbacks: {
+      postBoot: () => console.log('[Phaser] 啟動成功')
+    }
+  }
+  game = new Phaser.Game(config)
+} catch (e) {
+  console.error('[Phaser] 初始化失敗:', e)
+  document.getElementById('game-container').innerHTML =
+    `<div style="color:#e94560;padding:40px;font-size:0.9rem;">⚠️ Phaser 初始化失敗：${e.message}</div>`
 }
-
-const game = new Phaser.Game(config)
 
 // ─── 私訊 ────────────────────────────────────────────────
 let toastTimer = null
