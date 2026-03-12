@@ -93,7 +93,7 @@
   canvas { display: block; image-rendering: pixelated; }
 
   #interaction-hint {
-    position: fixed; bottom: 24px; left: 24px;
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 12px; padding: 8px 20px; color: var(--accent);
     font-size: 0.8rem; font-family: 'DotGothic16', monospace;
@@ -103,8 +103,8 @@
     white-space: nowrap;
   }
   @keyframes float {
-    0%,100% { transform: translateY(0); }
-    50%      { transform: translateY(-5px); }
+    0%,100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-5px); }
   }
 
   /* 飲料選單 */
@@ -327,6 +327,19 @@
     position: fixed; bottom: 24px; left: 24px;
     background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
     border-radius: 10px; padding: 8px 14px; font-size: 0.7rem; color: var(--text-muted); z-index: 100; line-height: 1.9; opacity: 0.7;
+  }
+  #controls-hint {
+    position: fixed;
+    bottom: 24px; left: 24px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    z-index: 100;
+    line-height: 1.9;
+    opacity: 0.7;
   }
   #player-count {
     position: fixed; top: 64px; right: 20px;
