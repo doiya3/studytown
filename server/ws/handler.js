@@ -47,7 +47,7 @@ function setupWebSocket(server) {
         const client = clients.get(authId)
         if (!client) return
         if (msg.username) client.username = msg.username
-        if (msg.avatar_url) client.avatar_url = msg.avatar_url
+        client.avatar_url = msg.avatar_url ?? null  // 允許 null 清除（匿名模式）
         broadcast(client.scene, {
           type: 'player_move',
           discord_id: authId,
