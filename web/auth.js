@@ -1,5 +1,9 @@
 const DISCORD_CLIENT_ID = '1481185806663159808'
-const REDIRECT_URI = 'https://doiya3.github.io/studytown/web/index.html'
+
+// 自動偵測環境：只有在 GitHub Pages 才用 GitHub URL，其他（localhost/127.0.0.1/LAN IP）一律用本機
+const REDIRECT_URI = window.location.hostname === 'doiya3.github.io'
+  ? 'https://doiya3.github.io/studytown/web/index.html'
+  : `${window.location.origin}/web/index.html`
 
 // 取得 Discord 應用程式 ID
 // Developer Portal → 你的應用程式 → 左側 General Information → Application ID

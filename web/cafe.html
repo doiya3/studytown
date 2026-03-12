@@ -246,13 +246,10 @@
 <div id="dm-toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
-
-const { createClient } = supabase
-const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'http://140.115.154.127:3000'
+const WS_URL  = IS_LOCAL ? 'ws://localhost:3000'  : 'ws://140.115.154.127:3000'
 
 const sessionRaw = localStorage.getItem('study_user')
 const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
@@ -280,6 +277,33 @@ function navigateTo(url) {
   el.style.pointerEvents = 'all'
   el.style.opacity = '1'          // fade to black over 0.2s
   setTimeout(() => { window.location.href = url }, 220)
+}
+
+let ws = null
+function initWebSocket(scene) {
+  ws = new WebSocket(WS_URL)
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'auth', discord_id: MY_DISCORD_ID, scene: '咖啡廳' }))
+    // 重連後立即廣播目前位置，避免靜止玩家在他人視野消失
+    if (scene.playerGx !== undefined) {
+      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: MY_USERNAME }))
+    }
+    console.log('[WS] 已連線')
+  }
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data)
+    if (msg.type === 'player_move') scene.onPlayerMove(msg)
+    if (msg.type === 'player_leave') scene.onPlayerLeave(msg.discord_id)
+    if (msg.type === 'broadcast') {
+      if (msg.action === 'wave') showToast(`${msg.fromName || msg.from} 對你揮手 👋`)
+      else if (msg.action === 'message') showToast(`${msg.fromName || msg.from}: ${msg.text}`)
+    }
+  }
+  ws.onclose = () => {
+    if (isExiting) return
+    console.log('[WS] 斷線，3秒後重連')
+    setTimeout(() => initWebSocket(scene), 3000)
+  }
 }
 
 const avatarEmoji = {
@@ -421,25 +445,8 @@ class CafeScene extends Phaser.Scene {
       console.error('Initialization error:', e);
     }
 
-    this.time.addEvent({
-      delay: 3000,
-      loop: true,
-      callback: () => {
-        this.loadOtherPlayers().catch(e => console.error('periodic loadOtherPlayers error:', e));
-      }
-    });
-
-    db.channel('users-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-        try {
-          this.onPlayerUpdate(payload)
-        } catch (e) {
-          console.error('onPlayerUpdate error:', e)
-        }
-      })
-      .subscribe((status) => {
-        console.log('Realtime café 狀態：', status)
-      })
+    // WebSocket 即時同步（onPlayerMove 會自動處理後進入的玩家）
+    initWebSocket(this)
   }
 
   drawMap() {
@@ -600,12 +607,9 @@ class CafeScene extends Phaser.Scene {
           this.playerGy = ny;
           this.updatePlayerPos();
           this.moveTimer = 0;
-          // 走一格立即同步，不等心跳
-          if (!isExiting) {
-            db.from('users').update({
-              map_x: this.playerGx, map_y: this.playerGy,
-            }).eq('discord_id', MY_DISCORD_ID)
-            .then(({ error }) => { if (error) console.error('move sync error:', error); });
+          // 走一格立即透過 WebSocket 推送
+          if (!isExiting && ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME }))
           }
         } else if (blockedByPlayer && !this.bumpCooldown) {
           // 碰撞特效：縮放 + 閃爍
@@ -638,10 +642,15 @@ class CafeScene extends Phaser.Scene {
     if (this.syncTimer > 5000) {
       this.syncTimer = 0;
       if (!isExiting) {
-        db.from('users').update({
-          map_x: this.playerGx, map_y: this.playerGy,
-        }).eq('discord_id', MY_DISCORD_ID)
-        .then(({ error }) => { if (error) console.error('sync error:', error); });
+        fetch(`${API_URL}/api/users/location`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discord_id: MY_DISCORD_ID, map_x: this.playerGx, map_y: this.playerGy, map_scene: '咖啡廳' })
+        }).catch(e => console.error('heartbeat error:', e))
+        // WS 心跳：確保靜止玩家持續出現在他人視野
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME }))
+        }
       }
     }
   }
@@ -685,15 +694,12 @@ class CafeScene extends Phaser.Scene {
       const hint = document.getElementById('interaction-hint')
 
       if (found && !this.seated) {
-        db.from('users')
-          .select('discord_id')
-          .eq('current_zone', '咖啡廳')
-          .eq('seat_id', found.id)
-          .neq('discord_id', MY_DISCORD_ID)
-          .then(({ data }) => {
-            // 確認玩家還在同一個座位旁邊
+        fetch(`${API_URL}/api/users/scene/咖啡廳`)
+          .then(r => r.json())
+          .then(users => {
             if (this.nearSeat?.id !== found.id) return
-            if (data && data.length > 0) {
+            const occupied = Array.isArray(users) && users.some(u => u.seat_id === found.id && u.discord_id !== MY_DISCORD_ID)
+            if (occupied) {
               hint.textContent = `🚫 座位 #${found.id} 已有人`
               hint.style.display = 'block'
               this.seatOccupied = true
@@ -702,7 +708,7 @@ class CafeScene extends Phaser.Scene {
               hint.style.display = 'block'
               this.seatOccupied = false
             }
-          });
+          })
       } else if (!this.seated) {
         hint.style.display = 'none'
         this.seatOccupied = false
@@ -714,8 +720,13 @@ class CafeScene extends Phaser.Scene {
     if (this.nearDoor) {
       clearInterval(pomo.interval);
       isExiting = true;
+      if (ws) ws.close()
       try {
-        await db.from('users').update({ map_scene: 'none', current_zone: 'none', seat_id: null, status: 'offline', map_x: 0, map_y: 0 }).eq('discord_id', MY_DISCORD_ID);
+        await fetch(`${API_URL}/api/users/clear-location`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discord_id: MY_DISCORD_ID })
+        });
       } catch (e) {
         console.error('Clear location error:', e);
       }
@@ -728,13 +739,11 @@ class CafeScene extends Phaser.Scene {
     }
     if (this.nearSeat && !this.seated) {
       // 即時檢查座位
-      const { data } = await db.from('users')
-        .select('discord_id')
-        .eq('current_zone', '咖啡廳')
-        .eq('seat_id', this.nearSeat.id)
-        .neq('discord_id', MY_DISCORD_ID);
+      const usersRes = await fetch(`${API_URL}/api/users/scene/咖啡廳`)
+      const usersData = await usersRes.json()
+      const occupied = Array.isArray(usersData) && usersData.some(u => u.seat_id === this.nearSeat.id && u.discord_id !== MY_DISCORD_ID)
 
-      if (data && data.length > 0) {
+      if (occupied) {
         document.getElementById('interaction-hint').textContent = `🚫 座位 #${this.nearSeat.id} 已有人`
         return
       }
@@ -745,36 +754,50 @@ class CafeScene extends Phaser.Scene {
   async sitDown(seat) {
     this.seated = true;
     this.currentSeat = seat;
+    pomo.seatId = seat.id;
     this.playerGx = seat.x;
     this.playerGy = seat.y;
     this.updatePlayerPos();
+    // 廣播坐下位置給其他玩家
+    if (!isExiting && ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'move', x: seat.x, y: seat.y, username: MY_USERNAME }))
+    }
     this.tweens.add({ targets: this.player, scaleX: 0.85, scaleY: 0.85, duration: 200, ease: 'Power2' });
     document.getElementById('interaction-hint').style.display = 'none';
     document.getElementById('focus-seat').textContent = `座位 #${seat.id}`;
     document.getElementById('focus-panel').classList.add('visible');
 
     // 坐下：同步位置，但狀態為 browsing（尚未開始計時）
-    await db.from('users').update({
-      seat_id: seat.id,
-      status: 'browsing',
-      current_zone: '咖啡廳',
-      map_x: seat.x,
-      map_y: seat.y,
-      map_scene: '咖啡廳',
-    }).eq('discord_id', MY_DISCORD_ID);
+    await Promise.all([
+      fetch(`${API_URL}/api/users/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: MY_DISCORD_ID, seat_id: seat.id, status: 'browsing', current_zone: '咖啡廳' })
+      }),
+      fetch(`${API_URL}/api/users/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: MY_DISCORD_ID, map_x: seat.x, map_y: seat.y, map_scene: '咖啡廳' })
+      })
+    ]);
   }
 
   async standUp() {
     this.seated = false;
     this.currentSeat = null;
+    pomo.seatId = null;
+    if (!isExiting && ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME }))
+    }
     this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' });
     document.getElementById('focus-panel').classList.remove('visible');
 
     // 清除座位並等待完成
-    await db.from('users').update({
-      seat_id: null,
-      status: 'browsing',
-    }).eq('discord_id', MY_DISCORD_ID);
+    await fetch(`${API_URL}/api/users/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID, seat_id: null, status: 'browsing' })
+    });
     
     // 重新檢查附近座位（強制刷新顯示）
     this.nearSeat = null;
@@ -782,19 +805,24 @@ class CafeScene extends Phaser.Scene {
   }
 
   async updateZone() {
-    await db.from('users').update({
-      current_zone: '咖啡廳', map_scene: '咖啡廳',
-      map_x: this.playerGx, map_y: this.playerGy,
-      status: 'browsing', // 進入區域就重設，防止舊資料殘留
-    }).eq('discord_id', MY_DISCORD_ID);
+    await Promise.all([
+      fetch(`${API_URL}/api/users/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: MY_DISCORD_ID, status: 'browsing', current_zone: '咖啡廳' })
+      }),
+      fetch(`${API_URL}/api/users/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: MY_DISCORD_ID, map_x: this.playerGx, map_y: this.playerGy, map_scene: '咖啡廳' })
+      })
+    ])
   }
 
   async loadOtherPlayers() {
-    const { data: users } = await db
-      .from('users')
-      .select('discord_id, username, map_scene, map_x, map_y, avatar, seat_id')
-      .eq('map_scene', '咖啡廳')
-      .neq('discord_id', MY_DISCORD_ID);
+    const res = await fetch(`${API_URL}/api/users/scene/咖啡廳`)
+    const allUsers = await res.json()
+    const users = Array.isArray(allUsers) ? allUsers.filter(u => u.discord_id !== MY_DISCORD_ID) : null
 
     Object.values(this.otherPlayers).forEach(p => p.destroy())
     Object.values(this.playerLabels).forEach(l => l.destroy())
@@ -823,63 +851,55 @@ class CafeScene extends Phaser.Scene {
 
       const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username, {
         fontSize: '10px', fontFamily: 'Noto Sans TC',
-        color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
+        color: '#ffffff', stroke: '#1a1208', strokeThickness: 3
       }).setOrigin(0.5, 1);
       this.playerLabels[user.discord_id] = label;
     })
   }
 
-  onPlayerUpdate(payload) {
-    const user = payload.new
-    console.log('[onPlayerUpdate] Received:', { discord_id: user?.discord_id, map_scene: user?.map_scene, username: user?.username })
-    
-    if (!user || user.discord_id === MY_DISCORD_ID) return
+  onPlayerMove(msg) {
+    const { discord_id, x, y, username } = msg
+    const gx = x || 8
+    const gy = y || 10
+    const displayName = username || discord_id
 
-    // 如果用户不在咖啡厅，移除该玩家显示
-    if (user.map_scene !== '咖啡廳') {
-      if (this.otherPlayers[user.discord_id]) {
-        console.log('[onPlayerUpdate] Removing player:', user.discord_id)
-        this.otherPlayers[user.discord_id].destroy()
-        this.playerLabels[user.discord_id]?.destroy()
-        delete this.otherPlayers[user.discord_id]
-        delete this.playerLabels[user.discord_id]
-        delete this.otherTargets[user.discord_id]
-        delete this.otherGrids[user.discord_id]
-      }
-      return
-    }
-
-    const gx = user.map_x || 8
-    const gy = user.map_y || 10
-
-    if (this.otherPlayers[user.discord_id]) {
-      console.log('[onPlayerUpdate] Updating player position:', user.discord_id)
-      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
-      this.otherGrids[user.discord_id] = { x: gx, y: gy }
+    if (this.otherPlayers[discord_id]) {
+      this.otherTargets[discord_id] = { x: gx * TILE, y: gy * TILE }
+      this.otherGrids[discord_id] = { x: gx, y: gy }
     } else {
-      console.log('[onPlayerUpdate] Adding new player:', user.discord_id, user.username)
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
-      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, user.username || '玩家', ptr.x, ptr.y))
+      g.on('pointerdown', (ptr) => openDmMenu(discord_id, displayName, ptr.x, ptr.y))
       g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
       g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
-      this.otherPlayers[user.discord_id] = g
-      this.otherTargets[user.discord_id] = { x: gx * TILE, y: gy * TILE }
-      this.otherGrids[user.discord_id] = { x: gx, y: gy }
+      this.otherPlayers[discord_id] = g
+      this.otherTargets[discord_id] = { x: gx * TILE, y: gy * TILE }
+      this.otherGrids[discord_id] = { x: gx, y: gy }
 
-      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, user.username || '玩家', {
+      const label = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, displayName, {
         fontSize: '10px', fontFamily: 'Noto Sans TC',
-        color: '#4ecdc4', stroke: '#1a1208', strokeThickness: 3
+        color: '#ffffff', stroke: '#1a1208', strokeThickness: 3
       }).setOrigin(0.5, 1);
-      this.playerLabels[user.discord_id] = label;
+      this.playerLabels[discord_id] = label;
     }
 
     document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1;
-    
-    // 其他玩家座位狀態改變時，重新檢查附近座位
+    this.nearSeat = null;
+  }
+
+  onPlayerLeave(discord_id) {
+    if (this.otherPlayers[discord_id]) {
+      this.otherPlayers[discord_id].destroy()
+      this.playerLabels[discord_id]?.destroy()
+      delete this.otherPlayers[discord_id]
+      delete this.playerLabels[discord_id]
+      delete this.otherTargets[discord_id]
+      delete this.otherGrids[discord_id]
+    }
+    document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1;
     this.nearSeat = null;
   }
 }
@@ -930,9 +950,9 @@ document.getElementById('dm-close').addEventListener('click', () => {
 })
 
 document.getElementById('dm-btn-wave').addEventListener('click', () => {
-  dmChannel.send({ type: 'broadcast', event: 'dm', payload: {
-    to: dmTarget.id, from: MY_DISCORD_ID, fromName: MY_USERNAME, type: 'wave'
-  }})
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'wave', fromName: MY_USERNAME }))
+  }
   showToast(`已對 ${dmTarget.name} 揮手 👋`)
   dmOverlay.classList.remove('visible')
 })
@@ -945,9 +965,9 @@ document.getElementById('dm-btn-msg').addEventListener('click', () => {
 function sendDM() {
   const msg = document.getElementById('dm-input').value.trim()
   if (!msg) return
-  dmChannel.send({ type: 'broadcast', event: 'dm', payload: {
-    to: dmTarget.id, from: MY_DISCORD_ID, fromName: MY_USERNAME, type: 'msg', msg
-  }})
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'message', text: msg, fromName: MY_USERNAME }))
+  }
   showToast(`對 ${dmTarget.name}: ${msg}`)
   dmOverlay.classList.remove('visible')
 }
@@ -955,23 +975,13 @@ function sendDM() {
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
 
-const dmChannel = db.channel('dm-咖啡廳')
-  .on('broadcast', { event: 'dm' }, ({ payload }) => {
-    if (payload.to !== MY_DISCORD_ID) return
-    if (payload.type === 'wave') {
-      showToast(`${payload.fromName} 對你揮手 👋`)
-    } else if (payload.type === 'msg') {
-      showToast(`${payload.fromName}: ${payload.msg}`)
-    }
-  })
-  .subscribe()
-
 // 關閉分頁時清除位置
 window.addEventListener('beforeunload', () => {
   if (!isExiting && MY_DISCORD_ID) {
-    const url = `${SUPABASE_URL}/rest/v1/users?discord_id=eq.${MY_DISCORD_ID}`;
-    const data = JSON.stringify({ map_scene: 'none', current_zone: 'none', seat_id: null, status: 'offline', map_x: 0, map_y: 0 });
-    navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+    navigator.sendBeacon(
+      `${API_URL}/api/users/clear-location`,
+      new Blob([JSON.stringify({ discord_id: MY_DISCORD_ID })], { type: 'application/json' })
+    )
   }
 });
 
@@ -980,15 +990,13 @@ document.getElementById('hud-back').addEventListener('click', async (e) => {
   e.preventDefault();
   clearInterval(pomo.interval);
   isExiting = true;
+  if (ws) ws.close()
   try {
-    await db.from('users').update({ 
-      map_scene: 'none', 
-      current_zone: 'none',
-      seat_id: null, 
-      status: 'offline',
-      map_x: 0, 
-      map_y: 0 
-    }).eq('discord_id', MY_DISCORD_ID);
+    await fetch(`${API_URL}/api/users/clear-location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID })
+    });
   } catch (err) {
     console.error('Clear location error:', err);
   }
@@ -1026,7 +1034,7 @@ const pomo = {
   workMin: 25, breakMin: 5, longBreakMin: 15,
   longAfter: 4, targetRounds: 4,
   round: 0, phase: 'idle',
-  remainSec: 0, sessionStart: null, interval: null, running: false,
+  remainSec: 0, sessionStart: null, sessionId: null, seatId: null, interval: null, running: false,
 }
 
 function formatTime(sec) {
@@ -1099,10 +1107,20 @@ async function pomoStartWorkPhase() {
   document.getElementById('btn-start').disabled = true
   updatePomoPhase()
   updatePomoDots()
-  await Promise.all([
-    db.from('study_sessions').insert({ discord_id: MY_DISCORD_ID, zone: '咖啡廳', start_time: pomo.sessionStart.toISOString() }),
-    db.from('users').update({ status: 'studying' }).eq('discord_id', MY_DISCORD_ID),
+  const [sessionRes] = await Promise.all([
+    fetch(`${API_URL}/api/study/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID, zone: '咖啡廳', seat_id: pomo.seatId })
+    }),
+    fetch(`${API_URL}/api/users/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID, status: 'studying' })
+    })
   ])
+  const sessionData = await sessionRes.json()
+  pomo.sessionId = sessionData.id
   startPomoCountdown(pomo.workMin * 60, pomoOnWorkComplete)
 }
 
@@ -1139,26 +1157,22 @@ async function pomoFinishAll() {
 }
 
 async function pomoSaveSession(completed) {
-  const now = new Date()
-  const elapsedMin = Math.max(1, Math.floor((now - pomo.sessionStart) / 60000))
-  const minutes = completed ? pomo.workMin : elapsedMin
-  const xp = Math.round(minutes * 2) + (completed ? 20 : 0)
-  const { data: session } = await db.from('study_sessions').select('*')
-    .eq('discord_id', MY_DISCORD_ID).is('end_time', null)
-    .order('start_time', { ascending: false }).limit(1).single()
-  if (session) {
-    await db.from('study_sessions').update({
-      end_time: now.toISOString(), duration_minutes: minutes, xp_earned: xp,
-    }).eq('id', session.id)
-    const { data: user } = await db.from('users').select('xp, total_minutes').eq('discord_id', MY_DISCORD_ID).single()
-    if (user) {
-      await db.from('users').update({
-        xp: (user.xp || 0) + xp,
-        total_minutes: (user.total_minutes || 0) + minutes,
-        status: 'browsing',
-      }).eq('discord_id', MY_DISCORD_ID)
-    }
+  if (!pomo.sessionId) return
+  try {
+    await fetch(`${API_URL}/api/study/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID, session_id: pomo.sessionId })
+    })
+  } catch (e) {
+    console.error('pomoSaveSession error:', e)
   }
+  pomo.sessionId = null
+  await fetch(`${API_URL}/api/users/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discord_id: MY_DISCORD_ID, status: 'browsing' })
+  }).catch(e => console.error('status update error:', e))
 }
 
 document.getElementById('btn-start').addEventListener('click', async () => {
@@ -1188,7 +1202,13 @@ document.getElementById('btn-stop').addEventListener('click', async () => {
   document.getElementById('pomo-settings').style.display = 'block'
   document.getElementById('btn-start').textContent = '開始'
   document.getElementById('btn-start').disabled = false
-  if (!wasInWork) await db.from('users').update({ status: 'browsing' }).eq('discord_id', MY_DISCORD_ID)
+  if (!wasInWork) {
+    await fetch(`${API_URL}/api/users/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID, status: 'browsing' })
+    })
+  }
   await game.scene.getScene('Cafe').standUp()
 })
 </script>

@@ -128,16 +128,11 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadSession, clearSession } from './auth.js'
 
-// 🔧 填入你的 Supabase 設定
-const SUPABASE_URL = 'https://lcyfbeismuvradcbaahr.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjeWZiZWlzbXV2cmFkY2JhYWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMDg2MTksImV4cCI6MjA4ODc4NDYxOX0.9lAF3fzp7i_CsdN6_vleOOd56275OW3Nq5hpmkDq_qs'
-
-const { createClient } = supabase
-const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'http://140.115.154.127:3000'
 
 const avatarEmoji = { cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰', fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧' }
 const ZONES = ['咖啡廳','圖書館','夜讀室','草地','湖邊']
@@ -160,7 +155,14 @@ async function init() {
     const session = loadSession()
     if (session) currentUser = session.user
   }
-  if (currentUser) { showMap() } else { showLogin() }
+  if (currentUser) {
+    await fetch(`${API_URL}/api/users/upsert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar })
+    }).catch(e => console.error('upsert error:', e))
+    showMap()
+  } else { showLogin() }
 }
 
 function showLogin() {
@@ -184,10 +186,9 @@ document.getElementById('btn-login').addEventListener('click', loginWithDiscord)
 async function fetchAndRender() {
   document.getElementById('spinner').classList.add('active')
   try {
-    const { data: users, error } = await db
-      .from('users')
-      .select('discord_id, username, current_zone, status, level, xp, avatar')
-    if (error) throw error
+    const res = await fetch(`${API_URL}/api/users/scene/all`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const users = await res.json()
 
     const online = users.filter(u => u.current_zone && u.current_zone !== 'none').length
     const studying = users.filter(u => u.status === 'studying').length
@@ -253,18 +254,16 @@ function enterZone(zone) {
   }
 }
 document.getElementById('btn-logout').addEventListener('click', async () => {
-  // 更新 Supabase：標記用戶為離線並清除位置
   const session = loadSession()
   if (session?.user?.id) {
     try {
-      await db.from('users').update({ 
-        status: 'offline', 
-        map_scene: 'none',
-        current_zone: 'none',
-        seat_id: null
-      }).eq('discord_id', session.user.id)
+      await fetch(`${API_URL}/api/users/clear-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: session.user.id })
+      })
     } catch (e) {
-      console.error('Logout Supabase update error:', e)
+      console.error('Logout error:', e)
     }
   }
   

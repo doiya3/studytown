@@ -1,0 +1,13 @@
+# Environment variables
+.env
+server/.env
+bot/.env
+
+# Node modules
+node_modules/
+server/node_modules/
+bot/node_modules/
+web/node_modules/
+
+# update note
+update_note/
