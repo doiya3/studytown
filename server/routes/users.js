@@ -89,7 +89,7 @@ router.post('/clear-location', async (req, res) => {
 router.get('/scene/all', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
+    .select('discord_id, username, current_zone, status, level, xp, avatar')
     .not('current_zone', 'is', null)
     .neq('current_zone', 'none')
 
