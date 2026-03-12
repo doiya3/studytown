@@ -1457,11 +1457,8 @@ function handleTeamWsMessage(msg) {
   }
   if (msg.type === 'team_accepted') { showToast(`${msg.by_name} 接受了你的邀請！`); refreshTeammate(); return true }
   if (msg.type === 'team_disbanded') {
-    showToast('隊伍已更新')
-    currentTeam = null
-    document.getElementById('team-panel').classList.remove('visible')
-    clearInterval(teamRefreshInterval); teamRefreshInterval = null
-    document.getElementById('teammates-list').innerHTML = ''
+    showToast('隊友已離開')
+    refreshTeammate()
     return true
   }
   if (msg.type === 'team_message') { addTeamMessage(msg.from_name, msg.text, false); return true }
