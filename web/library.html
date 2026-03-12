@@ -320,17 +320,20 @@
     -ms-overflow-style: none;
   }
   #team-messages::-webkit-scrollbar { display: none; }
-  #team-input-row { display: flex; gap: 6px; }
+  #team-input-row { position: relative; display: block; width: 100%; }
   #team-input {
     flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 6px 10px; color: #e6edf3;
+    border-radius: 8px; padding: 6px 42px 6px 10px; color: #e6edf3;
     font-size: 0.75rem; font-family: 'Noto Sans TC', sans-serif; outline: none;
+    width: 100%; box-sizing: border-box;
   }
   #btn-team-send {
     background: rgba(48,200,120,0.15); border: 1px solid rgba(48,200,120,0.3);
-    color: #30c878; border-radius: 8px; padding: 6px 14px;
+    color: #30c878; border-radius: 8px; padding: 0;
     font-size: 0.8rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
     white-space: nowrap; flex-shrink: 0;
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   }
   #btn-disband {
     background: transparent; border: 1px solid rgba(233,69,96,0.2);
@@ -626,6 +629,17 @@ function isBlocked(gx, gy) {
   return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS
 }
 
+function isTextInputActive() {
+  const active = document.activeElement
+  return active?.id === 'team-input' || active?.id === 'dm-input'
+}
+
+function blurActiveTextInput(target) {
+  if (!isTextInputActive()) return
+  if (target && (target.closest('#team-input-row') || target.closest('#dm-input-row'))) return
+  document.activeElement?.blur()
+}
+
 // 非同步載入並裁切成圓形的 Discord 頭像 Phaser 紋理
 function loadAvatarTexture(scene, key, url, callback) {
   if (!url) { callback(false); return }
@@ -711,6 +725,8 @@ class LibraryScene extends Phaser.Scene {
 
     // 點擊移動
     this.input.on('pointerdown', (pointer) => {
+      blurActiveTextInput(pointer.event?.target)
+      if (isTextInputActive()) return
       if (this.seated) return
       if (this.input.hitTestPointer(pointer).length > 0) return
       const gx = Math.floor(pointer.x / TILE)
@@ -882,6 +898,12 @@ class LibraryScene extends Phaser.Scene {
     })
 
     if (this.seated) return
+
+    if (isTextInputActive()) {
+      this.moveTarget = null
+      this.checkNearbySeat()
+      return
+    }
 
     this.moveTimer += delta
 
@@ -1507,6 +1529,7 @@ document.getElementById('btn-reject-invite').addEventListener('click', rejectTea
 document.getElementById('btn-disband').addEventListener('click', disbandTeam)
 document.getElementById('btn-team-send').addEventListener('click', sendTeamMessage)
 document.getElementById('team-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTeamMessage() })
+document.addEventListener('pointerdown', (e) => blurActiveTextInput(e.target))
 
 // 初始化檢查是否已在組隊中
 refreshTeammate()
