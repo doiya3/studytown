@@ -1309,7 +1309,7 @@ function openDmMenu(targetId, targetName, px, py) {
   const mw = 180, mh = 170
   dmMenuEl.style.left = Math.min(px + 8, W - mw - 8) + 'px'
   dmMenuEl.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
-  dmMenuEl.style.display = 'block'
+  setTimeout(() => { dmMenuEl.style.display = 'block' }, 0)
 }
 
 document.getElementById('menu-close').addEventListener('click', () => {
