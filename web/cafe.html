@@ -1081,7 +1081,7 @@ class CafeScene extends Phaser.Scene {
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
-      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, displayName, ptr.x, ptr.y))
+      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, displayName, ptr.event.clientX, ptr.event.clientY))
       g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
       g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
       this.otherPlayers[user.discord_id] = g
@@ -1140,7 +1140,7 @@ class CafeScene extends Phaser.Scene {
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
-      g.on('pointerdown', (ptr) => openDmMenu(discord_id, displayName, ptr.x, ptr.y))
+      g.on('pointerdown', (ptr) => openDmMenu(discord_id, displayName, ptr.event.clientX, ptr.event.clientY))
       g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
       g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
       this.otherPlayers[discord_id] = g
@@ -1205,8 +1205,10 @@ function showToast(msg) {
 
 let dmTarget = { id: null, name: '' }
 const dmMenuEl = document.getElementById('interaction-menu')
+let _menuOpening = false
 
 function openDmMenu(targetId, targetName, px, py) {
+  _menuOpening = true
   dmTarget = { id: targetId, name: targetName }
   document.getElementById('menu-player-name').textContent = targetName
   document.getElementById('dm-input-row').classList.remove('visible')
@@ -1215,13 +1217,14 @@ function openDmMenu(targetId, targetName, px, py) {
   const mw = 180, mh = 170
   dmMenuEl.style.left = Math.min(px + 8, W - mw - 8) + 'px'
   dmMenuEl.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
-  setTimeout(() => { dmMenuEl.style.display = 'block' }, 0)
+  dmMenuEl.style.display = 'block'
 }
 
 document.getElementById('menu-close').addEventListener('click', () => {
   dmMenuEl.style.display = 'none'
 })
 document.addEventListener('click', (e) => {
+  if (_menuOpening) { _menuOpening = false; return }
   if (dmMenuEl.style.display !== 'none' && !dmMenuEl.contains(e.target)) {
     dmMenuEl.style.display = 'none'
   }
