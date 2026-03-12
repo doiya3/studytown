@@ -21,8 +21,7 @@ router.post('/upsert', async (req, res) => {
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
 
   const upsertData = { discord_id, username, avatar }
-  if (discord_avatar !== undefined) upsertData.discord_avatar = discord_avatar
-  if (avatar_mode) upsertData.avatar_mode = avatar_mode
+  // discord_avatar / avatar_mode columns not yet in DB — add after ALTER TABLE
 
   const { data, error } = await supabase
     .from('users')
@@ -56,7 +55,7 @@ router.post('/status', async (req, res) => {
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
 
   const updateData = { status, current_zone, seat_id }
-  if (avatar_mode !== undefined) updateData.avatar_mode = avatar_mode
+  // avatar_mode column not yet in DB — add after ALTER TABLE
 
   const { data, error } = await supabase
     .from('users')
