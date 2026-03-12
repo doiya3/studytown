@@ -1078,7 +1078,7 @@ class CafeScene extends Phaser.Scene {
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
       const displayName = isAnon ? '同學' : user.username
-      const teamColor = currentTeam?.teammate_id === discord_id ? COLORS.playerTeam : COLORS.playerOther
+      const teamColor = currentTeam?.teammate_id === user.discord_id ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
       g.fillStyle(teamColor, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1138,7 +1138,7 @@ class CafeScene extends Phaser.Scene {
         })
       }
     } else {
-      const color = currentTeam?.teammate_id === user.discord_id ? COLORS.playerTeam : COLORS.playerOther
+      const color = currentTeam?.teammate_id === discord_id ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
       g.fillStyle(color, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
