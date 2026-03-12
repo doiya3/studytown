@@ -619,6 +619,15 @@ blockRect(1, 1, 14, 2)   // 上方書架
 blockRect(1, 1, 1, 9)    // 左側書架
 blockRect(14, 1, 1, 9)   // 右側書架
 
+// 外框邊界（不可走到牆壁邊緣）
+blockRect(0, 0, COLS, 1)        // 上方外牆
+blockRect(0, 0, 1, ROWS)        // 左方外牆
+blockRect(COLS - 1, 0, 1, ROWS) // 右方外牆
+// 下方外牆（保留門口 col 7-8）
+for (let x = 0; x < COLS; x++) {
+  if (x < 7 || x > 8) BLOCKED.add(`${x},${ROWS - 1}`)
+}
+
 // 桌子（桌子本身擋住，但旁邊座位不擋）
 for (const seat of SEATS) {
   BLOCKED.add(`${seat.x},${seat.y - 1}`) // 桌子在座位上方
