@@ -70,6 +70,26 @@ function setupWebSocket(server) {
         })
         return
       }
+
+      if (msg.type === 'team_invite') {
+        sendTo(msg.to_id, { type: 'team_invite', from_id: authId, from_name: msg.from_name || authId })
+        return
+      }
+
+      if (msg.type === 'team_accepted') {
+        sendTo(msg.to_id, { type: 'team_accepted', by_id: authId, by_name: msg.by_name || authId })
+        return
+      }
+
+      if (msg.type === 'team_disbanded') {
+        sendTo(msg.to_id, { type: 'team_disbanded' })
+        return
+      }
+
+      if (msg.type === 'team_message') {
+        sendTo(msg.to_id, { type: 'team_message', from_id: authId, from_name: msg.from_name || authId, text: msg.text || '' })
+        return
+      }
     })
 
     ws.on('close', () => {

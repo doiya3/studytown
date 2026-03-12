@@ -6,6 +6,7 @@ const cors = require('cors')
 
 const usersRouter = require('./routes/users')
 const studyRouter = require('./routes/study')
+const teamsRouter = require('./routes/teams')
 const { setupWebSocket } = require('./ws/handler')
 
 const app = express()
@@ -26,6 +27,7 @@ app.use(express.json())
 
 app.use('/api/users', usersRouter)
 app.use('/api/study', studyRouter)
+app.use('/api/teams', teamsRouter)
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Study Town server is running' })

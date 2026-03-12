@@ -221,27 +221,115 @@
   #btn-stop { background: rgba(233,69,96,0.12); border: 1px solid rgba(233,69,96,0.25); color: #e94560; }
   #btn-stop:hover { background: rgba(233,69,96,0.2); }
 
-  /* 私訊 UI */
-  #dm-overlay { position: fixed; inset: 0; z-index: 500; display: none; }
-  #dm-overlay.visible { display: block; }
-  #dm-menu {
-    position: fixed; background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 14px 16px; z-index: 501; min-width: 180px;
-    backdrop-filter: blur(10px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  /* 互動選單 */
+  #interaction-menu {
+    position: fixed;
+    background: rgba(20, 20, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px 8px;
+    min-width: 160px;
+    z-index: 500;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: menuIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  #dm-menu h4 { font-family: 'DotGothic16', monospace; color: var(--accent); font-size: 0.78rem; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-  #dm-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 0; line-height: 1; }
-  #dm-close:hover { color: var(--text); }
-  .dm-btn { display: block; width: 100%; padding: 7px 10px; margin-bottom: 6px; border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06);
-    color: var(--text); font-size: 0.8rem; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; text-align: left; transition: background 0.15s; }
-  .dm-btn:hover { background: rgba(255,255,255,0.14); }
-  #dm-input-row { display: none; margin-top: 4px; }
+  @keyframes menuIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  #interaction-menu .menu-title {
+    font-size: 0.78rem; color: #8b949e; text-align: center;
+    padding: 0 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 6px; font-family: 'Noto Sans TC', sans-serif;
+  }
+  #interaction-menu .menu-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 14px; background: transparent; border: none;
+    border-radius: 10px; color: #e6edf3; font-size: 0.82rem;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+    transition: background 0.15s; text-align: left;
+  }
+  #interaction-menu .menu-btn:hover { background: rgba(255,255,255,0.08); }
+  #interaction-menu .menu-btn .btn-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+  #interaction-menu .menu-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; color: #8b949e;
+    font-size: 0.85rem; cursor: pointer; padding: 2px 6px;
+    border-radius: 6px; transition: all 0.15s;
+  }
+  #interaction-menu .menu-close:hover { background: rgba(255,255,255,0.08); color: #e6edf3; }
+  #dm-input-row { display: none; margin: 4px 8px 0; }
   #dm-input-row.visible { display: flex; gap: 6px; }
   #dm-input { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
     color: var(--text); font-size: 0.8rem; padding: 5px 8px; font-family: 'Noto Sans TC', sans-serif; outline: none; }
   #dm-send { padding: 5px 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: var(--bg); font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+  /* 組隊 Toast */
+  #team-invite-toast {
+    position: fixed; top: 70px; right: 20px;
+    background: rgba(20,20,30,0.95); border: 1px solid rgba(100,200,150,0.3);
+    border-radius: 14px; padding: 14px 18px; color: #e6edf3;
+    font-size: 0.82rem; font-family: 'Noto Sans TC', sans-serif;
+    z-index: 300; backdrop-filter: blur(16px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    display: none; align-items: center; gap: 10px;
+    animation: slideInRight 0.3s ease;
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  #team-invite-toast.visible { display: flex; }
+  #btn-accept-invite {
+    background: rgba(48,200,120,0.2); border: 1px solid rgba(48,200,120,0.4);
+    color: #30c878; padding: 4px 12px; border-radius: 8px;
+    font-size: 0.78rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+  }
+  #btn-reject-invite {
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    color: #8b949e; padding: 4px 12px; border-radius: 8px;
+    font-size: 0.78rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+  }
+  /* 隊伍面板 */
+  #team-panel {
+    position: fixed; left: 20px; top: 70px; width: 220px;
+    background: rgba(20,20,30,0.92); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 14px; z-index: 100;
+    backdrop-filter: blur(16px);
+    display: none; flex-direction: column; gap: 10px;
+  }
+  #team-panel.visible { display: flex; }
+  #team-header { font-family: 'DotGothic16', monospace; color: #30c878; font-size: 0.8rem; letter-spacing: 0.1em; }
+  #teammate-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px;
+    background: rgba(255,255,255,0.04); border-radius: 12px;
+  }
+  #teammate-name { color: #e6edf3; font-size: 0.82rem; font-weight: 700; }
+  #teammate-location { color: #8b949e; font-size: 0.72rem; margin-top: 2px; }
+  #teammate-status { color: #f5a623; font-size: 0.72rem; margin-top: 2px; }
+  #team-messages {
+    height: 100px; overflow-y: auto; font-size: 0.75rem; color: #8b949e;
+    padding: 4px 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  #team-input-row { display: flex; gap: 6px; }
+  #team-input {
+    flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 6px 10px; color: #e6edf3;
+    font-size: 0.75rem; font-family: 'Noto Sans TC', sans-serif; outline: none;
+  }
+  #btn-team-send {
+    background: rgba(48,200,120,0.15); border: 1px solid rgba(48,200,120,0.3);
+    color: #30c878; border-radius: 8px; padding: 6px 10px;
+    font-size: 0.75rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+  }
+  #btn-disband {
+    background: transparent; border: 1px solid rgba(233,69,96,0.2);
+    color: rgba(233,69,96,0.6); border-radius: 10px; padding: 6px;
+    font-size: 0.72rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s;
+  }
+  #btn-disband:hover { border-color: rgba(233,69,96,0.5); color: #e94560; }
+
   #dm-toast {
     position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--panel); border: 1px solid var(--border);
@@ -358,16 +446,40 @@
 <!-- 玩家數 -->
 <div id="player-count">圖書館：<span id="online-count">1</span> 人</div>
 
-<div id="dm-overlay">
-  <div id="dm-menu">
-    <h4><span id="dm-target-name">玩家</span><button id="dm-close">✕</button></h4>
-    <button class="dm-btn" id="dm-btn-wave">👋 打招呼</button>
-    <button class="dm-btn" id="dm-btn-msg">💬 傳訊息</button>
-    <div id="dm-input-row">
-      <input id="dm-input" type="text" placeholder="輸入訊息..." maxlength="60">
-      <button id="dm-send">送</button>
+<div id="interaction-menu" style="display:none; position:fixed;">
+  <button class="menu-close" id="menu-close">✕</button>
+  <div class="menu-title" id="menu-player-name">玩家名稱</div>
+  <button class="menu-btn" id="btn-wave"><span class="btn-icon">👋</span> 打招呼</button>
+  <button class="menu-btn" id="btn-dm"><span class="btn-icon">💬</span> 傳訊息</button>
+  <button class="menu-btn" id="btn-invite-team"><span class="btn-icon">🤝</span> 邀請組隊</button>
+  <div id="dm-input-row">
+    <input id="dm-input" type="text" placeholder="輸入訊息..." maxlength="60">
+    <button id="dm-send">送</button>
+  </div>
+</div>
+<div id="team-invite-toast">
+  <span id="invite-from-name"></span> 邀請你組隊！
+  <button id="btn-accept-invite">接受</button>
+  <button id="btn-reject-invite">拒絕</button>
+</div>
+<div id="team-panel">
+  <div id="team-header">👥 隊伍</div>
+  <div id="teammate-card">
+    <div id="teammate-avatar"></div>
+    <div id="teammate-info">
+      <div id="teammate-name"></div>
+      <div id="teammate-location"></div>
+      <div id="teammate-status"></div>
     </div>
   </div>
+  <div id="team-chat">
+    <div id="team-messages"></div>
+    <div id="team-input-row">
+      <input id="team-input" placeholder="傳訊息給隊友..." />
+      <button id="btn-team-send">送出</button>
+    </div>
+  </div>
+  <button id="btn-disband">解散組隊</button>
 </div>
 <div id="dm-toast"></div>
 
@@ -434,6 +546,7 @@ function initWebSocket(scene) {
       if (msg.action === 'wave') showToast(`${msg.fromName || msg.from} 對你揮手 👋`)
       else if (msg.action === 'message') showToast(`${msg.fromName || msg.from}: ${msg.text}`)
     }
+    handleTeamWsMessage(msg)
   }
   ws.onclose = () => {
     if (isExiting) return
@@ -1185,44 +1298,43 @@ function showToast(msg) {
 }
 
 let dmTarget = { id: null, name: '' }
-const dmMenu = document.getElementById('dm-menu')
-const dmOverlay = document.getElementById('dm-overlay')
+const dmMenuEl = document.getElementById('interaction-menu')
 
 function openDmMenu(targetId, targetName, px, py) {
   dmTarget = { id: targetId, name: targetName }
-  document.getElementById('dm-target-name').textContent = targetName
+  document.getElementById('menu-player-name').textContent = targetName
   document.getElementById('dm-input-row').classList.remove('visible')
   document.getElementById('dm-input').value = ''
   const W = window.innerWidth, H = window.innerHeight
-  const mw = 200, mh = 110
-  dmMenu.style.left = Math.min(px + 8, W - mw - 8) + 'px'
-  dmMenu.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
-  dmOverlay.classList.add('visible')
+  const mw = 180, mh = 170
+  dmMenuEl.style.left = Math.min(px + 8, W - mw - 8) + 'px'
+  dmMenuEl.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
+  dmMenuEl.style.display = 'block'
 }
 
-dmOverlay.addEventListener('click', (e) => {
-  if (e.target === dmOverlay) {
-    dmOverlay.classList.remove('visible')
+document.getElementById('menu-close').addEventListener('click', () => {
+  dmMenuEl.style.display = 'none'
+})
+document.addEventListener('click', (e) => {
+  if (dmMenuEl.style.display !== 'none' && !dmMenuEl.contains(e.target)) {
+    dmMenuEl.style.display = 'none'
   }
 })
-
-document.getElementById('dm-close').addEventListener('click', () => {
-  dmOverlay.classList.remove('visible')
-})
-
-document.getElementById('dm-btn-wave').addEventListener('click', () => {
+document.getElementById('btn-wave').addEventListener('click', () => {
   if (ws?.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'wave', fromName: DISPLAY_NAME }))
   }
   showToast(`已對 ${dmTarget.name} 揮手 👋`)
-  dmOverlay.classList.remove('visible')
+  dmMenuEl.style.display = 'none'
 })
-
-document.getElementById('dm-btn-msg').addEventListener('click', () => {
+document.getElementById('btn-dm').addEventListener('click', () => {
   document.getElementById('dm-input-row').classList.add('visible')
   document.getElementById('dm-input').focus()
 })
-
+document.getElementById('btn-invite-team').addEventListener('click', () => {
+  sendTeamInvite(dmTarget.id, dmTarget.name)
+  dmMenuEl.style.display = 'none'
+})
 function sendDM() {
   const msg = document.getElementById('dm-input').value.trim()
   if (!msg) return
@@ -1230,11 +1342,149 @@ function sendDM() {
     ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'message', text: msg, fromName: DISPLAY_NAME }))
   }
   showToast(`對 ${dmTarget.name}: ${msg}`)
-  dmOverlay.classList.remove('visible')
+  dmMenuEl.style.display = 'none'
 }
-
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
+
+// ─── 組隊系統 ────────────────────────────────────────────────
+let currentTeam = null
+let teamRefreshInterval = null
+let pendingInviteFromId = null
+
+async function sendTeamInvite(targetId, targetName) {
+  try {
+    await fetch(`${API_URL}/api/teams/invite`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_id: MY_DISCORD_ID, to_id: targetId })
+    })
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'team_invite', to_id: targetId, from_name: DISPLAY_NAME }))
+    }
+    showToast(`已邀請 ${targetName} 組隊 🤝`)
+  } catch { showToast('邀請失敗') }
+}
+
+async function acceptTeamInvite() {
+  if (!pendingInviteFromId) return
+  try {
+    const res = await fetch(`${API_URL}/api/teams/accept`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_id: pendingInviteFromId, to_id: MY_DISCORD_ID })
+    })
+    const data = await res.json()
+    if (!data.success) { showToast('接受失敗'); return }
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'team_accepted', to_id: pendingInviteFromId, by_name: DISPLAY_NAME }))
+    }
+    document.getElementById('team-invite-toast').classList.remove('visible')
+    pendingInviteFromId = null
+    await refreshTeammate()
+  } catch { showToast('接受失敗') }
+}
+
+function rejectTeamInvite() {
+  document.getElementById('team-invite-toast').classList.remove('visible')
+  pendingInviteFromId = null
+}
+
+async function disbandTeam() {
+  if (!currentTeam) return
+  try {
+    await fetch(`${API_URL}/api/teams/disband`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID })
+    })
+    if (ws?.readyState === WebSocket.OPEN && currentTeam.teammate_id) {
+      ws.send(JSON.stringify({ type: 'team_disbanded', to_id: currentTeam.teammate_id }))
+    }
+    currentTeam = null
+    document.getElementById('team-panel').classList.remove('visible')
+    clearInterval(teamRefreshInterval); teamRefreshInterval = null
+  } catch { showToast('解散失敗') }
+}
+
+function addTeamMessage(fromName, text, isSelf) {
+  const container = document.getElementById('team-messages')
+  const msgEl = document.createElement('div')
+  msgEl.style.cssText = `color: ${isSelf ? '#e6edf3' : '#8b949e'}; font-size: 0.75rem;`
+  msgEl.textContent = `${isSelf ? '我' : fromName}: ${text}`
+  container.appendChild(msgEl)
+  container.scrollTop = container.scrollHeight
+}
+
+function sendTeamMessage() {
+  const input = document.getElementById('team-input')
+  const text = input.value.trim()
+  if (!text || !currentTeam) return
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'team_message', to_id: currentTeam.teammate_id, text, from_name: DISPLAY_NAME }))
+  }
+  addTeamMessage(DISPLAY_NAME, text, true)
+  input.value = ''
+}
+
+async function refreshTeammate() {
+  try {
+    const res = await fetch(`${API_URL}/api/teams/${MY_DISCORD_ID}`)
+    const data = await res.json()
+    if (!data.teammate) {
+      if (currentTeam) {
+        currentTeam = null
+        document.getElementById('team-panel').classList.remove('visible')
+        clearInterval(teamRefreshInterval); teamRefreshInterval = null
+      }
+      return
+    }
+    const t = data.teammate
+    const isAnon = t.avatar_mode === 'anonymous'
+    const name = isAnon ? '同學' : (t.username || '隊友')
+    currentTeam = { teammate_id: t.discord_id, teammate_name: name }
+    document.getElementById('teammate-name').textContent = name
+    document.getElementById('teammate-location').textContent = `📍 ${t.current_zone || '離線'}`
+    document.getElementById('teammate-status').textContent = t.status === 'studying' ? '🍅 讀書中' : '💤 休息中'
+    const avatarEl = document.getElementById('teammate-avatar')
+    const avatarUrl = (!isAnon && t.discord_avatar)
+      ? `https://cdn.discordapp.com/avatars/${t.discord_id}/${t.discord_avatar}.png?size=64` : null
+    avatarEl.innerHTML = avatarUrl
+      ? `<img src="${avatarUrl}" style="width:36px;height:36px;border-radius:50%;">`
+      : `<span style="font-size:2rem">👤</span>`
+    document.getElementById('team-panel').classList.add('visible')
+    if (!teamRefreshInterval) teamRefreshInterval = setInterval(refreshTeammate, 10000)
+  } catch { /* silent */ }
+}
+
+function handleTeamWsMessage(msg) {
+  if (msg.type === 'team_invite') {
+    pendingInviteFromId = msg.from_id
+    document.getElementById('invite-from-name').textContent = msg.from_name
+    const toast = document.getElementById('team-invite-toast')
+    toast.classList.add('visible')
+    setTimeout(() => {
+      if (pendingInviteFromId === msg.from_id) { toast.classList.remove('visible'); pendingInviteFromId = null }
+    }, 30000)
+    return true
+  }
+  if (msg.type === 'team_accepted') { showToast(`${msg.by_name} 接受了你的邀請！`); refreshTeammate(); return true }
+  if (msg.type === 'team_disbanded') {
+    showToast('隊友已解散組隊')
+    currentTeam = null
+    document.getElementById('team-panel').classList.remove('visible')
+    clearInterval(teamRefreshInterval); teamRefreshInterval = null
+    return true
+  }
+  if (msg.type === 'team_message') { addTeamMessage(msg.from_name, msg.text, false); return true }
+  return false
+}
+
+document.getElementById('btn-accept-invite').addEventListener('click', acceptTeamInvite)
+document.getElementById('btn-reject-invite').addEventListener('click', rejectTeamInvite)
+document.getElementById('btn-disband').addEventListener('click', disbandTeam)
+document.getElementById('btn-team-send').addEventListener('click', sendTeamMessage)
+document.getElementById('team-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTeamMessage() })
+
+// 初始化檢查是否已在組隊中
+refreshTeammate()
 
 // 關閉分頁時清除位置
 window.addEventListener('beforeunload', () => {
