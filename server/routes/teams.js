@@ -132,11 +132,21 @@ router.post('/accept', async (req, res) => {
   const { from_id, to_id } = req.body
   if (!from_id || !to_id) return res.status(400).json({ error: 'missing fields' })
   try {
-    const { data, error } = await supabase.from('teams')
-      .update({ status: 'active' })
+    const { data: pendingInvite, error: pendingError } = await supabase.from('teams')
+      .select('id, member1_id, member2_id, status, created_at')
       .eq('member1_id', from_id)
       .eq('member2_id', to_id)
       .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (pendingError) return res.status(500).json({ error: pendingError.message })
+    if (!pendingInvite) return res.status(404).json({ error: 'invite not found' })
+
+    const { data, error } = await supabase.from('teams')
+      .update({ status: 'active' })
+      .eq('id', pendingInvite.id)
       .select().single()
 
     if (error || !data) return res.status(404).json({ error: 'invite not found' })
