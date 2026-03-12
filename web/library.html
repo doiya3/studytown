@@ -296,7 +296,7 @@
   <div id="hud-title">🏫 圖書館</div>
   <div id="hud-player">
     <span id="hud-avatar">🐱</span>
-    <span id="hud-username">載入中...</span>
+    <span id="hud-username"></span>
   </div>
   <div id="hud-zone">📍 圖書館</div>
   <button id="hud-identity-btn" onclick="openIdentitySettings()">👤 身分設定</button>
@@ -566,7 +566,7 @@ class LibraryScene extends Phaser.Scene {
     })
 
     // 玩家名稱
-    this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
+    this.playerLabel = this.add.text(0, 0, DISPLAY_NAME, {
       fontSize: '10px',
       fontFamily: 'Noto Sans TC',
       color: '#4ecdc4',

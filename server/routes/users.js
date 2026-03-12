@@ -90,8 +90,6 @@ router.get('/scene/all', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
     .select('discord_id, username, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
-    .not('current_zone', 'is', null)
-    .neq('current_zone', 'none')
 
   if (error) return res.status(500).json({ error: error.message })
   res.json(data || [])
