@@ -304,6 +304,27 @@
 </div>
 
 <div id="page-fade"></div>
+
+<!-- 身分設定面板 -->
+<div id="id-settings-overlay" onclick="if(event.target===this)closeIdentitySettings()">
+  <div id="id-settings-panel">
+    <h3>👤 身分設定</h3>
+    <button class="id-mode-btn" id="idmode-discord" onclick="setIdentityMode('discord')">
+      <span class="id-mode-icon">🖼️</span>
+      <div><div class="id-mode-title">Discord 頭像</div><div class="id-mode-desc">顯示您的 Discord 大頭貼</div></div>
+    </button>
+    <button class="id-mode-btn" id="idmode-preset" onclick="setIdentityMode('preset')">
+      <span class="id-mode-icon">🐱</span>
+      <div><div class="id-mode-title">動物頭像</div><div class="id-mode-desc">使用動物圖示</div></div>
+    </button>
+    <button class="id-mode-btn" id="idmode-anonymous" onclick="setIdentityMode('anonymous')">
+      <span class="id-mode-icon">👤</span>
+      <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「無名」，階段色圓圈</div></div>
+    </button>
+    <button id="id-settings-close" onclick="closeIdentitySettings()">關閉</button>
+  </div>
+</div>
+
 <!-- 遊戲容器 -->
 <div id="game-container"></div>
 
