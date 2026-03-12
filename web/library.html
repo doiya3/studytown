@@ -940,7 +940,7 @@ class LibraryScene extends Phaser.Scene {
     this.updatePlayerPos()
     // 廣播坐下位置給其他玩家
     if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'move', x: seat.x, y: seat.y, username: MY_USERNAME }))
+      ws.send(JSON.stringify({ type: 'move', x: seat.x, y: seat.y, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
     }
 
     // 坐下動畫（縮小）
@@ -1034,12 +1034,14 @@ class LibraryScene extends Phaser.Scene {
     users.forEach((user, i) => {
       const gx = user.map_x || 8
       const gy = user.map_y || 10
+      const isAnon = user.avatar_mode === 'anonymous'
+      const displayName = isAnon ? '無名' : user.username
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
-      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, user.username, ptr.x, ptr.y))
+      g.on('pointerdown', (ptr) => openDmMenu(user.discord_id, displayName, ptr.x, ptr.y))
       g.on('pointerover', () => { this.input.setDefaultCursor('pointer') })
       g.on('pointerout',  () => { this.input.setDefaultCursor('default') })
       this.otherPlayers[user.discord_id] = g
@@ -1049,14 +1051,14 @@ class LibraryScene extends Phaser.Scene {
       const label = this.add.text(
         gx * TILE + TILE / 2,
         gy * TILE - 2,
-        user.username,
+        displayName,
         { fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#ffffff', stroke: '#0d1117', strokeThickness: 3 }
       ).setOrigin(0.5, 1)
       this.playerLabels[user.discord_id] = label
 
-      // 載入頭像
+      // 載入頭像（匿名模式不顯示 Discord 頭像）
       const avatarKey = `avatar_${user.discord_id}`
-      const avatarUrl = user.discord_avatar
+      const avatarUrl = (!isAnon && user.discord_avatar)
         ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
         : null
       loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
@@ -1179,7 +1181,7 @@ document.getElementById('dm-close').addEventListener('click', () => {
 
 document.getElementById('dm-btn-wave').addEventListener('click', () => {
   if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'wave', fromName: MY_USERNAME }))
+    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'wave', fromName: DISPLAY_NAME }))
   }
   showToast(`已對 ${dmTarget.name} 揮手 👋`)
   dmOverlay.classList.remove('visible')
@@ -1194,7 +1196,7 @@ function sendDM() {
   const msg = document.getElementById('dm-input').value.trim()
   if (!msg) return
   if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'message', text: msg, fromName: MY_USERNAME }))
+    ws.send(JSON.stringify({ type: 'broadcast', to: dmTarget.id, action: 'message', text: msg, fromName: DISPLAY_NAME }))
   }
   showToast(`對 ${dmTarget.name}: ${msg}`)
   dmOverlay.classList.remove('visible')
@@ -1432,6 +1434,11 @@ function setIdentityMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   document.querySelectorAll('.id-mode-btn').forEach(b => b.classList.remove('active'))
   document.getElementById(`idmode-${mode}`)?.classList.add('active')
+  fetch(`${API_URL}/api/users/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discord_id: MY_DISCORD_ID, avatar_mode: mode })
+  }).catch(() => {})
   setTimeout(() => location.reload(), 280)
 }
 window.openIdentitySettings = openIdentitySettings
