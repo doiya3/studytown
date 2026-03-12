@@ -69,10 +69,57 @@
   }
   #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
+  /* ── 設定面板 ── */
+  #settings-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:500; align-items:center; justify-content:center; }
+  #settings-overlay.open { display:flex; }
+  #settings-panel { background:#1a1a2e; border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:28px 24px; width:320px; max-width:90vw; box-shadow:0 8px 40px rgba(0,0,0,0.5); }
+  #settings-panel h3 { font-family:'DotGothic16',monospace; font-size:1.05rem; margin-bottom:18px; color:var(--text); }
+  .avatar-preview { display:flex; align-items:center; gap:14px; margin-bottom:20px; padding:12px 14px; background:rgba(255,255,255,0.04); border-radius:12px; }
+  .avatar-preview img { width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); flex-shrink:0; }
+  .avatar-preview .pv-emoji { width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; flex-shrink:0; }
+  .avatar-preview .pv-name { font-size:0.88rem; color:var(--text); }
+  .avatar-preview .pv-sub { font-size:0.72rem; color:var(--muted); margin-top:3px; }
+  .mode-btn { display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; margin-bottom:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); border-radius:12px; color:var(--text); font-size:0.83rem; cursor:pointer; transition:all 0.2s; text-align:left; font-family:'Noto Sans TC',sans-serif; }
+  .mode-btn:hover { background:rgba(255,255,255,0.08); }
+  .mode-btn.active { border-color:var(--green); background:rgba(78,205,196,0.08); }
+  .mode-btn.active .mode-title { color:var(--green); }
+  .mode-btn .mode-icon { font-size:1.3rem; line-height:1; }
+  .mode-title { font-size:0.85rem; }
+  .mode-desc { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+  #settings-close { margin-top:4px; width:100%; padding:9px; background:transparent; border:1px solid var(--border); border-radius:10px; color:var(--muted); cursor:pointer; font-size:0.8rem; font-family:'Noto Sans TC',sans-serif; transition:background 0.2s; }
+  #settings-close:hover { background:rgba(255,255,255,0.05); }
 </style>
 </head>
 <body>
 <div id="page-fade"></div>
+
+<!-- 頭像設定面板 -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div id="settings-panel">
+    <h3>⚙️ 頭像設定</h3>
+    <div class="avatar-preview">
+      <img id="settings-avatar-img" src="" alt="" style="display:none;">
+      <div class="pv-emoji" id="settings-avatar-emoji" style="display:none;"></div>
+      <div>
+        <div class="pv-name" id="settings-username"></div>
+        <div class="pv-sub" id="settings-mode-label">模式：Discord 頭像</div>
+      </div>
+    </div>
+    <button class="mode-btn" id="mode-discord" onclick="setAvatarMode('discord')">
+      <span class="mode-icon">🖼️</span>
+      <div><div class="mode-title">Discord 頭像</div><div class="mode-desc">使用您的 Discord 大頭貼</div></div>
+    </button>
+    <button class="mode-btn" id="mode-preset" onclick="setAvatarMode('preset')">
+      <span class="mode-icon">🐱</span>
+      <div><div class="mode-title">動物頭像</div><div class="mode-desc">使用可愛動物圖示</div></div>
+    </button>
+    <button class="mode-btn" id="mode-anonymous" onclick="setAvatarMode('anonymous')">
+      <span class="mode-icon">👤</span>
+      <div><div class="mode-title">匿名模式</div><div class="mode-desc">隱藏身份，顯示為「無名」</div></div>
+    </button>
+    <button id="settings-close" onclick="closeSettings()">關閉</button>
+  </div>
+</div>
 
 <!-- 登入畫面 -->
 <div id="login-screen">
@@ -94,8 +141,9 @@
       <div class="stat-item"><div class="stat-num" id="stat-studying">0</div><div class="stat-label">專注中</div></div>
       <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
     </div>
-    <div style="position:fixed; top:16px; right:20px; z-index:100;">
-      <span id="hud-username" style="color:#8892a4; font-size:0.8rem; margin-right:10px;"></span>
+    <div style="position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px;">
+      <span id="hud-username" style="color:#8892a4; font-size:0.8rem;"></span>
+      <button id="btn-settings" onclick="openSettings()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer;">⚙️ 設定</button>
       <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>
     </div>
     <div class="map-grid">
@@ -278,6 +326,54 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 })
 // 讓函式可以從 onclick 呼叫（module 作用域問題）
 window.enterZone = enterZone
+
+let currentAvatarMode = 'discord'
+
+function openSettings() {
+  const session = loadSession()
+  if (!session) return
+  const user = session.user
+  document.getElementById('settings-username').textContent = user.username || '未知'
+  const imgEl = document.getElementById('settings-avatar-img')
+  const emojiEl = document.getElementById('settings-avatar-emoji')
+  if (user.avatar_url) {
+    imgEl.src = user.avatar_url
+    imgEl.style.display = ''
+    emojiEl.style.display = 'none'
+  } else {
+    imgEl.style.display = 'none'
+    emojiEl.textContent = avatarEmoji[user.avatar] || '🐱'
+    emojiEl.style.display = 'flex'
+  }
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'))
+  document.getElementById(`mode-${currentAvatarMode}`)?.classList.add('active')
+  const modeLabels = { discord: 'Discord 頭像', preset: '動物頭像', anonymous: '匿名模式' }
+  document.getElementById('settings-mode-label').textContent = `模式：${modeLabels[currentAvatarMode] || currentAvatarMode}`
+  document.getElementById('settings-overlay').classList.add('open')
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open')
+}
+
+async function setAvatarMode(mode) {
+  currentAvatarMode = mode
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'))
+  document.getElementById(`mode-${mode}`)?.classList.add('active')
+  const modeLabels = { discord: 'Discord 頭像', preset: '動物頭像', anonymous: '匿名模式' }
+  document.getElementById('settings-mode-label').textContent = `模式：${modeLabels[mode] || mode}`
+  const session = loadSession()
+  if (!session) return
+  await fetch(`${API_URL}/api/users/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discord_id: session.user.id, avatar_mode: mode })
+  }).catch(e => console.error('setAvatarMode error:', e))
+}
+
+window.openSettings = openSettings
+window.closeSettings = closeSettings
+window.setAvatarMode = setAvatarMode
 init()
 </script>
 
