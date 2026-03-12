@@ -109,13 +109,9 @@
       <span class="mode-icon">🖼️</span>
       <div><div class="mode-title">Discord 頭像</div><div class="mode-desc">使用您的 Discord 大頭貼</div></div>
     </button>
-    <button class="mode-btn" id="mode-preset" onclick="setAvatarMode('preset')">
-      <span class="mode-icon">🐱</span>
-      <div><div class="mode-title">動物頭像</div><div class="mode-desc">使用可愛動物圖示</div></div>
-    </button>
     <button class="mode-btn" id="mode-anonymous" onclick="setAvatarMode('anonymous')">
       <span class="mode-icon">👤</span>
-      <div><div class="mode-title">匿名模式</div><div class="mode-desc">隱藏身份，顯示為「無名」</div></div>
+      <div><div class="mode-title">匿名模式</div><div class="mode-desc">隱藏身份，顯示為「同學」</div></div>
     </button>
     <button id="settings-close" onclick="closeSettings()">關閉</button>
   </div>
@@ -182,7 +178,7 @@ import { loginWithDiscord, getTokenFromURL, fetchDiscordUser, saveSession, loadS
 const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
 const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://homes-when-centers-disclaimers.trycloudflare.com'
 
-const avatarEmoji = { cat:'🐱', dog:'🐶', bear:'🐻', rabbit:'🐰', fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧' }
+
 const ZONES = ['咖啡廳','圖書館','夜讀室','草地','湖邊']
 const BUFF_RULES = [
   { min:5, msg:'🔥 五人聚集！XP +30%' },
@@ -260,11 +256,10 @@ async function fetchAndRender() {
       } else {
         listEl.innerHTML = zoneUsers.map(user => {
           const isAnon = user.avatar_mode === 'anonymous'
-          const isPreset = user.avatar_mode === 'preset'
-          const displayName = isAnon ? '無名' : (user.username || '未知')
-          const avatarHtml = (!isAnon && !isPreset && user.discord_avatar)
-            ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;" onerror="this.replaceWith(document.createTextNode('${avatarEmoji[user.avatar] || '🐱'}'))">`
-            : `<span style="font-size:1.4rem;">${avatarEmoji[user.avatar] || '🐱'}</span>`
+          const displayName = isAnon ? '同學' : (user.username || '未知')
+          const avatarHtml = (!isAnon && user.discord_avatar)
+            ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;">`
+            : `<span style="font-size:1.4rem;">👤</span>`
           return `<div class="user-chip">${avatarHtml}<span class="user-name">${displayName}</span></div>`
         }).join('')
       }
@@ -350,12 +345,12 @@ function openSettings() {
     emojiEl.style.display = 'none'
   } else {
     imgEl.style.display = 'none'
-    emojiEl.textContent = avatarEmoji[user.avatar] || '🐱'
+    emojiEl.textContent = '👤'
     emojiEl.style.display = 'flex'
   }
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'))
   document.getElementById(`mode-${currentAvatarMode}`)?.classList.add('active')
-  const modeLabels = { discord: 'Discord 頭像', preset: '動物頭像', anonymous: '匿名模式' }
+  const modeLabels = { discord: 'Discord 頭像', anonymous: '匿名模式' }
   document.getElementById('settings-mode-label').textContent = `模式：${modeLabels[currentAvatarMode] || currentAvatarMode}`
   document.getElementById('settings-overlay').classList.add('open')
 }
@@ -369,7 +364,7 @@ async function setAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'))
   document.getElementById(`mode-${mode}`)?.classList.add('active')
-  const modeLabels = { discord: 'Discord 頭像', preset: '動物頭像', anonymous: '匿名模式' }
+  const modeLabels = { discord: 'Discord 頭像', anonymous: '匿名模式' }
   document.getElementById('settings-mode-label').textContent = `模式：${modeLabels[mode] || mode}`
   const session = loadSession()
   if (!session) return

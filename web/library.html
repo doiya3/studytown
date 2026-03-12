@@ -313,13 +313,9 @@
       <span class="id-mode-icon">🖼️</span>
       <div><div class="id-mode-title">Discord 頭像</div><div class="id-mode-desc">顯示您的 Discord 大頭貼</div></div>
     </button>
-    <button class="id-mode-btn" id="idmode-preset" onclick="setIdentityMode('preset')">
-      <span class="id-mode-icon">🐱</span>
-      <div><div class="id-mode-title">動物頭像</div><div class="id-mode-desc">使用動物圖示</div></div>
-    </button>
     <button class="id-mode-btn" id="idmode-anonymous" onclick="setIdentityMode('anonymous')">
       <span class="id-mode-icon">👤</span>
-      <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「無名」，階段色圓圈</div></div>
+      <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「同學」</div></div>
     </button>
     <button id="id-settings-close" onclick="closeIdentitySettings()">關閉</button>
   </div>
@@ -394,12 +390,11 @@ if (!sessionUser) {
 
 const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
-const MY_AVATAR = sessionUser?.avatar || 'bear'
 const MY_AVATAR_URL = sessionUser?.avatar_url || null
 const MY_AVATAR_MODE = localStorage.getItem('study_avatar_mode') || 'discord'
 
 // 匿名模式下改用的實際變數
-const DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '無名' : MY_USERNAME
+const DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '同學' : MY_USERNAME
 const DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'discord' ? MY_AVATAR_URL : null
 
 if (!MY_DISCORD_ID) {
@@ -447,21 +442,15 @@ function initWebSocket(scene) {
   }
 }
 
-const avatarEmoji = {
-  cat: '🐱', dog: '🐶', bear: '🐻',
-  rabbit: '🐰', fox: '🦊', panda: '🐼',
-  frog: '🐸', penguin: '🐧'
-}
-
 // 更新 HUD
 if (MY_AVATAR_MODE === 'anonymous') {
   document.getElementById('hud-avatar').textContent = '👤'
-  document.getElementById('hud-username').textContent = '無名'
+  document.getElementById('hud-username').textContent = '同學'
 } else if (DISPLAY_AVATAR_URL) {
   document.getElementById('hud-avatar').innerHTML = `<img src="${DISPLAY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
   document.getElementById('hud-username').textContent = MY_USERNAME
 } else {
-  document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+  document.getElementById('hud-avatar').textContent = '👤'
   document.getElementById('hud-username').textContent = MY_USERNAME
 }
 
@@ -574,7 +563,7 @@ class LibraryScene extends Phaser.Scene {
 
     // 玩家
     this.player = this.add.graphics()
-    this.drawPlayer(this.player, COLORS.playerSelf, avatarEmoji[MY_AVATAR] || '🐻')
+    this.drawPlayer(this.player, COLORS.playerSelf, '👤')
     this.updatePlayerPos()
 
     // 自己的 Discord 頭像（圓形）
@@ -1060,8 +1049,7 @@ class LibraryScene extends Phaser.Scene {
       const gx = user.map_x || 8
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
-      const isPreset = user.avatar_mode === 'preset'
-      const displayName = isAnon ? '無名' : user.username
+      const displayName = isAnon ? '同學' : user.username
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1084,7 +1072,7 @@ class LibraryScene extends Phaser.Scene {
 
       // 載入頭像（匿名模式不顯示 Discord 頭像）
       const avatarKey = `avatar_${user.discord_id}`
-      const avatarUrl = (!isAnon && !isPreset && user.discord_avatar)
+      const avatarUrl = (!isAnon && user.discord_avatar)
         ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
         : null
       loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
