@@ -298,6 +298,8 @@
     border-radius: 16px; padding: 14px; z-index: 100;
     backdrop-filter: blur(16px);
     display: none; flex-direction: column; gap: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
   }
   #team-panel.visible { display: flex; }
   #team-header { font-family: 'DotGothic16', monospace; color: #30c878; font-size: 0.8rem; letter-spacing: 0.1em; }
@@ -305,12 +307,15 @@
     display: flex; align-items: center; gap: 10px; padding: 10px;
     background: rgba(255,255,255,0.04); border-radius: 12px;
   }
+  #teammate-info { min-width: 0; }
   #teammate-name { color: #e6edf3; font-size: 0.82rem; font-weight: 700; }
   #teammate-location { color: #8b949e; font-size: 0.72rem; margin-top: 2px; }
   #teammate-status { color: #f5a623; font-size: 0.72rem; margin-top: 2px; }
+  #team-chat { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   #team-messages {
-    height: 100px; overflow-y: auto; font-size: 0.75rem;
+    max-height: none; overflow: visible; font-size: 0.75rem;
     padding: 4px 0; display: flex; flex-direction: column; gap: 6px;
+    width: 100%; min-width: 0;
   }
   #team-input-row { display: flex; gap: 6px; }
   #team-input {
@@ -1311,13 +1316,21 @@ function openDmMenu(targetId, targetName, px, py) {
   document.getElementById('menu-player-name').textContent = targetName
   document.getElementById('dm-input-row').classList.remove('visible')
   document.getElementById('dm-input').value = ''
+  dmMenuEl.style.visibility = 'hidden'
+  dmMenuEl.style.display = 'block'
+  const menuWidth = dmMenuEl.offsetWidth || 180
+  const menuHeight = dmMenuEl.offsetHeight || 170
+  const canvasRect = document.querySelector('#game-container canvas')?.getBoundingClientRect()
+  const bounds = canvasRect || { left: 8, top: 60, right: window.innerWidth - 8, bottom: window.innerHeight - 8 }
   let x = px + 20
-  let y = py - 80
-  if (x + 180 > window.innerWidth) x = px - 180
-  if (y < 60) y = py + 40
+  let y = py - menuHeight - 10
+  if (x + menuWidth > bounds.right) x = px - menuWidth - 12
+  if (y < bounds.top + 8) y = py + 28
+  x = Math.max(bounds.left + 8, Math.min(x, bounds.right - menuWidth - 8))
+  y = Math.max(bounds.top + 8, Math.min(y, bounds.bottom - menuHeight - 8))
   dmMenuEl.style.left = x + 'px'
   dmMenuEl.style.top  = y + 'px'
-  dmMenuEl.style.display = 'block'
+  dmMenuEl.style.visibility = 'visible'
 }
 
 document.getElementById('menu-close').addEventListener('click', () => {
@@ -1416,7 +1429,7 @@ async function disbandTeam() {
 function addTeamMessage(fromName, text, isSelf) {
   const container = document.getElementById('team-messages')
   const msgEl = document.createElement('div')
-  msgEl.style.cssText = `padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; max-width: 85%; word-break: break-word; ${isSelf ? 'align-self: flex-end; background: rgba(48,200,120,0.15); color: #30c878;' : 'align-self: flex-start; background: rgba(255,255,255,0.06); color: #e6edf3;'}`
+  msgEl.style.cssText = `padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; max-width: calc(100% - 12px); box-sizing: border-box; overflow-wrap: anywhere; word-break: break-word; ${isSelf ? 'align-self: flex-end; background: rgba(48,200,120,0.15); color: #30c878;' : 'align-self: flex-start; background: rgba(255,255,255,0.06); color: #e6edf3;'}`
   msgEl.textContent = isSelf ? text : `${fromName}: ${text}`
   container.appendChild(msgEl)
   container.scrollTop = container.scrollHeight
