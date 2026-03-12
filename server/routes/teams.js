@@ -14,29 +14,81 @@ const supabase = require('../supabase')
   );
 */
 
+const TEAM_USER_FIELDS = 'discord_id, username, current_zone, status, discord_avatar, avatar_mode'
+
+async function getTeamEdgesByStatus(status) {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('id, member1_id, member2_id, status, created_at')
+    .eq('status', status)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+function getConnectedMemberIds(edges, seedId) {
+  const adjacency = new Map()
+  for (const edge of edges) {
+    if (!adjacency.has(edge.member1_id)) adjacency.set(edge.member1_id, new Set())
+    if (!adjacency.has(edge.member2_id)) adjacency.set(edge.member2_id, new Set())
+    adjacency.get(edge.member1_id).add(edge.member2_id)
+    adjacency.get(edge.member2_id).add(edge.member1_id)
+  }
+
+  if (!adjacency.has(seedId)) return []
+
+  const visited = new Set([seedId])
+  const queue = [seedId]
+
+  while (queue.length > 0) {
+    const current = queue.shift()
+    for (const next of adjacency.get(current) || []) {
+      if (visited.has(next)) continue
+      visited.add(next)
+      queue.push(next)
+    }
+  }
+
+  visited.delete(seedId)
+  return Array.from(visited)
+}
+
+async function getTeamSnapshot(discordId) {
+  const activeEdges = await getTeamEdgesByStatus('active')
+  const teammateIds = getConnectedMemberIds(activeEdges, discordId)
+
+  if (teammateIds.length === 0) {
+    return { team: null, teammates: [], teammate: null, member_ids: [discordId] }
+  }
+
+  const { data: users, error } = await supabase
+    .from('users')
+    .select(TEAM_USER_FIELDS)
+    .in('discord_id', teammateIds)
+
+  if (error) throw error
+
+  const teammateMap = new Map((users || []).map(user => [user.discord_id, user]))
+  const teammates = teammateIds.map(id => teammateMap.get(id)).filter(Boolean)
+
+  return {
+    team: {
+      member_ids: [discordId, ...teammateIds],
+      size: teammateIds.length + 1,
+    },
+    teammates,
+    teammate: teammates[0] || null,
+    member_ids: [discordId, ...teammateIds],
+  }
+}
+
 // GET /api/teams/:discord_id — 取得目前組隊狀態和隊友資料
 router.get('/:discord_id', async (req, res) => {
   const { discord_id } = req.params
   try {
-    const { data: team } = await supabase
-      .from('teams')
-      .select('*')
-      .or(`member1_id.eq.${discord_id},member2_id.eq.${discord_id}`)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!team) return res.json({ team: null, teammate: null })
-
-    const teammateId = team.member1_id === discord_id ? team.member2_id : team.member1_id
-    const { data: teammate } = await supabase
-      .from('users')
-      .select('discord_id, username, current_zone, status, discord_avatar, avatar_mode')
-      .eq('discord_id', teammateId)
-      .maybeSingle()
-
-    res.json({ team, teammate: teammate || null })
+    const snapshot = await getTeamSnapshot(discord_id)
+    res.json(snapshot)
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -46,10 +98,23 @@ router.get('/:discord_id', async (req, res) => {
 router.post('/invite', async (req, res) => {
   const { from_id, to_id } = req.body
   if (!from_id || !to_id) return res.status(400).json({ error: 'missing fields' })
+  if (from_id === to_id) return res.status(400).json({ error: 'cannot invite self' })
   try {
-    // 清除舊的 pending 邀請
-    await supabase.from('teams').delete()
-      .eq('member1_id', from_id).eq('status', 'pending')
+    const activeEdges = await getTeamEdgesByStatus('active')
+    const fromTeamMemberIds = new Set([from_id, ...getConnectedMemberIds(activeEdges, from_id)])
+    if (fromTeamMemberIds.has(to_id)) {
+      return res.status(400).json({ error: 'already in same team' })
+    }
+
+    const pendingEdges = await getTeamEdgesByStatus('pending')
+    const hasConflictingPending = pendingEdges.some(edge => {
+      const members = [edge.member1_id, edge.member2_id]
+      return members.includes(from_id) || members.includes(to_id)
+    })
+
+    if (hasConflictingPending) {
+      return res.status(400).json({ error: 'pending invite already exists' })
+    }
 
     const { data, error } = await supabase.from('teams')
       .insert({ member1_id: from_id, member2_id: to_id, status: 'pending' })
@@ -67,11 +132,6 @@ router.post('/accept', async (req, res) => {
   const { from_id, to_id } = req.body
   if (!from_id || !to_id) return res.status(400).json({ error: 'missing fields' })
   try {
-    // 解散接受者舊的 active 組隊
-    await supabase.from('teams').update({ status: 'disbanded' })
-      .or(`member1_id.eq.${to_id},member2_id.eq.${to_id}`)
-      .eq('status', 'active')
-
     const { data, error } = await supabase.from('teams')
       .update({ status: 'active' })
       .eq('member1_id', from_id)
@@ -80,7 +140,14 @@ router.post('/accept', async (req, res) => {
       .select().single()
 
     if (error || !data) return res.status(404).json({ error: 'invite not found' })
-    res.json({ success: true, team: data })
+
+    await supabase.from('teams').delete()
+      .neq('id', data.id)
+      .eq('status', 'pending')
+      .or(`member1_id.eq.${from_id},member2_id.eq.${from_id},member1_id.eq.${to_id},member2_id.eq.${to_id}`)
+
+    const snapshot = await getTeamSnapshot(from_id)
+    res.json({ success: true, team: data, member_ids: snapshot.member_ids })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -91,11 +158,13 @@ router.post('/disband', async (req, res) => {
   const { discord_id } = req.body
   if (!discord_id) return res.status(400).json({ error: 'missing discord_id' })
   try {
+    const snapshot = await getTeamSnapshot(discord_id)
+
     await supabase.from('teams').update({ status: 'disbanded' })
       .or(`member1_id.eq.${discord_id},member2_id.eq.${discord_id}`)
       .in('status', ['active', 'pending'])
 
-    res.json({ success: true })
+    res.json({ success: true, affected_ids: snapshot.member_ids.filter(id => id !== discord_id) })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

@@ -268,14 +268,20 @@
   }
   #team-panel.visible { display: flex; }
   #team-header { font-family: 'DotGothic16', monospace; color: #30c878; font-size: 0.8rem; letter-spacing: 0.1em; }
-  #teammate-card {
+  #teammates-list { display: flex; flex-direction: column; gap: 8px; }
+  .teammate-card {
     display: flex; align-items: center; gap: 10px; padding: 10px;
     background: rgba(255,255,255,0.04); border-radius: 12px;
   }
-  #teammate-info { min-width: 0; }
-  #teammate-name { color: #e6edf3; font-size: 0.82rem; font-weight: 700; }
-  #teammate-location { color: #8b949e; font-size: 0.72rem; margin-top: 2px; }
-  #teammate-status { color: #f5a623; font-size: 0.72rem; margin-top: 2px; }
+  .teammate-avatar {
+    width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .teammate-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .teammate-info { min-width: 0; flex: 1; }
+  .teammate-name { color: #e6edf3; font-size: 0.82rem; font-weight: 700; }
+  .teammate-location { color: #8b949e; font-size: 0.72rem; margin-top: 2px; }
+  .teammate-status { color: #f5a623; font-size: 0.72rem; margin-top: 2px; }
   #team-chat { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   #team-messages {
     max-height: 100px; overflow-y: auto; overflow-x: hidden; font-size: 0.75rem;
@@ -433,14 +439,7 @@
 </div>
 <div id="team-panel">
   <div id="team-header">👥 隊伍</div>
-  <div id="teammate-card">
-    <div id="teammate-avatar"></div>
-    <div id="teammate-info">
-      <div id="teammate-name"></div>
-      <div id="teammate-location"></div>
-      <div id="teammate-status"></div>
-    </div>
-  </div>
+  <div id="teammates-list"></div>
   <div id="team-chat">
     <div id="team-messages"></div>
     <div id="team-input-row">
@@ -448,7 +447,7 @@
       <button id="btn-team-send">➤</button>
     </div>
   </div>
-  <button id="btn-disband">解散組隊</button>
+  <button id="btn-disband">離開隊伍</button>
 </div>
 <div id="dm-toast"></div>
 
@@ -1108,7 +1107,7 @@ class CafeScene extends Phaser.Scene {
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
       const displayName = isAnon ? '同學' : user.username
-      const teamColor = currentTeam?.teammate_id === user.discord_id ? COLORS.playerTeam : COLORS.playerOther
+      const teamColor = isTeammateId(user.discord_id) ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
       g.fillStyle(teamColor, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1168,7 +1167,7 @@ class CafeScene extends Phaser.Scene {
         })
       }
     } else {
-      const color = currentTeam?.teammate_id === discord_id ? COLORS.playerTeam : COLORS.playerOther
+      const color = isTeammateId(discord_id) ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
       g.fillStyle(color, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1305,12 +1304,50 @@ let currentTeam = null
 let teamRefreshInterval = null
 let pendingInviteFromId = null
 
+function getCurrentTeamIds() {
+  return currentTeam?.teammate_ids || []
+}
+
+function isTeammateId(discordId) {
+  return getCurrentTeamIds().includes(discordId)
+}
+
+function renderTeamMembers(teammates) {
+  const container = document.getElementById('teammates-list')
+  container.innerHTML = ''
+
+  teammates.forEach((teammate) => {
+    const isAnon = teammate.avatar_mode === 'anonymous'
+    const name = isAnon ? '同學' : (teammate.username || '隊友')
+    const avatarUrl = (!isAnon && teammate.discord_avatar)
+      ? `https://cdn.discordapp.com/avatars/${teammate.discord_id}/${teammate.discord_avatar}.png?size=64`
+      : null
+
+    const card = document.createElement('div')
+    card.className = 'teammate-card'
+    card.innerHTML = `
+      <div class="teammate-avatar">${avatarUrl ? `<img src="${avatarUrl}">` : '<span style="font-size:2rem">👤</span>'}</div>
+      <div class="teammate-info">
+        <div class="teammate-name">${name}</div>
+        <div class="teammate-location">📍 ${teammate.current_zone || '離線'}</div>
+        <div class="teammate-status">${teammate.status === 'studying' ? '🍅 讀書中' : '💤 休息中'}</div>
+      </div>
+    `
+    container.appendChild(card)
+  })
+}
+
 async function sendTeamInvite(targetId, targetName) {
   try {
-    await fetch(`${API_URL}/api/teams/invite`, {
+    const res = await fetch(`${API_URL}/api/teams/invite`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ from_id: MY_DISCORD_ID, to_id: targetId })
     })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      showToast(data.error || '邀請失敗')
+      return
+    }
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'team_invite', to_id: targetId, from_name: DISPLAY_NAME }))
     }
@@ -1326,9 +1363,9 @@ async function acceptTeamInvite() {
       body: JSON.stringify({ from_id: pendingInviteFromId, to_id: MY_DISCORD_ID })
     })
     const data = await res.json()
-    if (!data.success) { showToast('接受失敗'); return }
+    if (!res.ok || !data.success) { showToast(data.error || '接受失敗'); return }
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'team_accepted', to_id: pendingInviteFromId, by_name: DISPLAY_NAME }))
+      ws.send(JSON.stringify({ type: 'team_accepted', to_ids: (data.member_ids || []).filter(id => id !== MY_DISCORD_ID), by_name: DISPLAY_NAME }))
     }
     document.getElementById('team-invite-toast').classList.remove('visible')
     pendingInviteFromId = null
@@ -1344,16 +1381,22 @@ function rejectTeamInvite() {
 async function disbandTeam() {
   if (!currentTeam) return
   try {
-    await fetch(`${API_URL}/api/teams/disband`, {
+    const res = await fetch(`${API_URL}/api/teams/disband`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discord_id: MY_DISCORD_ID })
     })
-    if (ws?.readyState === WebSocket.OPEN && currentTeam.teammate_id) {
-      ws.send(JSON.stringify({ type: 'team_disbanded', to_id: currentTeam.teammate_id }))
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      showToast(data.error || '解散失敗')
+      return
+    }
+    if (ws?.readyState === WebSocket.OPEN && data.affected_ids?.length) {
+      ws.send(JSON.stringify({ type: 'team_disbanded', to_ids: data.affected_ids }))
     }
     currentTeam = null
     document.getElementById('team-panel').classList.remove('visible')
     clearInterval(teamRefreshInterval); teamRefreshInterval = null
+    document.getElementById('teammates-list').innerHTML = ''
   } catch { showToast('解散失敗') }
 }
 
@@ -1369,9 +1412,9 @@ function addTeamMessage(fromName, text, isSelf) {
 function sendTeamMessage() {
   const input = document.getElementById('team-input')
   const text = input.value.trim()
-  if (!text || !currentTeam) return
+  if (!text || !currentTeam || getCurrentTeamIds().length === 0) return
   if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'team_message', to_id: currentTeam.teammate_id, text, from_name: DISPLAY_NAME }))
+    ws.send(JSON.stringify({ type: 'team_message', to_ids: getCurrentTeamIds(), text, from_name: DISPLAY_NAME }))
   }
   addTeamMessage(DISPLAY_NAME, text, true)
   input.value = ''
@@ -1381,27 +1424,21 @@ async function refreshTeammate() {
   try {
     const res = await fetch(`${API_URL}/api/teams/${MY_DISCORD_ID}`)
     const data = await res.json()
-    if (!data.teammate) {
+    const teammates = Array.isArray(data.teammates) ? data.teammates : []
+    if (teammates.length === 0) {
       if (currentTeam) {
         currentTeam = null
         document.getElementById('team-panel').classList.remove('visible')
         clearInterval(teamRefreshInterval); teamRefreshInterval = null
+        document.getElementById('teammates-list').innerHTML = ''
       }
       return
     }
-    const t = data.teammate
-    const isAnon = t.avatar_mode === 'anonymous'
-    const name = isAnon ? '同學' : (t.username || '隊友')
-    currentTeam = { teammate_id: t.discord_id, teammate_name: name }
-    document.getElementById('teammate-name').textContent = name
-    document.getElementById('teammate-location').textContent = `📍 ${t.current_zone || '離線'}`
-    document.getElementById('teammate-status').textContent = t.status === 'studying' ? '🍅 讀書中' : '💤 休息中'
-    const avatarEl = document.getElementById('teammate-avatar')
-    const avatarUrl = (!isAnon && t.discord_avatar)
-      ? `https://cdn.discordapp.com/avatars/${t.discord_id}/${t.discord_avatar}.png?size=64` : null
-    avatarEl.innerHTML = avatarUrl
-      ? `<img src="${avatarUrl}" style="width:36px;height:36px;border-radius:50%;">`
-      : `<span style="font-size:2rem">👤</span>`
+    currentTeam = {
+      teammate_ids: teammates.map(teammate => teammate.discord_id),
+      teammates,
+    }
+    renderTeamMembers(teammates)
     document.getElementById('team-panel').classList.add('visible')
     if (!teamRefreshInterval) teamRefreshInterval = setInterval(refreshTeammate, 10000)
   } catch { /* silent */ }
@@ -1420,10 +1457,11 @@ function handleTeamWsMessage(msg) {
   }
   if (msg.type === 'team_accepted') { showToast(`${msg.by_name} 接受了你的邀請！`); refreshTeammate(); return true }
   if (msg.type === 'team_disbanded') {
-    showToast('隊友已解散組隊')
+    showToast('隊伍已更新')
     currentTeam = null
     document.getElementById('team-panel').classList.remove('visible')
     clearInterval(teamRefreshInterval); teamRefreshInterval = null
+    document.getElementById('teammates-list').innerHTML = ''
     return true
   }
   if (msg.type === 'team_message') { addTeamMessage(msg.from_name, msg.text, false); return true }

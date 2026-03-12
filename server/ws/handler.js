@@ -19,6 +19,11 @@ function sendTo(discord_id, message) {
   }
 }
 
+function sendToMany(discordIds, message) {
+  const uniqueIds = [...new Set((discordIds || []).filter(Boolean))]
+  uniqueIds.forEach(id => sendTo(id, message))
+}
+
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ server })
 
@@ -77,17 +82,29 @@ function setupWebSocket(server) {
       }
 
       if (msg.type === 'team_accepted') {
-        sendTo(msg.to_id, { type: 'team_accepted', by_id: authId, by_name: msg.by_name || authId })
+        if (Array.isArray(msg.to_ids)) {
+          sendToMany(msg.to_ids, { type: 'team_accepted', by_id: authId, by_name: msg.by_name || authId })
+        } else {
+          sendTo(msg.to_id, { type: 'team_accepted', by_id: authId, by_name: msg.by_name || authId })
+        }
         return
       }
 
       if (msg.type === 'team_disbanded') {
-        sendTo(msg.to_id, { type: 'team_disbanded' })
+        if (Array.isArray(msg.to_ids)) {
+          sendToMany(msg.to_ids, { type: 'team_disbanded' })
+        } else {
+          sendTo(msg.to_id, { type: 'team_disbanded' })
+        }
         return
       }
 
       if (msg.type === 'team_message') {
-        sendTo(msg.to_id, { type: 'team_message', from_id: authId, from_name: msg.from_name || authId, text: msg.text || '' })
+        if (Array.isArray(msg.to_ids)) {
+          sendToMany(msg.to_ids, { type: 'team_message', from_id: authId, from_name: msg.from_name || authId, text: msg.text || '' })
+        } else {
+          sendTo(msg.to_id, { type: 'team_message', from_id: authId, from_name: msg.from_name || authId, text: msg.text || '' })
+        }
         return
       }
     })
