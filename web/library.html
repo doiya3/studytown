@@ -239,9 +239,9 @@
     to   { opacity: 1; transform: scale(1); }
   }
   #interaction-menu .menu-title {
-    font-size: 0.78rem; color: #8b949e; text-align: center;
-    padding: 0 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 6px; font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.72rem; color: #8b949e; text-align: center;
+    padding: 0 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 4px; font-family: 'Noto Sans TC', sans-serif;
   }
   #interaction-menu .menu-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -309,8 +309,8 @@
   #teammate-location { color: #8b949e; font-size: 0.72rem; margin-top: 2px; }
   #teammate-status { color: #f5a623; font-size: 0.72rem; margin-top: 2px; }
   #team-messages {
-    height: 100px; overflow-y: auto; font-size: 0.75rem; color: #8b949e;
-    padding: 4px 0; display: flex; flex-direction: column; gap: 4px;
+    height: 100px; overflow-y: auto; font-size: 0.75rem;
+    padding: 4px 0; display: flex; flex-direction: column; gap: 6px;
   }
   #team-input-row { display: flex; gap: 6px; }
   #team-input {
@@ -320,8 +320,9 @@
   }
   #btn-team-send {
     background: rgba(48,200,120,0.15); border: 1px solid rgba(48,200,120,0.3);
-    color: #30c878; border-radius: 8px; padding: 6px 10px;
-    font-size: 0.75rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+    color: #30c878; border-radius: 8px; padding: 6px 14px;
+    font-size: 0.8rem; cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+    white-space: nowrap; flex-shrink: 0;
   }
   #btn-disband {
     background: transparent; border: 1px solid rgba(233,69,96,0.2);
@@ -476,7 +477,7 @@
     <div id="team-messages"></div>
     <div id="team-input-row">
       <input id="team-input" placeholder="傳訊息給隊友..." />
-      <button id="btn-team-send">送出</button>
+      <button id="btn-team-send">➤</button>
     </div>
   </div>
   <button id="btn-disband">解散組隊</button>
@@ -578,8 +579,9 @@ const COLORS = {
   carpet:     0x3d5a4a,  // 地毯
   lamp:       0xf5e642,  // 燈光
   door:       0x8b7355,  // 門
-  playerSelf: 0x4ecdc4,  // 自己的角色
-  playerOther:0xe94560,  // 其他玩家
+  playerSelf: 0x30c878,  // 自己
+  playerOther:0x7c8cf8,  // 他人
+  playerTeam: 0xf5a623,  // 隊友
 }
 
 // 座位定義（格座標）
@@ -1154,8 +1156,9 @@ class LibraryScene extends Phaser.Scene {
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
       const displayName = isAnon ? '同學' : user.username
+      const teamColor = currentTeam?.teammate_id === discord_id ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
-      g.fillStyle(COLORS.playerOther, 0.8)
+      g.fillStyle(teamColor, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
       g.setPosition(gx * TILE, gy * TILE)
       g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
@@ -1214,8 +1217,9 @@ class LibraryScene extends Phaser.Scene {
       })
     }
   } else {
+    const color = currentTeam?.teammate_id === user.discord_id ? COLORS.playerTeam : COLORS.playerOther
     const g = this.add.graphics()
-    g.fillStyle(COLORS.playerOther, 0.8)
+    g.fillStyle(color, 0.8)
     g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
     g.setPosition(gx * TILE, gy * TILE)
     g.setInteractive(new Phaser.Geom.Circle(TILE/2, TILE/2-2, 14), Phaser.Geom.Circle.Contains)
@@ -1307,10 +1311,12 @@ function openDmMenu(targetId, targetName, px, py) {
   document.getElementById('menu-player-name').textContent = targetName
   document.getElementById('dm-input-row').classList.remove('visible')
   document.getElementById('dm-input').value = ''
-  const W = window.innerWidth, H = window.innerHeight
-  const mw = 180, mh = 170
-  dmMenuEl.style.left = Math.min(px + 8, W - mw - 8) + 'px'
-  dmMenuEl.style.top  = Math.min(py + 8, H - mh - 8) + 'px'
+  let x = px + 20
+  let y = py - 80
+  if (x + 180 > window.innerWidth) x = px - 180
+  if (y < 60) y = py + 40
+  dmMenuEl.style.left = x + 'px'
+  dmMenuEl.style.top  = y + 'px'
   dmMenuEl.style.display = 'block'
 }
 
@@ -1410,8 +1416,8 @@ async function disbandTeam() {
 function addTeamMessage(fromName, text, isSelf) {
   const container = document.getElementById('team-messages')
   const msgEl = document.createElement('div')
-  msgEl.style.cssText = `color: ${isSelf ? '#e6edf3' : '#8b949e'}; font-size: 0.75rem;`
-  msgEl.textContent = `${isSelf ? '我' : fromName}: ${text}`
+  msgEl.style.cssText = `padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; max-width: 85%; word-break: break-word; ${isSelf ? 'align-self: flex-end; background: rgba(48,200,120,0.15); color: #30c878;' : 'align-self: flex-start; background: rgba(255,255,255,0.06); color: #e6edf3;'}`
+  msgEl.textContent = isSelf ? text : `${fromName}: ${text}`
   container.appendChild(msgEl)
   container.scrollTop = container.scrollHeight
 }
