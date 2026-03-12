@@ -1005,6 +1005,23 @@ class CafeScene extends Phaser.Scene {
     if (this.otherPlayers[discord_id]) {
       this.otherTargets[discord_id] = { x: gx * TILE, y: gy * TILE }
       this.otherGrids[discord_id] = { x: gx, y: gy }
+      // 身分切換：更新名稱標籤
+      if (this.playerLabels[discord_id]) {
+        this.playerLabels[discord_id].setText(displayName)
+      }
+      // 身分切換：顯示或隱藏頭像
+      if (!avatar_url && this.otherAvatars[discord_id]) {
+        this.otherAvatars[discord_id].destroy()
+        delete this.otherAvatars[discord_id]
+      } else if (avatar_url && !this.otherAvatars[discord_id]) {
+        const avatarKey = `avatar_${discord_id}`
+        loadAvatarTexture(this, avatarKey, avatar_url, (ok) => {
+          if (!ok || !this.otherPlayers[discord_id]) return
+          const sp = this.otherPlayers[discord_id]
+          const av = this.add.image(sp.x + TILE / 2, sp.y + TILE / 2 - 2, avatarKey).setDisplaySize(26, 26).setDepth(1)
+          this.otherAvatars[discord_id] = av
+        })
+      }
     } else {
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
