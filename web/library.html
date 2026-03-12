@@ -280,8 +280,8 @@
 <script>
 // ==========================================
 const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://studytown-api.hsinyunchieh.workers.dev'
-const WS_URL  = IS_LOCAL ? 'ws://localhost:3000'  : 'wss://studytown-api.hsinyunchieh.workers.dev'
+const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://homes-when-centers-disclaimers.trycloudflare.com'
+const WS_URL  = IS_LOCAL ? 'ws://localhost:3000'  : 'wss://homes-when-centers-disclaimers.trycloudflare.com'
 // 從 localStorage 讀取登入的使用者
 const sessionRaw = localStorage.getItem('study_user')
 const sessionUser = sessionRaw ? JSON.parse(sessionRaw) : null
