@@ -453,8 +453,8 @@ const H = TILE * ROWS  // 576px
 
 // 顏色
 const COLORS = {
-  floor:      0x2d4a3e,  // 深綠地板
-  floor2:     0x2a4538,  // 地板深色格
+  floor:      0x3d6050,  // 深綠地板
+  floor2:     0x33503e,  // 地板深色格
   wall:       0x1a2e25,  // 牆壁
   shelf:      0x4a3728,  // 書架棕色
   shelfBook:  0x8b5e3c,  // 書架書本
@@ -1131,11 +1131,11 @@ onPlayerLeave(discord_id) {
 
 // 初始化 Phaser
 const config = {
-  type: Phaser.AUTO,
+  type: Phaser.CANVAS,
   width: W,
   height: H,
   parent: 'game-container',
-  backgroundColor: '#1a2e25',
+  backgroundColor: '#1e3828',
   scene: LibraryScene,
   pixelArt: true,
   antialias: false,

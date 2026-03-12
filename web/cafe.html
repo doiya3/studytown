@@ -421,8 +421,8 @@ const W = TILE * COLS
 const H = TILE * ROWS
 
 const COLORS = {
-  floor:       0x3d2b1a,
-  floor2:      0x362515,
+  floor:       0x523a25,
+  floor2:      0x4a3220,
   wall:        0x2a1a0a,
   counter:     0x6b4a2a,
   counterTop:  0x8b6a3a,
@@ -1075,7 +1075,7 @@ class CafeScene extends Phaser.Scene {
 }
 
 const config = {
-  type: Phaser.AUTO, width: W, height: H,
+  type: Phaser.CANVAS, width: W, height: H,
   parent: 'game-container', backgroundColor: '#2a1a0a',
   scene: CafeScene, pixelArt: true, antialias: false,
 }
