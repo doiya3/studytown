@@ -143,7 +143,7 @@
     </div>
     <div style="position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px;">
       <span id="hud-username" style="color:#8892a4; font-size:0.8rem;"></span>
-      <button id="btn-settings" onclick="openSettings()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer;">⚙️ 設定</button>
+      <button id="btn-settings" onclick="openSettings()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer;">👤 身分設定</button>
       <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>
     </div>
     <div class="map-grid">
@@ -327,16 +327,21 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 // 讓函式可以從 onclick 呼叫（module 作用域問題）
 window.enterZone = enterZone
 
-let currentAvatarMode = 'discord'
+let currentAvatarMode = localStorage.getItem('study_avatar_mode') || 'discord'
 
 function openSettings() {
   const session = loadSession()
   if (!session) return
   const user = session.user
+  currentAvatarMode = localStorage.getItem('study_avatar_mode') || 'discord'
   document.getElementById('settings-username').textContent = user.username || '未知'
   const imgEl = document.getElementById('settings-avatar-img')
   const emojiEl = document.getElementById('settings-avatar-emoji')
-  if (user.avatar_url) {
+  if (currentAvatarMode === 'anonymous') {
+    imgEl.style.display = 'none'
+    emojiEl.textContent = '👤'
+    emojiEl.style.display = 'flex'
+  } else if (user.avatar_url) {
     imgEl.src = user.avatar_url
     imgEl.style.display = ''
     emojiEl.style.display = 'none'
@@ -358,6 +363,7 @@ function closeSettings() {
 
 async function setAvatarMode(mode) {
   currentAvatarMode = mode
+  localStorage.setItem('study_avatar_mode', mode)
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'))
   document.getElementById(`mode-${mode}`)?.classList.add('active')
   const modeLabels = { discord: 'Discord 頭像', preset: '動物頭像', anonymous: '匿名模式' }

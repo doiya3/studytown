@@ -47,6 +47,48 @@
   }
   #hud-back:hover { background: rgba(255,255,255,0.1); color: var(--text); border-color: var(--border); }
 
+  #hud-identity-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-muted); padding: 4px 11px; border-radius: 8px;
+    font-size: 0.73rem; cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  #hud-identity-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+  /* 身分設定面板 */
+  #id-settings-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65); z-index: 600;
+    align-items: center; justify-content: center;
+  }
+  #id-settings-overlay.open { display: flex; }
+  #id-settings-panel {
+    background: #1e1408; border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 18px; padding: 24px 20px; width: 300px; max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  #id-settings-panel h3 { font-family: 'DotGothic16', monospace; font-size: 1rem; margin-bottom: 16px; color: var(--accent); }
+  .id-mode-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; margin-bottom: 7px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 11px; color: var(--text); font-size: 0.82rem;
+    cursor: pointer; transition: all 0.2s; text-align: left;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .id-mode-btn:hover { background: rgba(255,255,255,0.08); }
+  .id-mode-btn.active { border-color: var(--accent); background: rgba(245,166,35,0.08); }
+  .id-mode-btn.active .id-mode-title { color: var(--accent); }
+  .id-mode-icon { font-size: 1.2rem; }
+  .id-mode-desc { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+  #id-settings-close {
+    margin-top: 4px; width: 100%; padding: 8px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 9px; color: var(--text-muted); cursor: pointer;
+    font-size: 0.78rem; font-family: 'Noto Sans TC', sans-serif; transition: background 0.2s;
+  }
+  #id-settings-close:hover { background: rgba(255,255,255,0.06); }
+
   #game-container { margin-top: 52px; position: relative; }
   canvas { display: block; image-rendering: pixelated; }
 
@@ -204,6 +246,25 @@
 </div>
 
 <div id="page-fade"></div>
+<!-- 身分設定面板 -->
+<div id="id-settings-overlay" onclick="if(event.target===this)closeIdentitySettings()">
+  <div id="id-settings-panel">
+    <h3>👤 身分設定</h3>
+    <button class="id-mode-btn" id="idmode-discord" onclick="setIdentityMode('discord')">
+      <span class="id-mode-icon">🖼️</span>
+      <div><div class="id-mode-title">Discord 頭像</div><div class="id-mode-desc">顯示您的 Discord 大頭貼</div></div>
+    </button>
+    <button class="id-mode-btn" id="idmode-preset" onclick="setIdentityMode('preset')">
+      <span class="id-mode-icon">🐱</span>
+      <div><div class="id-mode-title">動物頭像</div><div class="id-mode-desc">使用動物圖示</div></div>
+    </button>
+    <button class="id-mode-btn" id="idmode-anonymous" onclick="setIdentityMode('anonymous')">
+      <span class="id-mode-icon">👤</span>
+      <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「無名」，階段色圓圈</div></div>
+    </button>
+    <button id="id-settings-close" onclick="closeIdentitySettings()">關閉</button>
+  </div>
+</div>
 <div id="game-container"></div>
 <div id="interaction-hint">按 E 互動</div>
 
@@ -288,6 +349,10 @@ const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR = sessionUser?.avatar || 'cat'
 const MY_AVATAR_URL = sessionUser?.avatar_url || null
+const MY_AVATAR_MODE = localStorage.getItem('study_avatar_mode') || 'discord'
+
+const DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '無名' : MY_USERNAME
+const DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'anonymous' ? null : MY_AVATAR_URL
 
 if (!MY_DISCORD_ID) {
   console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
@@ -313,7 +378,7 @@ function initWebSocket(scene) {
     ws.send(JSON.stringify({ type: 'auth', discord_id: MY_DISCORD_ID, scene: '咖啡廳' }))
     // 重連後立即廣播目前位置，避免靜止玩家在他人視野消失
     if (scene.playerGx !== undefined) {
-      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
+      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
     }
     console.log('[WS] 已連線')
   }
@@ -338,12 +403,16 @@ const avatarEmoji = {
   fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧'
 }
 
-if (MY_AVATAR_URL) {
-  document.getElementById('hud-avatar').innerHTML = `<img src="${MY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
+if (MY_AVATAR_MODE === 'anonymous') {
+  document.getElementById('hud-avatar').textContent = '👤'
+  document.getElementById('hud-username').textContent = '無名'
+} else if (DISPLAY_AVATAR_URL) {
+  document.getElementById('hud-avatar').innerHTML = `<img src="${DISPLAY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
+  document.getElementById('hud-username').textContent = MY_USERNAME
 } else {
   document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+  document.getElementById('hud-username').textContent = MY_USERNAME
 }
-document.getElementById('hud-username').textContent = MY_USERNAME
 
 const TILE = 48
 const COLS = 16
@@ -683,7 +752,7 @@ class CafeScene extends Phaser.Scene {
           this.moveTimer = 0;
           // 走一格立即透過 WebSocket 推送
           if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
+            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
           }
         } else if (blockedByPlayer && !this.bumpCooldown) {
           // 碰撞特效：縮放 + 閃爍
@@ -723,7 +792,7 @@ class CafeScene extends Phaser.Scene {
         }).catch(e => console.error('heartbeat error:', e))
         // WS 心跳：確保靜止玩家持續出現在他人視野
         if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
+          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
         }
       }
     }
@@ -1310,6 +1379,28 @@ document.getElementById('btn-stop').addEventListener('click', async () => {
   }
   await game.scene.getScene('Cafe').standUp()
 })
-</script>
+
+// 身分設定
+const _initMode = localStorage.getItem('study_avatar_mode') || 'discord'
+document.getElementById(`idmode-${_initMode}`)?.classList.add('active')
+
+function openIdentitySettings() {
+  document.querySelectorAll('.id-mode-btn').forEach(b => b.classList.remove('active'))
+  const m = localStorage.getItem('study_avatar_mode') || 'discord'
+  document.getElementById(`idmode-${m}`)?.classList.add('active')
+  document.getElementById('id-settings-overlay').classList.add('open')
+}
+function closeIdentitySettings() {
+  document.getElementById('id-settings-overlay').classList.remove('open')
+}
+function setIdentityMode(mode) {
+  localStorage.setItem('study_avatar_mode', mode)
+  document.querySelectorAll('.id-mode-btn').forEach(b => b.classList.remove('active'))
+  document.getElementById(`idmode-${mode}`)?.classList.add('active')
+  setTimeout(() => location.reload(), 280)
+}
+window.openIdentitySettings = openIdentitySettings
+window.closeIdentitySettings = closeIdentitySettings
+window.setIdentityMode = setIdentityMode
 </body>
 </html>
