@@ -17,12 +17,16 @@ router.get('/:discord_id', async (req, res) => {
 
 // POST /api/users/upsert - 新增或更新玩家（登入時呼叫）
 router.post('/upsert', async (req, res) => {
-  const { discord_id, username, avatar } = req.body
+  const { discord_id, username, avatar, discord_avatar, avatar_mode } = req.body
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
+
+  const upsertData = { discord_id, username, avatar }
+  if (discord_avatar !== undefined) upsertData.discord_avatar = discord_avatar
+  if (avatar_mode) upsertData.avatar_mode = avatar_mode
 
   const { data, error } = await supabase
     .from('users')
-    .upsert({ discord_id, username, avatar }, { onConflict: 'discord_id' })
+    .upsert(upsertData, { onConflict: 'discord_id' })
     .select()
     .single()
 
@@ -48,12 +52,15 @@ router.post('/location', async (req, res) => {
 
 // POST /api/users/status - 更新玩家狀態
 router.post('/status', async (req, res) => {
-  const { discord_id, status, current_zone, seat_id } = req.body
+  const { discord_id, status, current_zone, seat_id, avatar_mode } = req.body
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
+
+  const updateData = { status, current_zone, seat_id }
+  if (avatar_mode !== undefined) updateData.avatar_mode = avatar_mode
 
   const { data, error } = await supabase
     .from('users')
-    .update({ status, current_zone, seat_id })
+    .update(updateData)
     .eq('discord_id', discord_id)
     .select()
     .single()
@@ -82,7 +89,7 @@ router.post('/clear-location', async (req, res) => {
 router.get('/scene/all', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, current_zone, status, level, xp, avatar')
+    .select('discord_id, username, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
     .not('current_zone', 'is', null)
     .neq('current_zone', 'none')
 

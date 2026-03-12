@@ -32,8 +32,11 @@ export async function fetchDiscordUser(token) {
 }
 
 export function saveSession(user, token) {
+  const avatarURL = user.avatar
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
+    : `https://cdn.discordapp.com/embed/avatars/0.png`
   localStorage.setItem('study_token', token)
-  localStorage.setItem('study_user', JSON.stringify(user))
+  localStorage.setItem('study_user', JSON.stringify({ ...user, avatar_url: avatarURL }))
 }
 
 export function loadSession() {

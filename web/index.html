@@ -159,7 +159,7 @@ async function init() {
     await fetch(`${API_URL}/api/users/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar })
+      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar, discord_avatar: currentUser.avatar })
     }).catch(e => console.error('upsert error:', e))
     showMap()
   } else { showLogin() }
@@ -211,8 +211,10 @@ async function fetchAndRender() {
         listEl.innerHTML = '<div class="empty-zone">🌿 空無一人</div>'
       } else {
         listEl.innerHTML = zoneUsers.map(user => {
-          const emoji = avatarEmoji[user.avatar] || '🐱'
-          return `<div class="user-chip"><span style="font-size:1.4rem;">${emoji}</span><span class="user-name">${user.username || '未知'}</span></div>`
+          const avatarHtml = user.discord_avatar
+            ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;" onerror="this.replaceWith(document.createTextNode('${avatarEmoji[user.avatar] || '🐱'}'))">`
+            : `<span style="font-size:1.4rem;">${avatarEmoji[user.avatar] || '🐱'}</span>`
+          return `<div class="user-chip">${avatarHtml}<span class="user-name">${user.username || '未知'}</span></div>`
         }).join('')
       }
 

@@ -46,12 +46,13 @@ function setupWebSocket(server) {
       if (msg.type === 'move') {
         const client = clients.get(authId)
         if (!client) return
-        // 更新 clients 中儲存的 username（首次或更新時）
         if (msg.username) client.username = msg.username
+        if (msg.avatar_url) client.avatar_url = msg.avatar_url
         broadcast(client.scene, {
           type: 'player_move',
           discord_id: authId,
           username: client.username || authId,
+          avatar_url: client.avatar_url || null,
           x: msg.x,
           y: msg.y
         }, authId)

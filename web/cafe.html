@@ -287,6 +287,7 @@ if (!sessionUser) {
 const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR = sessionUser?.avatar || 'cat'
+const MY_AVATAR_URL = sessionUser?.avatar_url || null
 
 if (!MY_DISCORD_ID) {
   console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
@@ -312,7 +313,7 @@ function initWebSocket(scene) {
     ws.send(JSON.stringify({ type: 'auth', discord_id: MY_DISCORD_ID, scene: '咖啡廳' }))
     // 重連後立即廣播目前位置，避免靜止玩家在他人視野消失
     if (scene.playerGx !== undefined) {
-      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: MY_USERNAME }))
+      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
     }
     console.log('[WS] 已連線')
   }
@@ -337,7 +338,11 @@ const avatarEmoji = {
   fox:'🦊', panda:'🐼', frog:'🐸', penguin:'🐧'
 }
 
-document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+if (MY_AVATAR_URL) {
+  document.getElementById('hud-avatar').innerHTML = `<img src="${MY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
+} else {
+  document.getElementById('hud-avatar').textContent = avatarEmoji[MY_AVATAR] || '🐱'
+}
 document.getElementById('hud-username').textContent = MY_USERNAME
 
 const TILE = 48
@@ -406,6 +411,29 @@ let myDrink = null;
 let drinkBubbles = {};
 let isExiting = false;
 
+// 非同步載入並裁切成圓形的 Discord 頭像 Phaser 紋理
+function loadAvatarTexture(scene, key, url, callback) {
+  if (!url) { callback(false); return }
+  if (scene.textures.exists(key)) { callback(true); return }
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.onload = () => {
+    const size = 28
+    const canvas = document.createElement('canvas')
+    canvas.width = size; canvas.height = size
+    const ctx = canvas.getContext('2d')
+    ctx.beginPath()
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+    ctx.closePath()
+    ctx.clip()
+    ctx.drawImage(img, 0, 0, size, size)
+    scene.textures.addCanvas(key, canvas)
+    callback(true)
+  }
+  img.onerror = () => callback(false)
+  img.src = url
+}
+
 class CafeScene extends Phaser.Scene {
   constructor() {
     super('Cafe');
@@ -427,6 +455,8 @@ class CafeScene extends Phaser.Scene {
     this.moveDelay = 150;
     this.syncTimer = 0;
     this.otherGrids = {};     // 其他玩家的格子位置
+    this.otherAvatars = {};    // 其他玩家頭像 Image 物件
+    this.playerAvatarImg = null; // 自己的頭像 Image 物件
     this.bumpCooldown = false; // 碰撞特效冷卻
   }
 
@@ -437,6 +467,16 @@ class CafeScene extends Phaser.Scene {
     this.player = this.add.graphics();
     this.drawPlayer(this.player, COLORS.playerSelf);
     this.updatePlayerPos();
+
+    // 自己的 Discord 頭像（圓形）
+    loadAvatarTexture(this, `avatar_${MY_DISCORD_ID}`, MY_AVATAR_URL, (ok) => {
+      if (!ok) return
+      this.playerAvatarImg = this.add.image(
+        this.playerGx * TILE + TILE / 2,
+        this.playerGy * TILE + TILE / 2 - 2,
+        `avatar_${MY_DISCORD_ID}`
+      ).setDisplaySize(26, 26).setDepth(1)
+    })
 
     this.playerLabel = this.add.text(0, 0, MY_USERNAME, {
       fontSize: '10px', fontFamily: 'Noto Sans TC',
@@ -585,6 +625,9 @@ class CafeScene extends Phaser.Scene {
     const px = this.playerGx * TILE;
     const py = this.playerGy * TILE;
     this.player.setPosition(px, py);
+    if (this.playerAvatarImg) {
+      this.playerAvatarImg.setPosition(px + TILE / 2, py + TILE / 2 - 2);
+    }
     if (this.playerLabel) this.playerLabel.setPosition(px + TILE / 2, py - 2);
   }
 
@@ -599,6 +642,11 @@ class CafeScene extends Phaser.Scene {
       if (label) {
         label.x += (target.x + TILE / 2 - label.x) * 0.3
         label.y += (target.y - 2 - label.y) * 0.3
+      }
+      const av = this.otherAvatars[id]
+      if (av) {
+        av.x += (target.x + TILE / 2 - av.x) * 0.3
+        av.y += (target.y + TILE / 2 - 2 - av.y) * 0.3
       }
     })
 
@@ -635,7 +683,7 @@ class CafeScene extends Phaser.Scene {
           this.moveTimer = 0;
           // 走一格立即透過 WebSocket 推送
           if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME }))
+            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
           }
         } else if (blockedByPlayer && !this.bumpCooldown) {
           // 碰撞特效：縮放 + 閃爍
@@ -675,7 +723,7 @@ class CafeScene extends Phaser.Scene {
         }).catch(e => console.error('heartbeat error:', e))
         // WS 心跳：確保靜止玩家持續出現在他人視野
         if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME }))
+          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: MY_USERNAME, avatar_url: MY_AVATAR_URL }))
         }
       }
     }
@@ -880,11 +928,23 @@ class CafeScene extends Phaser.Scene {
         color: '#ffffff', stroke: '#1a1208', strokeThickness: 3
       }).setOrigin(0.5, 1);
       this.playerLabels[user.discord_id] = label;
+
+      // 載入頭像
+      const avatarKey = `avatar_${user.discord_id}`
+      const avatarUrl = user.discord_avatar
+        ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
+        : null
+      loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
+        if (!ok || !this.otherPlayers[user.discord_id]) return
+        const sp = this.otherPlayers[user.discord_id]
+        const av = this.add.image(sp.x + TILE / 2, sp.y + TILE / 2 - 2, avatarKey).setDisplaySize(26, 26).setDepth(1)
+        this.otherAvatars[user.discord_id] = av
+      })
     })
   }
 
   onPlayerMove(msg) {
-    const { discord_id, x, y, username } = msg
+    const { discord_id, x, y, username, avatar_url } = msg
     const gx = x || 8
     const gy = y || 10
     const displayName = username || discord_id
@@ -910,6 +970,17 @@ class CafeScene extends Phaser.Scene {
         color: '#ffffff', stroke: '#1a1208', strokeThickness: 3
       }).setOrigin(0.5, 1);
       this.playerLabels[discord_id] = label;
+
+      // 載入頭像
+      if (avatar_url) {
+        const avatarKey = `avatar_${discord_id}`
+        loadAvatarTexture(this, avatarKey, avatar_url, (ok) => {
+          if (!ok || !this.otherPlayers[discord_id]) return
+          const sp = this.otherPlayers[discord_id]
+          const av = this.add.image(sp.x + TILE / 2, sp.y + TILE / 2 - 2, avatarKey).setDisplaySize(26, 26).setDepth(1)
+          this.otherAvatars[discord_id] = av
+        })
+      }
     }
 
     document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1;
@@ -920,10 +991,12 @@ class CafeScene extends Phaser.Scene {
     if (this.otherPlayers[discord_id]) {
       this.otherPlayers[discord_id].destroy()
       this.playerLabels[discord_id]?.destroy()
+      this.otherAvatars[discord_id]?.destroy()
       delete this.otherPlayers[discord_id]
       delete this.playerLabels[discord_id]
       delete this.otherTargets[discord_id]
       delete this.otherGrids[discord_id]
+      delete this.otherAvatars[discord_id]
     }
     document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1;
     this.nearSeat = null;
