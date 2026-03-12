@@ -400,7 +400,7 @@ const MY_AVATAR_MODE = localStorage.getItem('study_avatar_mode') || 'discord'
 
 // 匿名模式下改用的實際變數
 const DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '無名' : MY_USERNAME
-const DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'anonymous' ? null : MY_AVATAR_URL
+const DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'discord' ? MY_AVATAR_URL : null
 
 if (!MY_DISCORD_ID) {
   console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
@@ -1060,6 +1060,7 @@ class LibraryScene extends Phaser.Scene {
       const gx = user.map_x || 8
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
+      const isPreset = user.avatar_mode === 'preset'
       const displayName = isAnon ? '無名' : user.username
       const g = this.add.graphics()
       g.fillStyle(COLORS.playerOther, 0.8)
@@ -1083,7 +1084,7 @@ class LibraryScene extends Phaser.Scene {
 
       // 載入頭像（匿名模式不顯示 Discord 頭像）
       const avatarKey = `avatar_${user.discord_id}`
-      const avatarUrl = (!isAnon && user.discord_avatar)
+      const avatarUrl = (!isAnon && !isPreset && user.discord_avatar)
         ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
         : null
       loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
