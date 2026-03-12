@@ -93,7 +93,7 @@
   canvas { display: block; image-rendering: pixelated; }
 
   #interaction-hint {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 24px; left: 24px;
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 12px; padding: 8px 20px; color: var(--accent);
     font-size: 0.8rem; font-family: 'DotGothic16', monospace;
@@ -103,8 +103,8 @@
     white-space: nowrap;
   }
   @keyframes float {
-    0%,100% { transform: translateX(-50%) translateY(0); }
-    50%      { transform: translateX(-50%) translateY(-5px); }
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
   }
 
   /* 飲料選單 */
