@@ -142,14 +142,28 @@ router.post('/accept', async (req, res) => {
       .maybeSingle()
 
     if (pendingError) return res.status(500).json({ error: pendingError.message })
-    if (!pendingInvite) return res.status(404).json({ error: 'invite not found' })
+    if (!pendingInvite) {
+      // Debug: Check if invite exists in reverse order or different status
+      const { data: reverseInvite } = await supabase.from('teams')
+        .select('id, member1_id, member2_id, status')
+        .eq('member1_id', to_id)
+        .eq('member2_id', from_id)
+        .limit(1)
+        .maybeSingle()
+      
+      const debugMsg = reverseInvite 
+        ? `found reverse: ${to_id} invited ${from_id} (status: ${reverseInvite.status})`
+        : `no invite found for ${from_id}→${to_id}`
+      
+      return res.status(404).json({ error: 'invite not found', debug: debugMsg })
+    }
 
     const { data, error } = await supabase.from('teams')
       .update({ status: 'active' })
       .eq('id', pendingInvite.id)
       .select().single()
 
-    if (error || !data) return res.status(404).json({ error: 'invite not found' })
+    if (error || !data) return res.status(500).json({ error: 'failed to activate invite', details: error?.message })
 
     await supabase.from('teams').delete()
       .neq('id', data.id)
