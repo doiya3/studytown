@@ -21,7 +21,8 @@ router.post('/upsert', async (req, res) => {
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
 
   const upsertData = { discord_id, username, avatar }
-  // discord_avatar / avatar_mode columns not yet in DB — add after ALTER TABLE
+  if (discord_avatar !== undefined) upsertData.discord_avatar = discord_avatar
+  if (avatar_mode) upsertData.avatar_mode = avatar_mode
 
   const { data, error } = await supabase
     .from('users')
@@ -55,7 +56,7 @@ router.post('/status', async (req, res) => {
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
 
   const updateData = { status, current_zone, seat_id }
-  // avatar_mode column not yet in DB — add after ALTER TABLE
+  if (avatar_mode !== undefined) updateData.avatar_mode = avatar_mode
 
   const { data, error } = await supabase
     .from('users')
@@ -88,7 +89,7 @@ router.post('/clear-location', async (req, res) => {
 router.get('/scene/all', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, current_zone, status, level, xp, avatar')
+    .select('discord_id, username, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
     .not('current_zone', 'is', null)
     .neq('current_zone', 'none')
 
