@@ -874,7 +874,7 @@
     </div>
     <div id="other-private-msg" class="private-state">
       <div class="private-icon">🔒</div>
-      <div class="private-title">此玩家已關閉查看資料</div>
+      <div class="private-title">這位同學已關閉查看資料</div>
       <div class="private-desc">你仍可以在場景內互動與聊天</div>
     </div>
   </div>
@@ -1971,7 +1971,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
   const statsGrid = document.getElementById('other-stats-grid')
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
-    const isAnon = profile.avatar_mode === 'anonymous'
+    const isAnon = profile.avatar_mode === 'anonymous' || fallbackName === '同學'
     const privateName = isAnon ? '同學' : (profile.username || fallbackName || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
