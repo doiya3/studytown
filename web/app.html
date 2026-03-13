@@ -336,35 +336,75 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script type="module">
-  import { bootMapApp } from './js/scenes/MapScene.js';
-  import { bootLibraryApp } from './js/scenes/LibraryScene.js';
-  import { bootCafeApp } from './js/scenes/CafeScene.js';
+  import { createSpaRuntime } from './js/common/spaRuntime.js';
+  import { MapScene } from './js/scenes/MapScene.js';
+  import { LibraryScene } from './js/scenes/LibraryScene.js';
+  import { CafeScene } from './js/scenes/CafeScene.js';
+
+  const SCENE_MAP = {
+    map: { key: 'MapScene', label: '地圖', sceneName: '小鎮' },
+    library: { key: 'LibraryScene', label: '圖書館', sceneName: '圖書館' },
+    cafe: { key: 'CafeScene', label: '咖啡廳', sceneName: '咖啡廳' },
+  };
 
   const params = new URLSearchParams(window.location.search);
-  const sceneParam = params.get('scene');
-  const activeScene = sceneParam === 'library' || sceneParam === 'cafe' ? sceneParam : 'map';
+  let activeScene = SCENE_MAP[params.get('scene')] ? params.get('scene') : 'map';
 
-  const zoneName = document.getElementById('zone-name');
-  if (zoneName) {
-    if (activeScene === 'library') zoneName.textContent = '圖書館';
-    else if (activeScene === 'cafe') zoneName.textContent = '咖啡廳';
-    else zoneName.textContent = '地圖';
+  const runtime = createSpaRuntime();
+  const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game-root',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#0d1117',
+    scale: {
+      mode: Phaser.Scale.RESIZE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+    scene: [MapScene, LibraryScene, CafeScene],
+    pixelArt: true,
+    antialias: false,
+  });
+
+  function updateHeader(sceneKey) {
+    const conf = SCENE_MAP[sceneKey];
+    const zoneName = document.getElementById('zone-name');
+    if (zoneName) zoneName.textContent = conf.label;
+    document.querySelectorAll('.scene-option').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.scene === sceneKey);
+    });
   }
 
-  document.querySelectorAll('.scene-option').forEach((btn) => {
-    if (btn.dataset.scene === activeScene) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      const scene = btn.dataset.scene;
-      const next = scene === 'map' ? 'app.html?scene=map' : `app.html?scene=${scene}`;
-      window.location.href = next;
-    });
-  });
+  async function switchScene(sceneKey) {
+    if (!SCENE_MAP[sceneKey] || sceneKey === activeScene) return;
+    await runtime.postJSON('/api/users/clear-location', { discord_id: runtime.session.id });
+    const currentKey = SCENE_MAP[activeScene].key;
+    game.scene.stop(currentKey);
+    activeScene = sceneKey;
+    runtime.setSceneName(SCENE_MAP[sceneKey].sceneName);
+    game.scene.start(SCENE_MAP[sceneKey].key, { runtime });
+    updateHeader(sceneKey);
+    const url = new URL(window.location.href);
+    url.searchParams.set('scene', sceneKey);
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  window.switchSpaScene = switchScene;
+
+  game.scene.start(SCENE_MAP[activeScene].key, { runtime });
+  updateHeader(activeScene);
 
   const zoneWidget = document.querySelector('.zone-widget');
   const sceneMenu = document.getElementById('scene-menu');
   zoneWidget?.addEventListener('click', (e) => {
     e.stopPropagation();
     sceneMenu?.classList.toggle('open');
+  });
+  document.querySelectorAll('.scene-option').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      sceneMenu?.classList.remove('open');
+      await switchScene(btn.dataset.scene);
+    });
   });
   document.addEventListener('click', (e) => {
     if (!sceneMenu || !zoneWidget) return;
@@ -373,16 +413,48 @@
     }
   });
 
-  if (activeScene === 'library') window.studyTownApp = bootLibraryApp();
-  else if (activeScene === 'cafe') window.studyTownApp = bootCafeApp();
-  else window.studyTownApp = bootMapApp();
+  const profileName = document.querySelector('.p-name');
+  const avatar = document.querySelector('.p-avatar');
+  const logoutBtn = document.querySelector('.p-logout');
+  if (profileName) profileName.textContent = runtime.session.displayName;
+  if (avatar) {
+    if (runtime.session.avatarMode === 'discord' && runtime.session.avatarUrl) {
+      avatar.style.backgroundImage = `url(${runtime.session.avatarUrl})`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+    } else {
+      avatar.textContent = '？';
+      avatar.style.display = 'flex';
+      avatar.style.alignItems = 'center';
+      avatar.style.justifyContent = 'center';
+      avatar.style.color = '#8b949e';
+      avatar.style.fontFamily = 'DotGothic16, monospace';
+    }
+  }
+  logoutBtn?.addEventListener('click', () => {
+    localStorage.removeItem('study_user');
+    localStorage.removeItem('study_avatar_mode');
+    window.location.href = 'index.html';
+  });
 
   const interactBtn = document.getElementById('interact-btn');
   if (interactBtn) {
     interactBtn.addEventListener('click', () => {
-      if (typeof window.doInteract === 'function') window.doInteract();
+      const key = SCENE_MAP[activeScene].key;
+      const scene = game.scene.getScene(key);
+      if (scene?.tryInteract) scene.tryInteract();
     });
   }
+
+  window.addEventListener('beforeunload', () => {
+    runtime.destroy();
+    navigator.sendBeacon(
+      `${runtime.API_URL}/api/users/clear-location`,
+      new Blob([JSON.stringify({ discord_id: runtime.session.id })], { type: 'application/json' }),
+    );
+  });
+
+  window.studyTownApp = game;
 </script>
 </body>
 </html>

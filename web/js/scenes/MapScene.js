@@ -1,8 +1,4 @@
-const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://verification-difference-doctor-tournament.trycloudflare.com';
-const WS_URL = IS_LOCAL ? 'ws://localhost:3000' : 'wss://verification-difference-doctor-tournament.trycloudflare.com';
-
-const TILE = 48;
+﻿const TILE = 48;
 const COLS = 16;
 const ROWS = 12;
 
@@ -14,42 +10,10 @@ const ENTRANCES = [
   { id: 'lake', label: '湖邊', x: 10, y: 8, w: 3, h: 2, color: 0x59a6ff, locked: true },
 ];
 
-function getSession() {
-  const raw = localStorage.getItem('study_user');
-  const user = raw ? JSON.parse(raw) : null;
-  if (!user?.id) {
-    window.location.href = 'index.html';
-    throw new Error('Missing study_user session');
-  }
-  const avatarMode = localStorage.getItem('study_avatar_mode') || 'discord';
-  return {
-    id: user.id,
-    username: user.username || 'unknown',
-    avatarUrl: user.avatar_url || null,
-    avatarMode,
-    displayName: avatarMode === 'anonymous' ? '同學' : (user.username || 'unknown'),
-  };
-}
-
-async function postJSON(path, body) {
-  try {
-    await fetch(`${API_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    // ignore network errors in transition paths
-  }
-}
-
-let ws = null;
-let isExiting = false;
-
-class MapScene extends Phaser.Scene {
-  constructor(runtime) {
+export class MapScene extends Phaser.Scene {
+  constructor() {
     super('MapScene');
-    this.runtime = runtime;
+    this.runtime = null;
     this.graphics = null;
     this.player = null;
     this.playerLabel = null;
@@ -64,6 +28,12 @@ class MapScene extends Phaser.Scene {
     this.otherTargets = {};
     this.otherGrids = {};
     this.playerLabels = {};
+    this.unsubscribeWs = null;
+    this.overlayTimer = null;
+  }
+
+  init(data) {
+    this.runtime = data.runtime;
   }
 
   create() {
@@ -72,12 +42,8 @@ class MapScene extends Phaser.Scene {
 
     this.player = this.add.graphics();
     this.drawPlayer(this.player, 0x30c878);
-    this.playerLabel = this.add.text(0, 0, this.runtime.displayName, {
-      fontSize: '10px',
-      fontFamily: 'Noto Sans TC',
-      color: '#e6edf3',
-      stroke: '#0d1117',
-      strokeThickness: 3,
+    this.playerLabel = this.add.text(0, 0, this.runtime.session.displayName, {
+      fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#e6edf3', stroke: '#0d1117', strokeThickness: 3,
     }).setOrigin(0.5, 1);
     this.updatePlayerPos();
 
@@ -97,26 +63,38 @@ class MapScene extends Phaser.Scene {
       this.moveTarget = { x: gx, y: gy };
     });
 
+    this.runtime.setSceneName('小鎮');
+    this.runtime.connectWs();
+    this.unsubscribeWs = this.runtime.addMessageListener((msg) => this.onWsMessage(msg));
+
     this.loadOtherPlayers();
     this.updateServerState();
     this.pushLocation();
-    this.connectWebSocket();
     this.startOverlayRefresh();
+
+    this.events.once('shutdown', () => this.cleanup());
+    this.events.once('destroy', () => this.cleanup());
+  }
+
+  cleanup() {
+    if (this.unsubscribeWs) this.unsubscribeWs();
+    this.unsubscribeWs = null;
+    if (this.overlayTimer) clearInterval(this.overlayTimer);
+    this.overlayTimer = null;
   }
 
   startOverlayRefresh() {
     this.refreshOverlay();
-    this.overlayTimer = window.setInterval(() => this.refreshOverlay(), 5000);
+    this.overlayTimer = setInterval(() => this.refreshOverlay(), 5000);
   }
 
   async refreshOverlay() {
     const zoneCountEl = document.getElementById('zone-count');
     if (!zoneCountEl) return;
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/小鎮`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/小鎮`);
       const users = await res.json();
-      const count = Array.isArray(users) ? users.length : 1;
-      zoneCountEl.textContent = `· ${count} 人`;
+      zoneCountEl.textContent = `· ${Array.isArray(users) ? users.length : 1} 人`;
     } catch {
       zoneCountEl.textContent = '· -- 人';
     }
@@ -146,21 +124,10 @@ class MapScene extends Phaser.Scene {
       g.strokeRoundedRect(e.x * TILE + 4, e.y * TILE + 4, e.w * TILE - 8, e.h * TILE - 8, 10);
 
       const label = `${e.locked ? '🔒 ' : ''}${e.label}`;
-      this.add.text(
-        e.x * TILE + (e.w * TILE) / 2,
-        e.y * TILE + (e.h * TILE) / 2,
-        label,
-        {
-          fontFamily: 'DotGothic16',
-          fontSize: '13px',
-          color: e.locked ? '#8892a4' : '#e6edf3',
-        }
-      ).setOrigin(0.5);
+      this.add.text(e.x * TILE + (e.w * TILE) / 2, e.y * TILE + (e.h * TILE) / 2, label, {
+        fontFamily: 'DotGothic16', fontSize: '13px', color: e.locked ? '#8892a4' : '#e6edf3',
+      }).setOrigin(0.5);
     }
-
-    g.lineStyle(1, 0xffffff, 0.05);
-    for (let x = 0; x <= COLS; x++) g.lineBetween(x * TILE, 0, x * TILE, TILE * ROWS);
-    for (let y = 0; y <= ROWS; y++) g.lineBetween(0, y * TILE, TILE * COLS, y * TILE);
   }
 
   drawPlayer(g, color) {
@@ -169,8 +136,6 @@ class MapScene extends Phaser.Scene {
     g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8);
     g.fillStyle(color, 0.9);
     g.fillCircle(TILE / 2, TILE / 2 - 2, 14);
-    g.fillStyle(0xffffff, 0.3);
-    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5);
   }
 
   isBlocked(gx, gy) {
@@ -198,7 +163,6 @@ class MapScene extends Phaser.Scene {
     });
 
     this.handleMovement(delta);
-
     if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract();
     this.checkNearbyEntrance();
 
@@ -234,15 +198,15 @@ class MapScene extends Phaser.Scene {
       if (nx === this.moveTarget.x && ny === this.moveTarget.y) this.moveTarget = null;
     }
 
-    if (!moved) return;
-
-    const blockedByPlayer = Object.values(this.otherGrids).some((g) => g.x === nx && g.y === ny);
-    if (!this.isBlocked(nx, ny) && !blockedByPlayer) {
-      this.playerGx = nx;
-      this.playerGy = ny;
-      this.updatePlayerPos();
-      this.sendMove();
-      this.pushLocation();
+    if (moved) {
+      const blockedByPlayer = Object.values(this.otherGrids).some((g) => g.x === nx && g.y === ny);
+      if (!this.isBlocked(nx, ny) && !blockedByPlayer) {
+        this.playerGx = nx;
+        this.playerGy = ny;
+        this.updatePlayerPos();
+        this.sendMove();
+        this.pushLocation();
+      }
     }
 
     this.moveTimer = 0;
@@ -279,36 +243,29 @@ class MapScene extends Phaser.Scene {
 
   async tryInteract() {
     if (!this.nearEntrance) return;
-
-    const hint = document.getElementById('interaction-hint');
     if (this.nearEntrance.locked) {
+      const hint = document.getElementById('interaction-hint');
       if (hint) hint.textContent = `${this.nearEntrance.label} 尚未開放`;
       return;
     }
-
-    const target = this.nearEntrance.id;
-    if (target !== 'library' && target !== 'cafe') return;
-
-    isExiting = true;
-    if (ws?.readyState === WebSocket.OPEN) ws.close();
-
-    await postJSON('/api/users/clear-location', { discord_id: this.runtime.id });
-    window.location.href = `app.html?scene=${target}`;
+    if (this.nearEntrance.id === 'library' || this.nearEntrance.id === 'cafe') {
+      await window.switchSpaScene?.(this.nearEntrance.id);
+    }
   }
 
   async updateServerState() {
-    await postJSON('/api/users/status', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/status', {
+      discord_id: this.runtime.session.id,
       status: 'browsing',
       current_zone: '小鎮',
       seat_id: null,
-      avatar_mode: this.runtime.avatarMode,
+      avatar_mode: this.runtime.session.avatarMode,
     });
   }
 
   async pushLocation() {
-    await postJSON('/api/users/location', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/location', {
+      discord_id: this.runtime.session.id,
       map_x: this.playerGx,
       map_y: this.playerGy,
       map_scene: '小鎮',
@@ -316,45 +273,27 @@ class MapScene extends Phaser.Scene {
   }
 
   sendMove() {
-    if (ws?.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
+    this.runtime.send({
       type: 'move',
       x: this.playerGx,
       y: this.playerGy,
-      username: this.runtime.displayName,
-      avatar_url: this.runtime.avatarMode === 'discord' ? this.runtime.avatarUrl : null,
-    }));
+      username: this.runtime.session.displayName,
+      avatar_url: this.runtime.session.avatarMode === 'discord' ? this.runtime.session.avatarUrl : null,
+    });
   }
 
-  connectWebSocket() {
-    ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'auth', discord_id: this.runtime.id, scene: '小鎮' }));
-      this.sendMove();
-    };
-
-    ws.onmessage = (event) => {
-      let msg;
-      try { msg = JSON.parse(event.data); } catch { return; }
-
-      if (msg.type === 'player_move') this.onPlayerMove(msg);
-      if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
-    };
-
-    ws.onclose = () => {
-      if (isExiting) return;
-      window.setTimeout(() => this.connectWebSocket(), 3000);
-    };
+  onWsMessage(msg) {
+    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 
   async loadOtherPlayers() {
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/小鎮`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/小鎮`);
       const users = await res.json();
       if (!Array.isArray(users)) return;
       users.forEach((user) => {
-        if (user.discord_id === this.runtime.id) return;
+        if (user.discord_id === this.runtime.session.id) return;
         this.onPlayerMove({
           discord_id: user.discord_id,
           username: user.avatar_mode === 'anonymous' ? '同學' : (user.username || '未知玩家'),
@@ -362,14 +301,11 @@ class MapScene extends Phaser.Scene {
           y: Number.isInteger(user.map_y) ? user.map_y : 10,
         });
       });
-      this.refreshOverlay();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   onPlayerMove({ discord_id, username, x, y }) {
-    if (!discord_id || discord_id === this.runtime.id) return;
+    if (!discord_id || discord_id === this.runtime.session.id) return;
 
     const gx = Number.isInteger(x) ? x : 8;
     const gy = Number.isInteger(y) ? y : 10;
@@ -381,11 +317,7 @@ class MapScene extends Phaser.Scene {
       this.otherPlayers[discord_id] = g;
 
       this.playerLabels[discord_id] = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, username || '玩家', {
-        fontSize: '10px',
-        fontFamily: 'Noto Sans TC',
-        color: '#ffffff',
-        stroke: '#0d1117',
-        strokeThickness: 3,
+        fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#ffffff', stroke: '#0d1117', strokeThickness: 3,
       }).setOrigin(0.5, 1);
     }
 
@@ -402,75 +334,5 @@ class MapScene extends Phaser.Scene {
     delete this.otherTargets[discord_id];
     delete this.otherGrids[discord_id];
     delete this.playerLabels[discord_id];
-    this.refreshOverlay();
   }
-}
-
-function bindOverlayEvents(runtime) {
-  const profileName = document.querySelector('.p-name');
-  const profileLevel = document.querySelector('.p-level');
-  const avatar = document.querySelector('.p-avatar');
-  const logoutBtn = document.querySelector('.p-logout');
-
-  if (profileName) profileName.textContent = runtime.displayName;
-  if (profileLevel) profileLevel.textContent = 'Lv.-- · -- XP';
-
-  if (avatar) {
-    if (runtime.avatarMode === 'discord' && runtime.avatarUrl) {
-      avatar.style.backgroundImage = `url(${runtime.avatarUrl})`;
-      avatar.style.backgroundSize = 'cover';
-      avatar.style.backgroundPosition = 'center';
-    } else {
-      avatar.textContent = '？';
-      avatar.style.display = 'flex';
-      avatar.style.alignItems = 'center';
-      avatar.style.justifyContent = 'center';
-      avatar.style.color = '#8b949e';
-      avatar.style.fontFamily = 'DotGothic16, monospace';
-    }
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('study_user');
-      localStorage.removeItem('study_avatar_mode');
-      window.location.href = 'index.html';
-    });
-  }
-}
-
-export function bootMapApp() {
-  const runtime = getSession();
-  bindOverlayEvents(runtime);
-
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: 'game-root',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    backgroundColor: '#0d1117',
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-    scene: [new MapScene(runtime)],
-    pixelArt: true,
-    antialias: false,
-  });
-
-  window.doInteract = () => {
-    const scene = game.scene.getScene('MapScene');
-    if (scene?.tryInteract) scene.tryInteract();
-  };
-
-  window.addEventListener('beforeunload', () => {
-    isExiting = true;
-    if (ws?.readyState === WebSocket.OPEN) ws.close();
-    navigator.sendBeacon(
-      `${API_URL}/api/users/clear-location`,
-      new Blob([JSON.stringify({ discord_id: runtime.id })], { type: 'application/json' }),
-    );
-  });
-
-  return game;
 }

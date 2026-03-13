@@ -1,8 +1,4 @@
-const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://verification-difference-doctor-tournament.trycloudflare.com';
-const WS_URL = IS_LOCAL ? 'ws://localhost:3000' : 'wss://verification-difference-doctor-tournament.trycloudflare.com';
-
-const TILE = 48;
+﻿const TILE = 48;
 const COLS = 16;
 const ROWS = 12;
 
@@ -18,7 +14,6 @@ const COLORS = {
   door: 0x8b7355,
   playerSelf: 0x30c878,
   playerOther: 0x7c8cf8,
-  playerAnon: 0x4a5568,
 };
 
 const SEATS = [
@@ -35,28 +30,16 @@ const SEATS = [
 function buildBlockedTiles() {
   const blocked = new Set();
   const blockRect = (x, y, w, h) => {
-    for (let i = x; i < x + w; i++) {
-      for (let j = y; j < y + h; j++) {
-        blocked.add(`${i},${j}`);
-      }
-    }
+    for (let i = x; i < x + w; i++) for (let j = y; j < y + h; j++) blocked.add(`${i},${j}`);
   };
-
   blockRect(1, 1, 14, 2);
   blockRect(1, 1, 1, 9);
   blockRect(14, 1, 1, 9);
   blockRect(0, 0, COLS, 1);
   blockRect(0, 0, 1, ROWS);
   blockRect(COLS - 1, 0, 1, ROWS);
-
-  for (let x = 0; x < COLS; x++) {
-    if (x < 7 || x > 8) blocked.add(`${x},${ROWS - 1}`);
-  }
-
-  for (const seat of SEATS) {
-    blocked.add(`${seat.x},${seat.y - 1}`);
-  }
-
+  for (let x = 0; x < COLS; x++) if (x < 7 || x > 8) blocked.add(`${x},${ROWS - 1}`);
+  for (const seat of SEATS) blocked.add(`${seat.x},${seat.y - 1}`);
   return blocked;
 }
 
@@ -66,42 +49,10 @@ function isBlocked(gx, gy) {
   return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS;
 }
 
-async function postJSON(path, body) {
-  try {
-    await fetch(`${API_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    // Intentionally swallow network errors during scene transition/reconnect.
-  }
-}
-
-function getSession() {
-  const raw = localStorage.getItem('study_user');
-  const user = raw ? JSON.parse(raw) : null;
-  if (!user?.id) {
-    window.location.href = 'index.html';
-    throw new Error('Missing study_user session');
-  }
-  const avatarMode = localStorage.getItem('study_avatar_mode') || 'discord';
-  return {
-    id: user.id,
-    username: user.username || 'unknown',
-    avatarUrl: user.avatar_url || null,
-    avatarMode,
-    displayName: avatarMode === 'anonymous' ? '同學' : (user.username || 'unknown'),
-  };
-}
-
-let ws = null;
-let isExiting = false;
-
-class LibraryScene extends Phaser.Scene {
-  constructor(runtime) {
+export class LibraryScene extends Phaser.Scene {
+  constructor() {
     super('LibraryScene');
-    this.runtime = runtime;
+    this.runtime = null;
     this.player = null;
     this.playerLabel = null;
     this.playerGx = 8;
@@ -118,6 +69,12 @@ class LibraryScene extends Phaser.Scene {
     this.nearDoor = false;
     this.seated = false;
     this.currentSeat = null;
+    this.unsubscribeWs = null;
+    this.overlayTimer = null;
+  }
+
+  init(data) {
+    this.runtime = data.runtime;
   }
 
   create() {
@@ -126,14 +83,9 @@ class LibraryScene extends Phaser.Scene {
 
     this.player = this.add.graphics();
     this.drawPlayer(this.player, COLORS.playerSelf);
-    this.playerLabel = this.add.text(0, 0, this.runtime.displayName, {
-      fontSize: '10px',
-      fontFamily: 'Noto Sans TC',
-      color: '#e6edf3',
-      stroke: '#0d1117',
-      strokeThickness: 3,
+    this.playerLabel = this.add.text(0, 0, this.runtime.session.displayName, {
+      fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#e6edf3', stroke: '#0d1117', strokeThickness: 3,
     }).setOrigin(0.5, 1);
-
     this.updatePlayerPos();
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -152,26 +104,38 @@ class LibraryScene extends Phaser.Scene {
       if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy };
     });
 
+    this.runtime.setSceneName('圖書館');
+    this.runtime.connectWs();
+    this.unsubscribeWs = this.runtime.addMessageListener((msg) => this.onWsMessage(msg));
+
     this.loadOtherPlayers();
     this.updateServerState('browsing', null);
     this.pushLocation();
-    this.connectWebSocket();
     this.startOverlayRefresh();
+
+    this.events.once('shutdown', () => this.cleanup());
+    this.events.once('destroy', () => this.cleanup());
+  }
+
+  cleanup() {
+    if (this.unsubscribeWs) this.unsubscribeWs();
+    this.unsubscribeWs = null;
+    if (this.overlayTimer) clearInterval(this.overlayTimer);
+    this.overlayTimer = null;
   }
 
   startOverlayRefresh() {
     this.refreshOverlay();
-    this.overlayTimer = window.setInterval(() => this.refreshOverlay(), 5000);
+    this.overlayTimer = setInterval(() => this.refreshOverlay(), 5000);
   }
 
   async refreshOverlay() {
     const zoneCountEl = document.getElementById('zone-count');
     if (!zoneCountEl) return;
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/圖書館`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/圖書館`);
       const users = await res.json();
-      const count = Array.isArray(users) ? users.length : 1;
-      zoneCountEl.textContent = `· ${count} 人`;
+      zoneCountEl.textContent = `· ${Array.isArray(users) ? users.length : 1} 人`;
     } catch {
       zoneCountEl.textContent = '· -- 人';
     }
@@ -179,21 +143,14 @@ class LibraryScene extends Phaser.Scene {
 
   drawMap() {
     const g = this.graphics;
-
     for (let x = 0; x < COLS; x++) {
       for (let y = 0; y < ROWS; y++) {
         g.fillStyle((x + y) % 2 === 0 ? COLORS.floor : COLORS.floor2, 1);
         g.fillRect(x * TILE, y * TILE, TILE, TILE);
       }
     }
-
     g.fillStyle(COLORS.carpet, 1);
-    for (let x = 3; x < 13; x++) {
-      for (let y = 3; y < 10; y++) {
-        g.fillRect(x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4);
-      }
-    }
-
+    for (let x = 3; x < 13; x++) for (let y = 3; y < 10; y++) g.fillRect(x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4);
     for (let x = 1; x < 15; x++) {
       g.fillStyle(COLORS.shelf, 1);
       g.fillRect(x * TILE, TILE, TILE, TILE * 2);
@@ -202,7 +159,6 @@ class LibraryScene extends Phaser.Scene {
         g.fillRect(x * TILE + b * 14 + 2, TILE + 4, 10, TILE * 2 - 8);
       }
     }
-
     for (let y = 1; y < 10; y++) {
       g.fillStyle(COLORS.shelf, 1);
       g.fillRect(TILE, y * TILE, TILE, TILE);
@@ -211,24 +167,17 @@ class LibraryScene extends Phaser.Scene {
       g.fillRect(TILE + 4, y * TILE + 4, 8, TILE - 8);
       g.fillRect(14 * TILE + 4, y * TILE + 4, 8, TILE - 8);
     }
-
     for (const seat of SEATS) {
       g.fillStyle(COLORS.desk, 1);
       g.fillRect(seat.x * TILE + 2, (seat.y - 1) * TILE + 2, TILE - 4, TILE - 4);
       g.fillStyle(COLORS.chair, 1);
       g.fillRect(seat.x * TILE + 6, seat.y * TILE + 6, TILE - 12, TILE - 12);
     }
-
     g.fillStyle(COLORS.window, 1);
     g.fillRect(6 * TILE + 4, 4, TILE * 2 - 8, 8);
     g.fillRect(10 * TILE + 4, 4, TILE * 2 - 8, 8);
-
     g.fillStyle(COLORS.door, 1);
     g.fillRect(7 * TILE + 4, 11 * TILE, TILE * 2 - 8, TILE);
-
-    g.lineStyle(1, 0xffffff, 0.03);
-    for (let x = 0; x <= COLS; x++) g.lineBetween(x * TILE, 0, x * TILE, TILE * ROWS);
-    for (let y = 0; y <= ROWS; y++) g.lineBetween(0, y * TILE, TILE * COLS, y * TILE);
   }
 
   drawPlayer(g, color) {
@@ -237,8 +186,6 @@ class LibraryScene extends Phaser.Scene {
     g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8);
     g.fillStyle(color, 0.9);
     g.fillCircle(TILE / 2, TILE / 2 - 2, 14);
-    g.fillStyle(0xffffff, 0.3);
-    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5);
   }
 
   updatePlayerPos() {
@@ -262,7 +209,6 @@ class LibraryScene extends Phaser.Scene {
     });
 
     if (!this.seated) this.handleMovement(delta);
-
     if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract();
     this.checkNearbyInteractable();
 
@@ -298,15 +244,15 @@ class LibraryScene extends Phaser.Scene {
       if (nx === this.moveTarget.x && ny === this.moveTarget.y) this.moveTarget = null;
     }
 
-    if (!moved) return;
-
-    const blockedByPlayer = Object.values(this.otherGrids).some(g => g.x === nx && g.y === ny);
-    if (!isBlocked(nx, ny) && !blockedByPlayer) {
-      this.playerGx = nx;
-      this.playerGy = ny;
-      this.updatePlayerPos();
-      this.sendMove();
-      this.pushLocation();
+    if (moved) {
+      const blockedByPlayer = Object.values(this.otherGrids).some((g) => g.x === nx && g.y === ny);
+      if (!isBlocked(nx, ny) && !blockedByPlayer) {
+        this.playerGx = nx;
+        this.playerGy = ny;
+        this.updatePlayerPos();
+        this.sendMove();
+        this.pushLocation();
+      }
     }
 
     this.moveTimer = 0;
@@ -315,10 +261,9 @@ class LibraryScene extends Phaser.Scene {
   checkNearbyInteractable() {
     const hint = document.getElementById('interaction-hint');
     if (!hint) return;
-
     this.nearDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9;
     if (this.nearDoor) {
-      hint.textContent = '按 E 返回小鎮';
+      hint.textContent = '按 E 返回地圖';
       hint.style.display = 'block';
       this.nearSeat = null;
       return;
@@ -337,14 +282,12 @@ class LibraryScene extends Phaser.Scene {
       hint.style.display = 'block';
       return;
     }
-
     hint.style.display = 'none';
   }
 
   async tryInteract() {
     if (this.nearDoor) {
-      await postJSON('/api/users/clear-location', { discord_id: this.runtime.id });
-      window.location.href = 'index.html';
+      await window.switchSpaScene?.('map');
       return;
     }
 
@@ -357,30 +300,30 @@ class LibraryScene extends Phaser.Scene {
       this.playerGy = this.nearSeat.y;
       this.updatePlayerPos();
       await this.updateServerState('studying', this.currentSeat.id);
-      await postJSON('/api/study/start', { discord_id: this.runtime.id, zone: '圖書館', seat_id: this.currentSeat.id });
+      await this.runtime.postJSON('/api/study/start', { discord_id: this.runtime.session.id, zone: '圖書館', seat_id: this.currentSeat.id });
     } else {
       this.seated = false;
       this.currentSeat = null;
       await this.updateServerState('browsing', null);
-      await postJSON('/api/study/end', { discord_id: this.runtime.id, zone: '圖書館' });
+      await this.runtime.postJSON('/api/study/end', { discord_id: this.runtime.session.id, zone: '圖書館' });
     }
 
     this.sendMove();
   }
 
   async updateServerState(status, seatId) {
-    await postJSON('/api/users/status', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/status', {
+      discord_id: this.runtime.session.id,
       status,
       current_zone: '圖書館',
       seat_id: seatId,
-      avatar_mode: this.runtime.avatarMode,
+      avatar_mode: this.runtime.session.avatarMode,
     });
   }
 
   async pushLocation() {
-    await postJSON('/api/users/location', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/location', {
+      discord_id: this.runtime.session.id,
       map_x: this.playerGx,
       map_y: this.playerGy,
       map_scene: '圖書館',
@@ -388,61 +331,39 @@ class LibraryScene extends Phaser.Scene {
   }
 
   sendMove() {
-    if (ws?.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
+    this.runtime.send({
       type: 'move',
       x: this.playerGx,
       y: this.playerGy,
-      username: this.runtime.displayName,
-      avatar_url: this.runtime.avatarMode === 'discord' ? this.runtime.avatarUrl : null,
-    }));
+      username: this.runtime.session.displayName,
+      avatar_url: this.runtime.session.avatarMode === 'discord' ? this.runtime.session.avatarUrl : null,
+    });
   }
 
-  connectWebSocket() {
-    ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'auth', discord_id: this.runtime.id, scene: '圖書館' }));
-      this.sendMove();
-    };
-
-    ws.onmessage = (event) => {
-      let msg;
-      try { msg = JSON.parse(event.data); } catch { return; }
-
-      if (msg.type === 'player_move') this.onPlayerMove(msg);
-      if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
-    };
-
-    ws.onclose = () => {
-      if (isExiting) return;
-      window.setTimeout(() => this.connectWebSocket(), 3000);
-    };
+  onWsMessage(msg) {
+    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 
   async loadOtherPlayers() {
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/圖書館`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/圖書館`);
       const users = await res.json();
       if (!Array.isArray(users)) return;
       users.forEach((user) => {
-        if (user.discord_id === this.runtime.id) return;
+        if (user.discord_id === this.runtime.session.id) return;
         this.onPlayerMove({
           discord_id: user.discord_id,
           username: user.avatar_mode === 'anonymous' ? '同學' : (user.username || '未知玩家'),
           x: Number.isInteger(user.map_x) ? user.map_x : 8,
           y: Number.isInteger(user.map_y) ? user.map_y : 10,
-          avatar_url: user.avatar_mode === 'anonymous' ? null : null,
         });
       });
-      this.refreshOverlay();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   onPlayerMove({ discord_id, username, x, y }) {
-    if (!discord_id || discord_id === this.runtime.id) return;
+    if (!discord_id || discord_id === this.runtime.session.id) return;
 
     const gx = Number.isInteger(x) ? x : 8;
     const gy = Number.isInteger(y) ? y : 10;
@@ -454,11 +375,7 @@ class LibraryScene extends Phaser.Scene {
       this.otherPlayers[discord_id] = g;
 
       this.playerLabels[discord_id] = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, username || '玩家', {
-        fontSize: '10px',
-        fontFamily: 'Noto Sans TC',
-        color: '#ffffff',
-        stroke: '#0d1117',
-        strokeThickness: 3,
+        fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#ffffff', stroke: '#0d1117', strokeThickness: 3,
       }).setOrigin(0.5, 1);
     }
 
@@ -475,74 +392,5 @@ class LibraryScene extends Phaser.Scene {
     delete this.otherTargets[discord_id];
     delete this.otherGrids[discord_id];
     delete this.playerLabels[discord_id];
-    this.refreshOverlay();
   }
-}
-
-function bindOverlayEvents(runtime) {
-  const profileName = document.querySelector('.p-name');
-  const profileLevel = document.querySelector('.p-level');
-  const avatar = document.querySelector('.p-avatar');
-  const logoutBtn = document.querySelector('.p-logout');
-
-  if (profileName) profileName.textContent = runtime.displayName;
-  if (profileLevel) profileLevel.textContent = 'Lv.-- · -- XP';
-  if (avatar) {
-    if (runtime.avatarMode === 'discord' && runtime.avatarUrl) {
-      avatar.style.backgroundImage = `url(${runtime.avatarUrl})`;
-      avatar.style.backgroundSize = 'cover';
-      avatar.style.backgroundPosition = 'center';
-    } else {
-      avatar.textContent = '？';
-      avatar.style.display = 'flex';
-      avatar.style.alignItems = 'center';
-      avatar.style.justifyContent = 'center';
-      avatar.style.color = '#8b949e';
-      avatar.style.fontFamily = 'DotGothic16, monospace';
-    }
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('study_user');
-      localStorage.removeItem('study_avatar_mode');
-      window.location.href = 'index.html';
-    });
-  }
-}
-
-export function bootLibraryApp() {
-  const runtime = getSession();
-  bindOverlayEvents(runtime);
-
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: 'game-root',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    backgroundColor: '#0d1117',
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-    scene: [new LibraryScene(runtime)],
-    pixelArt: true,
-    antialias: false,
-  });
-
-  window.doInteract = () => {
-    const scene = game.scene.getScene('LibraryScene');
-    if (scene?.tryInteract) scene.tryInteract();
-  };
-
-  window.addEventListener('beforeunload', () => {
-    isExiting = true;
-    if (ws?.readyState === WebSocket.OPEN) ws.close();
-    navigator.sendBeacon(
-      `${API_URL}/api/users/clear-location`,
-      new Blob([JSON.stringify({ discord_id: runtime.id })], { type: 'application/json' }),
-    );
-  });
-
-  return game;
 }

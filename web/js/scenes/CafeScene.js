@@ -1,8 +1,4 @@
-const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const API_URL = IS_LOCAL ? 'http://localhost:3000' : 'https://verification-difference-doctor-tournament.trycloudflare.com';
-const WS_URL = IS_LOCAL ? 'ws://localhost:3000' : 'wss://verification-difference-doctor-tournament.trycloudflare.com';
-
-const TILE = 48;
+﻿const TILE = 48;
 const COLS = 16;
 const ROWS = 12;
 
@@ -39,69 +35,27 @@ const COUNTER_INTERACT_Y = 3;
 function buildBlockedTiles() {
   const blocked = new Set();
   const blockRect = (x, y, w, h) => {
-    for (let i = x; i < x + w; i++) {
-      for (let j = y; j < y + h; j++) blocked.add(`${i},${j}`);
-    }
+    for (let i = x; i < x + w; i++) for (let j = y; j < y + h; j++) blocked.add(`${i},${j}`);
   };
 
   blockRect(0, 0, COLS, 1);
   blockRect(0, 0, 1, ROWS);
   blockRect(COLS - 1, 0, 1, ROWS);
   blockRect(1, 1, 14, 2);
-
-  for (let x = 0; x < COLS; x++) {
-    if (x < 7 || x > 8) blocked.add(`${x},${ROWS - 1}`);
-  }
-
-  for (const seat of SEATS) {
-    if (seat.id <= 4) blocked.add(`${seat.x + 1},${seat.y}`);
-  }
-
+  for (let x = 0; x < COLS; x++) if (x < 7 || x > 8) blocked.add(`${x},${ROWS - 1}`);
+  for (const seat of SEATS) if (seat.id <= 4) blocked.add(`${seat.x + 1},${seat.y}`);
   return blocked;
 }
 
 const BLOCKED = buildBlockedTiles();
-
 function isBlocked(gx, gy) {
   return BLOCKED.has(`${gx},${gy}`) || gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS;
 }
 
-async function postJSON(path, body) {
-  try {
-    await fetch(`${API_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    // no-op
-  }
-}
-
-function getSession() {
-  const raw = localStorage.getItem('study_user');
-  const user = raw ? JSON.parse(raw) : null;
-  if (!user?.id) {
-    window.location.href = 'index.html';
-    throw new Error('Missing study_user session');
-  }
-  const avatarMode = localStorage.getItem('study_avatar_mode') || 'discord';
-  return {
-    id: user.id,
-    username: user.username || 'unknown',
-    avatarUrl: user.avatar_url || null,
-    avatarMode,
-    displayName: avatarMode === 'anonymous' ? '同學' : (user.username || 'unknown'),
-  };
-}
-
-let ws = null;
-let isExiting = false;
-
-class CafeScene extends Phaser.Scene {
-  constructor(runtime) {
+export class CafeScene extends Phaser.Scene {
+  constructor() {
     super('CafeScene');
-    this.runtime = runtime;
+    this.runtime = null;
     this.player = null;
     this.playerLabel = null;
     this.playerGx = 8;
@@ -119,6 +73,12 @@ class CafeScene extends Phaser.Scene {
     this.nearCounter = false;
     this.seated = false;
     this.currentSeat = null;
+    this.unsubscribeWs = null;
+    this.overlayTimer = null;
+  }
+
+  init(data) {
+    this.runtime = data.runtime;
   }
 
   create() {
@@ -127,14 +87,9 @@ class CafeScene extends Phaser.Scene {
 
     this.player = this.add.graphics();
     this.drawPlayer(this.player, COLORS.playerSelf);
-    this.playerLabel = this.add.text(0, 0, this.runtime.displayName, {
-      fontSize: '10px',
-      fontFamily: 'Noto Sans TC',
-      color: '#f5a623',
-      stroke: '#1a1208',
-      strokeThickness: 3,
+    this.playerLabel = this.add.text(0, 0, this.runtime.session.displayName, {
+      fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
     }).setOrigin(0.5, 1);
-
     this.updatePlayerPos();
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -153,26 +108,38 @@ class CafeScene extends Phaser.Scene {
       if (!isBlocked(gx, gy)) this.moveTarget = { x: gx, y: gy };
     });
 
+    this.runtime.setSceneName('咖啡廳');
+    this.runtime.connectWs();
+    this.unsubscribeWs = this.runtime.addMessageListener((msg) => this.onWsMessage(msg));
+
     this.loadOtherPlayers();
     this.updateServerState('browsing', null);
     this.pushLocation();
-    this.connectWebSocket();
     this.startOverlayRefresh();
+
+    this.events.once('shutdown', () => this.cleanup());
+    this.events.once('destroy', () => this.cleanup());
+  }
+
+  cleanup() {
+    if (this.unsubscribeWs) this.unsubscribeWs();
+    this.unsubscribeWs = null;
+    if (this.overlayTimer) clearInterval(this.overlayTimer);
+    this.overlayTimer = null;
   }
 
   startOverlayRefresh() {
     this.refreshOverlay();
-    this.overlayTimer = window.setInterval(() => this.refreshOverlay(), 5000);
+    this.overlayTimer = setInterval(() => this.refreshOverlay(), 5000);
   }
 
   async refreshOverlay() {
     const zoneCountEl = document.getElementById('zone-count');
     if (!zoneCountEl) return;
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/咖啡廳`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/咖啡廳`);
       const users = await res.json();
-      const count = Array.isArray(users) ? users.length : 1;
-      zoneCountEl.textContent = `· ${count} 人`;
+      zoneCountEl.textContent = `· ${Array.isArray(users) ? users.length : 1} 人`;
     } catch {
       zoneCountEl.textContent = '· -- 人';
     }
@@ -180,7 +147,6 @@ class CafeScene extends Phaser.Scene {
 
   drawMap() {
     const g = this.graphics;
-
     for (let x = 0; x < COLS; x++) {
       for (let y = 0; y < ROWS; y++) {
         g.fillStyle((x + y) % 2 === 0 ? COLORS.floor : COLORS.floor2, 1);
@@ -228,10 +194,6 @@ class CafeScene extends Phaser.Scene {
 
     g.fillStyle(COLORS.door, 1);
     g.fillRect(7 * TILE + 4, 11 * TILE, TILE * 2 - 8, TILE);
-
-    g.lineStyle(1, 0xffffff, 0.02);
-    for (let x = 0; x <= COLS; x++) g.lineBetween(x * TILE, 0, x * TILE, TILE * ROWS);
-    for (let y = 0; y <= ROWS; y++) g.lineBetween(0, y * TILE, TILE * COLS, y * TILE);
   }
 
   drawPlayer(g, color) {
@@ -240,8 +202,6 @@ class CafeScene extends Phaser.Scene {
     g.fillEllipse(TILE / 2, TILE - 6, TILE - 10, 8);
     g.fillStyle(color, 0.9);
     g.fillCircle(TILE / 2, TILE / 2 - 2, 14);
-    g.fillStyle(0xffffff, 0.3);
-    g.fillCircle(TILE / 2 - 4, TILE / 2 - 6, 5);
   }
 
   updatePlayerPos() {
@@ -265,7 +225,6 @@ class CafeScene extends Phaser.Scene {
     });
 
     if (!this.seated) this.handleMovement(delta);
-
     if (Phaser.Input.Keyboard.JustDown(this.wasd.interact)) this.tryInteract();
     this.checkNearbyInteractable();
 
@@ -301,15 +260,15 @@ class CafeScene extends Phaser.Scene {
       if (nx === this.moveTarget.x && ny === this.moveTarget.y) this.moveTarget = null;
     }
 
-    if (!moved) return;
-
-    const blockedByPlayer = Object.values(this.otherGrids).some((g) => g.x === nx && g.y === ny);
-    if (!isBlocked(nx, ny) && !blockedByPlayer) {
-      this.playerGx = nx;
-      this.playerGy = ny;
-      this.updatePlayerPos();
-      this.sendMove();
-      this.pushLocation();
+    if (moved) {
+      const blockedByPlayer = Object.values(this.otherGrids).some((g) => g.x === nx && g.y === ny);
+      if (!isBlocked(nx, ny) && !blockedByPlayer) {
+        this.playerGx = nx;
+        this.playerGy = ny;
+        this.updatePlayerPos();
+        this.sendMove();
+        this.pushLocation();
+      }
     }
 
     this.moveTimer = 0;
@@ -321,7 +280,7 @@ class CafeScene extends Phaser.Scene {
 
     this.nearDoor = this.playerGy >= 10 && this.playerGx >= 7 && this.playerGx <= 9;
     if (this.nearDoor) {
-      hint.textContent = '按 E 返回小鎮';
+      hint.textContent = '按 E 返回地圖';
       hint.style.display = 'block';
       this.nearCounter = false;
       this.nearSeat = null;
@@ -355,15 +314,14 @@ class CafeScene extends Phaser.Scene {
 
   async tryInteract() {
     if (this.nearDoor) {
-      await postJSON('/api/users/clear-location', { discord_id: this.runtime.id });
-      window.location.href = 'index.html';
+      await window.switchSpaScene?.('map');
       return;
     }
 
+    const hint = document.getElementById('interaction-hint');
     if (this.nearCounter) {
-      const hint = document.getElementById('interaction-hint');
       if (hint) {
-        hint.textContent = '飲料面板將在下一步接回';
+        hint.textContent = '飲料面板下一步接回';
         hint.style.display = 'block';
       }
       return;
@@ -388,18 +346,18 @@ class CafeScene extends Phaser.Scene {
   }
 
   async updateServerState(status, seatId) {
-    await postJSON('/api/users/status', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/status', {
+      discord_id: this.runtime.session.id,
       status,
       current_zone: '咖啡廳',
       seat_id: seatId,
-      avatar_mode: this.runtime.avatarMode,
+      avatar_mode: this.runtime.session.avatarMode,
     });
   }
 
   async pushLocation() {
-    await postJSON('/api/users/location', {
-      discord_id: this.runtime.id,
+    await this.runtime.postJSON('/api/users/location', {
+      discord_id: this.runtime.session.id,
       map_x: this.playerGx,
       map_y: this.playerGy,
       map_scene: '咖啡廳',
@@ -407,45 +365,27 @@ class CafeScene extends Phaser.Scene {
   }
 
   sendMove() {
-    if (ws?.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
+    this.runtime.send({
       type: 'move',
       x: this.playerGx,
       y: this.playerGy,
-      username: this.runtime.displayName,
-      avatar_url: this.runtime.avatarMode === 'discord' ? this.runtime.avatarUrl : null,
-    }));
+      username: this.runtime.session.displayName,
+      avatar_url: this.runtime.session.avatarMode === 'discord' ? this.runtime.session.avatarUrl : null,
+    });
   }
 
-  connectWebSocket() {
-    ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'auth', discord_id: this.runtime.id, scene: '咖啡廳' }));
-      this.sendMove();
-    };
-
-    ws.onmessage = (event) => {
-      let msg;
-      try { msg = JSON.parse(event.data); } catch { return; }
-
-      if (msg.type === 'player_move') this.onPlayerMove(msg);
-      if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
-    };
-
-    ws.onclose = () => {
-      if (isExiting) return;
-      window.setTimeout(() => this.connectWebSocket(), 3000);
-    };
+  onWsMessage(msg) {
+    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 
   async loadOtherPlayers() {
     try {
-      const res = await fetch(`${API_URL}/api/users/scene/咖啡廳`);
+      const res = await fetch(`${this.runtime.API_URL}/api/users/scene/咖啡廳`);
       const users = await res.json();
       if (!Array.isArray(users)) return;
       users.forEach((user) => {
-        if (user.discord_id === this.runtime.id) return;
+        if (user.discord_id === this.runtime.session.id) return;
         this.onPlayerMove({
           discord_id: user.discord_id,
           username: user.avatar_mode === 'anonymous' ? '同學' : (user.username || '未知玩家'),
@@ -453,14 +393,11 @@ class CafeScene extends Phaser.Scene {
           y: Number.isInteger(user.map_y) ? user.map_y : 10,
         });
       });
-      this.refreshOverlay();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   onPlayerMove({ discord_id, username, x, y }) {
-    if (!discord_id || discord_id === this.runtime.id) return;
+    if (!discord_id || discord_id === this.runtime.session.id) return;
 
     const gx = Number.isInteger(x) ? x : 8;
     const gy = Number.isInteger(y) ? y : 10;
@@ -472,11 +409,7 @@ class CafeScene extends Phaser.Scene {
       this.otherPlayers[discord_id] = g;
 
       this.playerLabels[discord_id] = this.add.text(gx * TILE + TILE / 2, gy * TILE - 2, username || '玩家', {
-        fontSize: '10px',
-        fontFamily: 'Noto Sans TC',
-        color: '#ffffff',
-        stroke: '#1a1208',
-        strokeThickness: 3,
+        fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#ffffff', stroke: '#1a1208', strokeThickness: 3,
       }).setOrigin(0.5, 1);
     }
 
@@ -493,74 +426,5 @@ class CafeScene extends Phaser.Scene {
     delete this.otherTargets[discord_id];
     delete this.otherGrids[discord_id];
     delete this.playerLabels[discord_id];
-    this.refreshOverlay();
   }
-}
-
-function bindOverlayEvents(runtime) {
-  const profileName = document.querySelector('.p-name');
-  const profileLevel = document.querySelector('.p-level');
-  const avatar = document.querySelector('.p-avatar');
-  const logoutBtn = document.querySelector('.p-logout');
-
-  if (profileName) profileName.textContent = runtime.displayName;
-  if (profileLevel) profileLevel.textContent = 'Lv.-- · -- XP';
-  if (avatar) {
-    if (runtime.avatarMode === 'discord' && runtime.avatarUrl) {
-      avatar.style.backgroundImage = `url(${runtime.avatarUrl})`;
-      avatar.style.backgroundSize = 'cover';
-      avatar.style.backgroundPosition = 'center';
-    } else {
-      avatar.textContent = '？';
-      avatar.style.display = 'flex';
-      avatar.style.alignItems = 'center';
-      avatar.style.justifyContent = 'center';
-      avatar.style.color = '#8b949e';
-      avatar.style.fontFamily = 'DotGothic16, monospace';
-    }
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('study_user');
-      localStorage.removeItem('study_avatar_mode');
-      window.location.href = 'index.html';
-    });
-  }
-}
-
-export function bootCafeApp() {
-  const runtime = getSession();
-  bindOverlayEvents(runtime);
-
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: 'game-root',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    backgroundColor: '#1a1208',
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-    scene: [new CafeScene(runtime)],
-    pixelArt: true,
-    antialias: false,
-  });
-
-  window.doInteract = () => {
-    const scene = game.scene.getScene('CafeScene');
-    if (scene?.tryInteract) scene.tryInteract();
-  };
-
-  window.addEventListener('beforeunload', () => {
-    isExiting = true;
-    if (ws?.readyState === WebSocket.OPEN) ws.close();
-    navigator.sendBeacon(
-      `${API_URL}/api/users/clear-location`,
-      new Blob([JSON.stringify({ discord_id: runtime.id })], { type: 'application/json' }),
-    );
-  });
-
-  return game;
 }
