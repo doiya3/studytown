@@ -1901,10 +1901,6 @@ function captureProfileFormBaseline() {
 }
 
 function closeProfileModal() {
-  if (hasUnsavedProfileChanges()) {
-    const shouldClose = window.confirm('你有尚未儲存的變更，確定要離開嗎？')
-    if (!shouldClose) return false
-  }
   document.getElementById('profile-modal').style.display = 'none'
   return true
 }
