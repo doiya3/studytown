@@ -59,10 +59,20 @@ function setupWebSocket(server) {
       if (msg.type === 'move') {
         const client = clients.get(authId)
         if (!client) return
+        const nextScene = typeof msg.scene === 'string' && msg.scene ? msg.scene : client.scene
+
+        if (client.scene && nextScene && client.scene !== nextScene) {
+          broadcast(client.scene, { type: 'player_leave', discord_id: authId }, authId)
+        }
+
+        client.scene = nextScene
         if (msg.username) client.username = msg.username
         client.avatar_url = msg.avatar_url ?? null  // 允許 null 清除（匿名模式）
+        if (!client.scene) return
+
         broadcast(client.scene, {
           type: 'player_move',
+          scene: client.scene,
           discord_id: authId,
           username: client.username || authId,
           avatar_url: client.avatar_url || null,

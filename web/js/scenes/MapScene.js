@@ -275,6 +275,7 @@ export class MapScene extends Phaser.Scene {
   sendMove() {
     this.runtime.send({
       type: 'move',
+      scene: '小鎮',
       x: this.playerGx,
       y: this.playerGy,
       username: this.runtime.session.displayName,
@@ -283,7 +284,10 @@ export class MapScene extends Phaser.Scene {
   }
 
   onWsMessage(msg) {
-    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_move') {
+      if (msg.scene && msg.scene !== '小鎮') return;
+      this.onPlayerMove(msg);
+    }
     if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 
