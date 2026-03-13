@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Town - SPA Scaffold</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --line: rgba(255, 255, 255, 0.08);
+    --accent: #30c878;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  #game-root {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  }
+
+  canvas {
+    display: block;
+  }
+
+  .overlay-ui {
+    position: fixed;
+    z-index: 20;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(13, 17, 23, 0.55);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: var(--text);
+    transition: opacity 0.4s ease;
+    user-select: none;
+  }
+
+  .idle .overlay-ui {
+    opacity: 0.15;
+  }
+
+  .zone-widget {
+    top: 16px;
+    left: 16px;
+    height: 42px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+  }
+
+  .zone-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(48, 200, 120, 0.7);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  .zone-arrow {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+  }
+
+  .profile-widget {
+    top: 16px;
+    right: 16px;
+    min-height: 54px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .p-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .p-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .p-level {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .p-divider {
+    width: 1px;
+    align-self: stretch;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .p-logout {
+    background: rgba(233, 69, 96, 0.15);
+    border: 1px solid rgba(233, 69, 96, 0.35);
+    color: #ff6980;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    cursor: default;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  .team-widget {
+    left: 16px;
+    bottom: 16px;
+    min-width: 170px;
+    min-height: 64px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .team-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+  }
+
+  .team-item {
+    font-size: 0.8rem;
+  }
+
+  .interact-btn {
+    right: 16px;
+    bottom: 16px;
+    height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .interact-key {
+    font-family: 'DotGothic16', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 7px;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+
+  @media (max-width: 768px) {
+    .zone-widget,
+    .profile-widget,
+    .team-widget,
+    .interact-btn {
+      border-radius: 12px;
+    }
+
+    .zone-widget {
+      top: 10px;
+      left: 10px;
+      font-size: 0.74rem;
+      padding: 0 10px;
+    }
+
+    .profile-widget {
+      top: 10px;
+      right: 10px;
+      gap: 8px;
+      padding: 7px 9px;
+    }
+
+    .p-avatar {
+      width: 28px;
+      height: 28px;
+    }
+
+    .p-level {
+      font-size: 0.68rem;
+    }
+
+    .p-logout {
+      padding: 5px 8px;
+      font-size: 0.7rem;
+    }
+
+    .team-widget {
+      left: 10px;
+      bottom: 10px;
+      min-width: 150px;
+      padding: 9px 10px;
+    }
+
+    .interact-btn {
+      right: 10px;
+      bottom: 10px;
+      height: 40px;
+      padding: 0 10px;
+    }
+
+    .interact-key {
+      display: none;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      transform: scale(1.25);
+      opacity: 0.55;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="game-root"></div>
+
+<div class="overlay-ui zone-widget" aria-label="zone-widget">
+  <div class="zone-dot"></div>
+  <span id="zone-name">圖書館</span>
+  <span id="zone-count">· 1 人</span>
+  <span class="zone-arrow">▼</span>
+</div>
+
+<div class="overlay-ui profile-widget" aria-label="profile-widget">
+  <div class="p-avatar" aria-hidden="true"></div>
+  <div>
+    <div class="p-name">sev.nishi</div>
+    <div class="p-level">Lv.8 · 2400 XP</div>
+  </div>
+  <div class="p-divider"></div>
+  <button class="p-logout" type="button">登出</button>
+</div>
+
+<div class="overlay-ui team-widget" id="team-widget" aria-label="team-widget">
+  <div class="team-label">隊伍</div>
+  <div class="team-item">bear.nishi</div>
+</div>
+
+<div class="overlay-ui interact-btn" id="interact-btn" aria-label="interact-btn">
+  <span class="interact-text">互動</span>
+  <span class="interact-key">E</span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+  class AppShellScene extends Phaser.Scene {
+    constructor() {
+      super('AppShellScene');
+      this.bg = null;
+      this.grid = null;
+      this.title = null;
+    }
+
+    create() {
+      this.bg = this.add.graphics();
+      this.grid = this.add.graphics();
+      this.title = this.add.text(24, 24, 'Study Town SPA Scaffold', {
+        fontFamily: 'DotGothic16, monospace',
+        fontSize: '18px',
+        color: '#e6edf3'
+      }).setAlpha(0.85);
+      this.redraw(this.scale.width, this.scale.height);
+      this.scale.on('resize', (size) => this.redraw(size.width, size.height));
+    }
+
+    redraw(width, height) {
+      this.bg.clear();
+      this.bg.fillGradientStyle(0x161b22, 0x161b22, 0x0d1117, 0x0d1117, 1);
+      this.bg.fillRect(0, 0, width, height);
+
+      this.grid.clear();
+      this.grid.lineStyle(1, 0xffffff, 0.05);
+      for (let x = 0; x < width; x += 48) {
+        this.grid.beginPath();
+        this.grid.moveTo(x, 0);
+        this.grid.lineTo(x, height);
+        this.grid.strokePath();
+      }
+      for (let y = 0; y < height; y += 48) {
+        this.grid.beginPath();
+        this.grid.moveTo(0, y);
+        this.grid.lineTo(width, y);
+        this.grid.strokePath();
+      }
+    }
+  }
+
+  const config = {
+    type: Phaser.AUTO,
+    parent: 'game-root',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#0d1117',
+    scene: [AppShellScene],
+    scale: {
+      mode: Phaser.Scale.RESIZE,
+      autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    pixelArt: false,
+    antialias: true
+  };
+
+  window.studyTownApp = new Phaser.Game(config);
+</script>
+</body>
+</html>
