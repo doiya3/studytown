@@ -70,38 +70,29 @@
   }
 
   .container {
-    max-width: 880px;
-    margin: 16px auto 32px;
+    max-width: 760px;
+    margin: 20px auto 40px;
     padding: 0 14px;
-    display: grid;
-    gap: 14px;
   }
 
-  .panel {
+  .panel.profile-shell {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
+    border-radius: 18px;
+    padding: 20px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
   }
 
-  .section-title {
-    font-family: 'DotGothic16', monospace;
-    color: var(--text);
-    font-size: 0.86rem;
-    letter-spacing: 0.06em;
-    margin-bottom: 10px;
-  }
-
-  #profile-header {
+  .profile-header {
     display: flex;
     align-items: center;
     gap: 14px;
+    margin-bottom: 14px;
   }
 
-  #profile-avatar {
-    width: 74px;
-    height: 74px;
+  .profile-avatar-wrap {
+    width: 76px;
+    height: 76px;
     border-radius: 50%;
     overflow: hidden;
     border: 2px solid rgba(48,200,120,0.35);
@@ -110,6 +101,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    position: relative;
   }
 
   #avatar-img {
@@ -122,165 +114,141 @@
   #avatar-fallback {
     font-size: 2rem;
     color: var(--text-muted);
+    position: absolute;
+  }
+
+  .profile-header-info {
+    width: 100%;
   }
 
   #profile-username {
     font-size: 1.08rem;
     font-weight: 700;
+    margin-bottom: 8px;
   }
 
-  #profile-level {
-    margin-top: 4px;
-    color: var(--accent);
-    font-family: 'DotGothic16', monospace;
-    font-size: 0.82rem;
-  }
-
-  #status-input,
-  #bio-input {
+  #status-input {
     width: 100%;
     background: rgba(255,255,255,0.04);
-    color: var(--text);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px;
-    padding: 9px 10px;
+    padding: 8px 10px;
+    color: #e6edf3;
     font-size: 0.86rem;
     font-family: 'Noto Sans TC', sans-serif;
     outline: none;
+    margin-bottom: 8px;
   }
 
-  #status-input:focus,
-  #bio-input:focus {
-    border-color: rgba(48,200,120,0.45);
-  }
+  #status-input:focus { border-color: rgba(48,200,120,0.3); }
 
-  #bio-input {
-    resize: vertical;
-    min-height: 84px;
-  }
-
-  #bio-count {
-    margin-top: 6px;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-    text-align: right;
-  }
-
-  #profile-form-actions {
-    margin-top: 10px;
-    display: flex;
+  #profile-level {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  #privacy-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
-  #btn-save-profile {
-    border: none;
-    background: linear-gradient(135deg, #30c878, #22a060);
-    color: #06140d;
-    font-weight: 700;
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-
-  #btn-save-profile:hover { opacity: 0.9; }
-
-  #save-status {
-    margin-top: 8px;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    min-height: 1em;
-  }
-
-  #stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .stat-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px;
-  }
-
-  .stat-label {
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    margin-bottom: 6px;
-  }
-
-  .stat-value {
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  #xp-label,
-  #xp-text {
+    border: 1px solid rgba(48,200,120,0.3);
+    border-radius: 999px;
+    padding: 3px 10px;
     font-size: 0.76rem;
-    color: var(--text-muted);
+    color: #30c878;
+    font-family: 'DotGothic16', monospace;
+  }
+
+  .xp-section {
+    margin-bottom: 16px;
+  }
+
+  .xp-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    color: #8b949e;
+    margin-bottom: 6px;
   }
 
   #xp-bar-bg {
     width: 100%;
-    height: 8px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 4px;
+    height: 7px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
     overflow: hidden;
-    margin: 6px 0;
   }
 
   #xp-bar-fill {
     height: 100%;
     width: 0;
     background: linear-gradient(90deg, #30c878, #22a060);
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 0.8s ease;
   }
 
-  #recent-list {
+  #stats-grid {
     display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
+    margin-bottom: 16px;
   }
 
-  .recent-item {
-    border: 1px solid var(--border);
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: #8b949e;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e6edf3;
+    font-family: 'DotGothic16', monospace;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+    font-family: 'DotGothic16', monospace;
+  }
+
+  .bio-section {
+    margin-bottom: 16px;
+  }
+
+  #bio-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px;
-    padding: 9px 10px;
-    background: rgba(255,255,255,0.03);
+    padding: 10px;
+    color: #e6edf3;
+    font-size: 0.82rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    resize: none;
+    height: 82px;
+    outline: none;
+  }
+
+  #bio-input:focus { border-color: rgba(48,200,120,0.3); }
+
+  #bio-count {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: #8b949e;
+    text-align: right;
+  }
+
+  .identity-options {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 0.8rem;
-  }
-
-  .recent-main {
-    display: flex;
-    gap: 10px;
-    color: var(--text);
-    flex-wrap: wrap;
-  }
-
-  .recent-date {
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  #empty-recent {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    padding: 8px 2px;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
   }
 
   .identity-options {
@@ -347,9 +315,96 @@
     color: #8b949e;
   }
 
+  .privacy-section {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #8b949e;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .save-btn {
+    background: linear-gradient(135deg, #30c878, #22a060);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 18px;
+    color: #0d1117;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: opacity 0.2s;
+  }
+
+  .save-btn:hover { opacity: 0.85; }
+
+  .profile-actions {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    min-height: 1.2em;
+  }
+
+  #save-status {
+    display: block;
+    width: 100%;
+    min-height: 1.2em;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .recent-section { margin-bottom: 6px; }
+
+  #recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    font-size: 0.76rem;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .recent-main {
+    display: flex;
+    gap: 10px;
+    color: #e6edf3;
+  }
+
+  .recent-date {
+    color: #8b949e;
+    white-space: nowrap;
+  }
+
+  #empty-recent {
+    color: #8b949e;
+    font-size: 0.76rem;
+    padding: 8px 2px;
+  }
+
   @media (max-width: 760px) {
-    #stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    #profile-header { align-items: flex-start; }
+    .panel.profile-shell { padding: 16px; }
+    .profile-header { align-items: flex-start; }
+    .profile-avatar-wrap { width: 68px; height: 68px; }
   }
 </style>
 </head>
@@ -360,39 +415,30 @@
   </div>
 
   <main class="container">
-    <section class="panel">
-      <div id="profile-header">
-        <div id="profile-avatar">
+    <section class="panel profile-shell">
+      <div class="profile-header">
+        <div class="profile-avatar-wrap">
           <img id="avatar-img" src="" alt="avatar">
           <div id="avatar-fallback">👤</div>
         </div>
-        <div id="profile-info" style="width:100%;">
+        <div class="profile-header-info">
           <div id="profile-username">載入中...</div>
+          <input id="status-input" placeholder="新增狀態..." maxlength="30">
           <div id="profile-level">Lv.1</div>
-          <div id="profile-status" style="margin-top:8px;">
-            <input id="status-input" placeholder="新增狀態..." maxlength="30">
-          </div>
         </div>
       </div>
-    </section>
 
-    <section class="panel" id="profile-bio-section">
-      <div class="section-title">自我介紹</div>
-      <textarea id="bio-input" placeholder="介紹一下自己吧..." maxlength="100"></textarea>
-      <div id="bio-count">0 / 100</div>
-      <div id="profile-form-actions">
-        <label id="privacy-row">
-          <input type="checkbox" id="profile-public-checkbox" checked>
-          <span>允許其他玩家查看資料</span>
-        </label>
-        <button id="btn-save-profile">儲存</button>
+      <div class="xp-section">
+        <div class="xp-label-row">
+          <span id="xp-label">Lv.1 → Lv.2</span>
+          <span id="xp-text">0 / 100 XP</span>
+        </div>
+        <div id="xp-bar-bg">
+          <div id="xp-bar-fill"></div>
+        </div>
       </div>
-      <div id="save-status"></div>
-    </section>
 
-    <section class="panel" id="stats-section">
-      <div class="section-title">學習統計</div>
-      <div id="stats-grid">
+      <div class="stats-grid" id="stats-grid">
         <div class="stat-card">
           <div class="stat-label">今日</div>
           <div class="stat-value" id="stat-today">0 分</div>
@@ -410,46 +456,56 @@
           <div class="stat-value" id="stat-total">0 分</div>
         </div>
       </div>
-    </section>
 
-    <section class="panel" id="xp-section">
-      <div id="xp-label">Lv.1 → Lv.2</div>
-      <div id="xp-bar-bg">
-        <div id="xp-bar-fill"></div>
+      <div class="bio-section" id="profile-bio-section">
+        <div class="section-title">自我介紹</div>
+        <textarea id="bio-input" placeholder="介紹一下自己吧..." maxlength="100"></textarea>
+        <div id="bio-count">0 / 100</div>
       </div>
-      <div id="xp-text">0 / 100 XP</div>
-    </section>
 
-    <section class="panel" id="identity-section">
-      <div class="section-title">身分設定</div>
-      <div class="identity-options">
-        <label class="identity-option">
-          <input type="radio" name="avatar-mode" value="discord" id="mode-discord">
-          <div class="identity-card">
-            <img id="identity-discord-avatar" src="" class="identity-avatar" alt="discord avatar">
-            <div class="identity-info">
-              <div class="identity-name" id="identity-discord-name"></div>
-              <div class="identity-desc">使用 Discord 頭貼和名稱</div>
+      <div id="identity-section">
+        <div class="section-title">身分設定</div>
+        <div class="identity-options">
+          <label class="identity-option">
+            <input type="radio" name="avatar-mode" value="discord" id="mode-discord">
+            <div class="identity-card">
+              <img id="identity-discord-avatar" src="" class="identity-avatar" alt="discord avatar">
+              <div class="identity-info">
+                <div class="identity-name" id="identity-discord-name"></div>
+                <div class="identity-desc">使用 Discord 頭貼和名稱</div>
+              </div>
             </div>
-          </div>
-        </label>
-        <label class="identity-option">
-          <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous">
-          <div class="identity-card">
-            <div class="identity-avatar identity-anon">？</div>
-            <div class="identity-info">
-              <div class="identity-name">同學</div>
-              <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
+          </label>
+          <label class="identity-option">
+            <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous">
+            <div class="identity-card">
+              <div class="identity-avatar identity-anon">？</div>
+              <div class="identity-info">
+                <div class="identity-name">同學</div>
+                <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
+              </div>
             </div>
-          </div>
-        </label>
+          </label>
+        </div>
       </div>
-    </section>
 
-    <section class="panel" id="recent-section">
-      <div class="section-title">最近紀錄</div>
-      <div id="recent-list"></div>
-      <div id="empty-recent" style="display:none;">尚無學習紀錄</div>
+      <div class="privacy-section" id="privacy-section">
+        <label class="toggle-label" id="privacy-row">
+          <input type="checkbox" id="profile-public-checkbox" checked>
+          <span>允許其他玩家查看資料</span>
+        </label>
+        <button id="btn-save-profile" class="save-btn">儲存</button>
+      </div>
+
+      <div class="profile-actions">
+        <span id="save-status"></span>
+      </div>
+
+      <div class="recent-section" id="recent-section">
+        <div class="section-title">最近紀錄</div>
+        <div id="recent-list"></div>
+        <div id="empty-recent" style="display:none;">尚無學習紀錄</div>
+      </div>
     </section>
   </main>
 
@@ -465,6 +521,7 @@ if (!sessionUser || !sessionUser.id) {
 }
 
 const MY_DISCORD_ID = sessionUser.id
+let profileFormInitialState = ''
 
 function getSelectedAvatarMode() {
   return document.querySelector('input[name="avatar-mode"]:checked')?.value || 'discord'
@@ -479,6 +536,39 @@ function setSelectedAvatarMode(mode) {
 function renderIdentityPreview() {
   document.getElementById('identity-discord-avatar').src = sessionUser?.avatar_url || ''
   document.getElementById('identity-discord-name').textContent = sessionUser?.username || 'Discord 使用者'
+}
+
+function getProfileFormState() {
+  return JSON.stringify({
+    status_text: document.getElementById('status-input')?.value || '',
+    bio: document.getElementById('bio-input')?.value || '',
+    is_profile_public: !!document.getElementById('profile-public-checkbox')?.checked,
+    avatar_mode: getSelectedAvatarMode()
+  })
+}
+
+function hasUnsavedProfileChanges() {
+  return !!profileFormInitialState && getProfileFormState() !== profileFormInitialState
+}
+
+function updateUnsavedHint() {
+  const statusEl = document.getElementById('save-status')
+  if (!statusEl) return
+  const UNSAVED_TEXT = '尚有未儲存變更'
+
+  if (hasUnsavedProfileChanges()) {
+    setSaveStatus(UNSAVED_TEXT, false, 'warning')
+    return
+  }
+
+  if (statusEl.textContent === UNSAVED_TEXT) {
+    setSaveStatus('')
+  }
+}
+
+function captureProfileFormBaseline() {
+  profileFormInitialState = getProfileFormState()
+  updateUnsavedHint()
 }
 
 function formatMinutes(min) {
@@ -524,10 +614,18 @@ function renderXP(xp) {
   document.getElementById('xp-bar-fill').style.width = `${percentage}%`
 }
 
-function setSaveStatus(text, isError) {
+function setSaveStatus(text, isError, tone) {
   const el = document.getElementById('save-status')
   el.textContent = text || ''
-  el.style.color = isError ? 'var(--danger)' : 'var(--text-muted)'
+  if (isError) {
+    el.style.color = 'var(--danger)'
+    return
+  }
+  if (tone === 'warning') {
+    el.style.color = '#f5a623'
+    return
+  }
+  el.style.color = 'var(--text-muted)'
 }
 
 function renderRecent(list) {
@@ -591,6 +689,8 @@ async function loadProfile() {
     img.style.display = 'block'
     document.getElementById('avatar-fallback').style.display = 'none'
   }
+
+  captureProfileFormBaseline()
 
   return data
 }
@@ -677,12 +777,19 @@ async function saveProfile() {
   localStorage.setItem('study_user', JSON.stringify(latestUser))
   localStorage.setItem('study_avatar_mode', avatarMode)
 
+  captureProfileFormBaseline()
   setSaveStatus('已儲存')
 }
 
 document.getElementById('bio-input').addEventListener('input', (e) => {
   const len = e.target.value.length
   document.getElementById('bio-count').textContent = `${len} / 100`
+  updateUnsavedHint()
+})
+document.getElementById('status-input').addEventListener('input', updateUnsavedHint)
+document.getElementById('profile-public-checkbox').addEventListener('change', updateUnsavedHint)
+document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
+  radio.addEventListener('change', updateUnsavedHint)
 })
 
 document.getElementById('btn-save-profile').addEventListener('click', async () => {

@@ -531,14 +531,17 @@
   .save-btn:hover { opacity: 0.85; }
   .profile-actions {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    margin-top: 8px;
     margin-bottom: 16px;
+    min-height: 1.2em;
   }
   #profile-unsaved-hint {
+    display: block;
     color: #f5a623;
     font-size: 0.72rem;
-    min-height: 1em;
+    min-height: 1.2em;
+    width: 100%;
   }
   .recent-section { margin-bottom: 16px; }
   #recent-list { display: flex; flex-direction: column; gap: 6px; }
@@ -557,6 +560,10 @@
   .privacy-section {
     border-top: 1px solid rgba(255,255,255,0.06);
     padding-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
   .toggle-label {
     display: flex;
@@ -565,6 +572,7 @@
     font-size: 0.78rem;
     color: #8b949e;
     cursor: pointer;
+    flex: 1;
   }
   .other-status { font-size: 0.78rem; color: #8b949e; margin-bottom: 4px; }
   .other-bio {
@@ -851,10 +859,10 @@
         <input type="checkbox" id="toggle-public" checked>
         允許其他人查看我的資料
       </label>
+      <button id="btn-save-profile" class="save-btn">儲存</button>
     </div>
     <div class="profile-actions">
       <span id="profile-unsaved-hint"></span>
-      <button id="btn-save-profile" class="save-btn">儲存</button>
     </div>
     <div class="recent-section">
       <div class="section-title">最近紀錄</div>
