@@ -1180,6 +1180,7 @@ class LibraryScene extends Phaser.Scene {
     this.otherTargets = {}
     this.otherGrids = {};     // 其他玩家的格子位置
     this.otherAvatars = {}     // 其他玩家頭像 Image 物件
+    this.otherAvatarUrls = {}  // 其他玩家目前頭像 URL
     this.playerAvatarImg = null // 自己的頭像 Image 物件
     this.bumpCooldown = false; // 碰撞特效冷卻
   }
@@ -1194,15 +1195,8 @@ class LibraryScene extends Phaser.Scene {
     this.drawPlayer(this.player, COLORS.playerSelf, '👤')
     this.updatePlayerPos()
 
-    // 自己的 Discord 頭像（圓形）
-    loadAvatarTexture(this, `avatar_${MY_DISCORD_ID}`, MY_AVATAR_URL, (ok) => {
-      if (!ok) return
-      this.playerAvatarImg = this.add.image(
-        this.playerGx * TILE + TILE / 2,
-        this.playerGy * TILE + TILE / 2 - 2,
-        `avatar_${MY_DISCORD_ID}`
-      ).setDisplaySize(26, 26).setDepth(1)
-    })
+    // 依身分模式同步自己的頭像（discord/custom/anonymous）
+    syncSceneSelfAvatar(this)
 
     // 玩家名稱
     this.playerLabel = this.add.text(0, 0, DISPLAY_NAME, {
@@ -1676,6 +1670,7 @@ class LibraryScene extends Phaser.Scene {
     this.otherTargets = {}
     this.otherGrids = {}
     this.playerLabels = {}
+    this.otherAvatarUrls = {}
 
     const count = (users?.length || 0) + 1
     document.getElementById('online-count').textContent = count
@@ -1709,9 +1704,14 @@ class LibraryScene extends Phaser.Scene {
 
       // 載入頭像（匿名模式不顯示 Discord 頭像）
       const avatarKey = `avatar_${user.discord_id}`
-      const avatarUrl = (!isAnon && user.discord_avatar)
-        ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
-        : null
+      const avatarUrl = isAnon
+        ? null
+        : user.avatar_mode === 'custom'
+          ? 'assets/avatars/default.svg'
+          : (user.discord_avatar
+            ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
+            : null)
+      this.otherAvatarUrls[user.discord_id] = avatarUrl || null
       loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
         if (!ok || !this.otherPlayers[user.discord_id]) return
         const sp = this.otherPlayers[user.discord_id]
@@ -1738,18 +1738,22 @@ onPlayerMove(msg) {
     if (this.playerLabels[discord_id]) {
       this.playerLabels[discord_id].setText(displayName)
     }
-    // 身分切換：顯示或隱藏頭像
-    if (!avatar_url && this.otherAvatars[discord_id]) {
-      this.otherAvatars[discord_id].destroy()
-      delete this.otherAvatars[discord_id]
-    } else if (avatar_url && !this.otherAvatars[discord_id]) {
-      const avatarKey = `avatar_${discord_id}`
-      loadAvatarTexture(this, avatarKey, avatar_url, (ok) => {
-        if (!ok || !this.otherPlayers[discord_id]) return
-        const sp = this.otherPlayers[discord_id]
-        const av = this.add.image(sp.x + TILE / 2, sp.y + TILE / 2 - 2, avatarKey).setDisplaySize(26, 26).setDepth(1)
-        this.otherAvatars[discord_id] = av
-      })
+    const lastAvatarUrl = this.otherAvatarUrls[discord_id] || null
+    if ((avatar_url || null) !== lastAvatarUrl) {
+      if (this.otherAvatars[discord_id]) {
+        this.otherAvatars[discord_id].destroy()
+        delete this.otherAvatars[discord_id]
+      }
+      this.otherAvatarUrls[discord_id] = avatar_url || null
+      if (avatar_url) {
+        const avatarKey = `avatar_${discord_id}`
+        loadAvatarTexture(this, avatarKey, avatar_url, (ok) => {
+          if (!ok || !this.otherPlayers[discord_id]) return
+          const sp = this.otherPlayers[discord_id]
+          const av = this.add.image(sp.x + TILE / 2, sp.y + TILE / 2 - 2, avatarKey).setDisplaySize(26, 26).setDepth(1)
+          this.otherAvatars[discord_id] = av
+        })
+      }
     }
   } else {
     const g = this.add.graphics()
@@ -1774,6 +1778,7 @@ onPlayerMove(msg) {
     // 載入頭像
     if (avatar_url) {
       const avatarKey = `avatar_${discord_id}`
+      this.otherAvatarUrls[discord_id] = avatar_url
       loadAvatarTexture(this, avatarKey, avatar_url, (ok) => {
         if (!ok || !this.otherPlayers[discord_id]) return
         const sp = this.otherPlayers[discord_id]
@@ -1797,6 +1802,7 @@ onPlayerLeave(discord_id) {
     delete this.otherTargets[discord_id]
     delete this.otherGrids[discord_id]
     delete this.otherAvatars[discord_id]
+    delete this.otherAvatarUrls[discord_id]
   }
   document.getElementById('online-count').textContent = Object.keys(this.otherPlayers).length + 1
 }
@@ -2021,6 +2027,33 @@ function closeProfileModal() {
   return true
 }
 
+function syncSceneSelfAvatar(scene) {
+  if (!scene) return
+
+  if (!DISPLAY_AVATAR_URL) {
+    if (scene.playerAvatarImg) {
+      scene.playerAvatarImg.destroy()
+      scene.playerAvatarImg = null
+    }
+    return
+  }
+
+  const avatarKey = `avatar_${MY_DISCORD_ID}_self`
+  loadAvatarTexture(scene, avatarKey, DISPLAY_AVATAR_URL, (ok) => {
+    if (!ok) return
+    if (scene.playerAvatarImg) {
+      scene.playerAvatarImg.setTexture(avatarKey)
+      scene.playerAvatarImg.setVisible(true)
+      return
+    }
+    scene.playerAvatarImg = scene.add.image(
+      scene.playerGx * TILE + TILE / 2,
+      scene.playerGy * TILE + TILE / 2 - 2,
+      avatarKey
+    ).setDisplaySize(26, 26).setDepth(1)
+  })
+}
+
 function applyAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   MY_AVATAR_MODE = mode
@@ -2034,7 +2067,10 @@ function applyAvatarMode(mode) {
 
   updateHUD()
   const s = game?.scene?.getScene('Library')
-  if (s && s.playerLabel) s.playerLabel.setText(DISPLAY_NAME)
+  if (s && s.playerLabel) {
+    s.playerLabel.setText(DISPLAY_NAME)
+    syncSceneSelfAvatar(s)
+  }
   fetch(`${API_URL}/api/users/status`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
