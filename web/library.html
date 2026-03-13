@@ -612,7 +612,13 @@
     cursor: pointer;
     flex: 1;
   }
-  .other-status { font-size: 0.78rem; color: #8b949e; margin-bottom: 4px; }
+  .other-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .other-status { font-size: 0.78rem; color: #8b949e; margin-bottom: 0; }
   .other-bio {
     font-size: 0.8rem;
     color: #8b949e;
@@ -949,8 +955,10 @@
       <img id="other-avatar-img" src="" class="profile-avatar" alt="avatar">
       <div class="profile-header-info">
         <div id="other-username" class="profile-name"></div>
-        <div id="other-status" class="other-status"></div>
-        <div id="other-level-badge" class="level-badge"></div>
+        <div class="other-meta">
+          <div id="other-level-badge" class="level-badge"></div>
+          <div id="other-status" class="other-status"></div>
+        </div>
       </div>
     </div>
     <div id="other-bio" class="other-bio"></div>
@@ -2206,6 +2214,11 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
 
   const profile = await parseJsonSafe(profileRes, { is_profile_public: false })
   const stats = await parseJsonSafe(statsRes, { week: 0, total: 0, xp: 0 })
+  const fallbackMode = fallbackName === '同學'
+    ? 'anonymous'
+    : fallbackName === '未命名'
+      ? 'custom'
+      : 'discord'
 
   const privateMsg = document.getElementById('other-private-msg')
   const statsGrid = document.getElementById('other-stats-grid')
@@ -2214,7 +2227,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
     const privateName = getDisplayName({
       username: profile.username || baseName,
       display_name: profile.display_name || '',
-      avatar_mode: profile.avatar_mode || (fallbackName === '同學' ? 'anonymous' : 'discord')
+      avatar_mode: profile.avatar_mode || fallbackMode
     })
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
@@ -2240,7 +2253,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
   document.getElementById('other-username').textContent = getDisplayName({
     username: profile.username || baseName,
     display_name: profile.display_name || '',
-    avatar_mode: profile.avatar_mode
+    avatar_mode: profile.avatar_mode || fallbackMode
   })
   document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
