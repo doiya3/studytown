@@ -236,10 +236,19 @@ async function init() {
   }
   if (currentUser) {
     const savedDisplayName = (JSON.parse(localStorage.getItem('study_user') || '{}')?.display_name || '').trim().slice(0, 20)
+    const payload = {
+      discord_id: currentUser.id,
+      username: currentUser.username,
+      avatar: currentUser.avatar,
+      discord_avatar: currentUser.avatar,
+      avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord'
+    }
+    if (savedDisplayName) payload.display_name = savedDisplayName
+
     await fetch(`${API_URL}/api/users/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar, discord_avatar: currentUser.avatar, display_name: savedDisplayName })
+      body: JSON.stringify(payload)
     }).catch(e => console.error('upsert error:', e))
     showMap()
   } else { showLogin() }

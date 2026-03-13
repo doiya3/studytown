@@ -2057,17 +2057,20 @@ function applyAvatarMode(mode) {
 async function ensureUserExists() {
   try {
     const session = JSON.parse(localStorage.getItem('study_user') || '{}')
+    const payload = {
+      discord_id: MY_DISCORD_ID,
+      username: session?.username || MY_USERNAME,
+      avatar: session?.avatar || null,
+      discord_avatar: session?.avatar || null,
+      avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord'
+    }
+    const safeDisplayName = (session?.display_name || MY_DISPLAY_NAME || '').trim().slice(0, 20)
+    if (safeDisplayName) payload.display_name = safeDisplayName
+
     await fetch(`${API_URL}/api/users/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        discord_id: MY_DISCORD_ID,
-        username: session?.username || MY_USERNAME,
-        avatar: session?.avatar || null,
-        discord_avatar: session?.avatar || null,
-        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord',
-        display_name: (session?.display_name || MY_DISPLAY_NAME || '').trim().slice(0, 20)
-      })
+      body: JSON.stringify(payload)
     })
   } catch (err) {
     console.warn('ensureUserExists failed:', err)
