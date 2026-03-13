@@ -54,7 +54,7 @@ function setupWebSocket(server) {
         if (!client) return
         if (msg.username) client.username = msg.username
         client.display_name = typeof msg.display_name === 'string' ? msg.display_name : (client.display_name || '')
-        if (msg.avatar_mode === 'anonymous' || msg.avatar_mode === 'discord') {
+        if (msg.avatar_mode === 'anonymous' || msg.avatar_mode === 'discord' || msg.avatar_mode === 'custom') {
           client.avatar_mode = msg.avatar_mode
         }
         client.avatar_url = msg.avatar_url ?? null  // 允許 null 清除（匿名模式）
