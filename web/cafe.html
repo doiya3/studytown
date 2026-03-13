@@ -581,7 +581,6 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 4px;
-    flex-wrap: wrap;
   }
   .other-status { font-size: 0.78rem; color: #8b949e; margin-bottom: 0; }
   .other-bio {
@@ -2141,7 +2140,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
-    document.getElementById('other-username').textContent = privateName || '未命名'
+    document.getElementById('other-username').textContent = privateName
     document.getElementById('other-status').textContent = '已關閉查看資料'
     document.getElementById('other-level-badge').textContent = ''
     otherAvatar.src = ''
@@ -2159,13 +2158,12 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
     otherAvatar.src = ''
     otherAvatar.style.display = 'none'
   }
-  const otherName = getDisplayName({
+  document.getElementById('other-username').textContent = getDisplayName({
     username: profile.username || baseName,
     display_name: profile.display_name || '',
     avatar_mode: profile.avatar_mode || fallbackMode
   })
-  document.getElementById('other-username').textContent = otherName || '未命名'
-  document.getElementById('other-status').textContent = (profile.status_text || '').trim() || '未設定狀態'
+  document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
   document.getElementById('other-level-badge').textContent = `Lv.${calcLevel(stats.xp || 0)}`
   document.getElementById('other-stat-week').textContent = formatMinutes(stats.week || 0)
