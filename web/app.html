@@ -384,7 +384,7 @@
     game.scene.stop(currentKey);
     activeScene = sceneKey;
     runtime.setSceneName(SCENE_MAP[sceneKey].sceneName);
-    game.scene.start(SCENE_MAP[sceneKey].key, { runtime });
+    game.scene.start(SCENE_MAP[sceneKey].key, { runtime, spawnPoint: 'door' });
     updateHeader(sceneKey);
     const url = new URL(window.location.href);
     url.searchParams.set('scene', sceneKey);

@@ -82,18 +82,33 @@ export class CafeScene extends Phaser.Scene {
   }
 
   create() {
-      // 清空所有他人玩家殘影
-      Object.values(this.otherPlayers).forEach(g => g.destroy && g.destroy());
-      Object.values(this.playerLabels).forEach(l => l.destroy && l.destroy());
-      this.otherPlayers = {};
-      this.otherTargets = {};
-      this.otherGrids = {};
-      this.playerLabels = {};
+    // 清空所有他人玩家殘影
+    Object.values(this.otherPlayers).forEach(g => g.destroy && g.destroy());
+    Object.values(this.playerLabels).forEach(l => l.destroy && l.destroy());
+    this.otherPlayers = {};
+    this.otherTargets = {};
+    this.otherGrids = {};
+    this.playerLabels = {};
     this.graphics = this.add.graphics();
     this.drawMap();
 
+    // 判斷是否從門口出生
+    let startX = this.playerGx;
+    let startY = this.playerGy;
+    if (arguments[0] && arguments[0].spawnPoint === 'door') {
+      startX = 8;
+      startY = 11;
+    }
+    this.playerGx = startX;
+    this.playerGy = startY;
+
     this.player = this.add.graphics();
     this.drawPlayer(this.player, COLORS.playerSelf);
+    if (!this.runtime || !this.runtime.session) {
+      console.error('找不到 session，請重新登入');
+      window.location.href = 'index.html';
+      return;
+    }
     this.playerLabel = this.add.text(0, 0, this.runtime.session.displayName, {
       fontSize: '10px', fontFamily: 'Noto Sans TC', color: '#f5a623', stroke: '#1a1208', strokeThickness: 3,
     }).setOrigin(0.5, 1);

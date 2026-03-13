@@ -145,10 +145,10 @@ function setupWebSocket(server) {
         broadcast(client.scene, { type: 'player_leave', discord_id: authId }, authId)
         
         // 清除資料庫中的位置信息
-        await supabase.from('users')
+        const { error } = await supabase.from('users')
           .update({ map_x: null, map_y: null, map_scene: null, current_zone: null, seat_id: null })
           .eq('discord_id', authId)
-          .catch(err => console.error(`[DB] 清除玩家位置失敗 ${authId}:`, err.message))
+        if (error) console.error(`[DB] 清除玩家位置失敗 ${authId}:`, error.message)
         
         clients.delete(authId)
         console.log(`[WS] 玩家離線: ${authId}`)
