@@ -333,6 +333,7 @@ export class LibraryScene extends Phaser.Scene {
   sendMove() {
     this.runtime.send({
       type: 'move',
+      scene: '圖書館',
       x: this.playerGx,
       y: this.playerGy,
       username: this.runtime.session.displayName,
@@ -341,7 +342,10 @@ export class LibraryScene extends Phaser.Scene {
   }
 
   onWsMessage(msg) {
-    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_move') {
+      if (msg.scene && msg.scene !== '圖書館') return;
+      this.onPlayerMove(msg);
+    }
     if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 

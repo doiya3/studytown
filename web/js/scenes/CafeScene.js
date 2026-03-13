@@ -367,6 +367,7 @@ export class CafeScene extends Phaser.Scene {
   sendMove() {
     this.runtime.send({
       type: 'move',
+      scene: '咖啡廳',
       x: this.playerGx,
       y: this.playerGy,
       username: this.runtime.session.displayName,
@@ -375,7 +376,10 @@ export class CafeScene extends Phaser.Scene {
   }
 
   onWsMessage(msg) {
-    if (msg.type === 'player_move') this.onPlayerMove(msg);
+    if (msg.type === 'player_move') {
+      if (msg.scene && msg.scene !== '咖啡廳') return;
+      this.onPlayerMove(msg);
+    }
     if (msg.type === 'player_leave') this.onPlayerLeave(msg.discord_id);
   }
 
