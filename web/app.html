@@ -169,6 +169,23 @@
     line-height: 1;
   }
 
+  #interaction-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 72px;
+    transform: translateX(-50%);
+    z-index: 22;
+    display: none;
+    padding: 8px 14px;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.78rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(13, 17, 23, 0.72);
+    border: 0.5px solid rgba(255, 255, 255, 0.16);
+  }
+
   @media (max-width: 768px) {
     .zone-widget,
     .profile-widget,
@@ -266,66 +283,20 @@
   <span class="interact-key">E</span>
 </div>
 
+<div id="interaction-hint">按 E 互動</div>
+
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-<script>
-  class AppShellScene extends Phaser.Scene {
-    constructor() {
-      super('AppShellScene');
-      this.bg = null;
-      this.grid = null;
-      this.title = null;
-    }
+<script type="module">
+  import { bootLibraryApp } from './js/scenes/LibraryScene.js';
 
-    create() {
-      this.bg = this.add.graphics();
-      this.grid = this.add.graphics();
-      this.title = this.add.text(24, 24, 'Study Town SPA Scaffold', {
-        fontFamily: 'DotGothic16, monospace',
-        fontSize: '18px',
-        color: '#e6edf3'
-      }).setAlpha(0.85);
-      this.redraw(this.scale.width, this.scale.height);
-      this.scale.on('resize', (size) => this.redraw(size.width, size.height));
-    }
+  window.studyTownApp = bootLibraryApp();
 
-    redraw(width, height) {
-      this.bg.clear();
-      this.bg.fillGradientStyle(0x161b22, 0x161b22, 0x0d1117, 0x0d1117, 1);
-      this.bg.fillRect(0, 0, width, height);
-
-      this.grid.clear();
-      this.grid.lineStyle(1, 0xffffff, 0.05);
-      for (let x = 0; x < width; x += 48) {
-        this.grid.beginPath();
-        this.grid.moveTo(x, 0);
-        this.grid.lineTo(x, height);
-        this.grid.strokePath();
-      }
-      for (let y = 0; y < height; y += 48) {
-        this.grid.beginPath();
-        this.grid.moveTo(0, y);
-        this.grid.lineTo(width, y);
-        this.grid.strokePath();
-      }
-    }
+  const interactBtn = document.getElementById('interact-btn');
+  if (interactBtn) {
+    interactBtn.addEventListener('click', () => {
+      if (typeof window.doInteract === 'function') window.doInteract();
+    });
   }
-
-  const config = {
-    type: Phaser.AUTO,
-    parent: 'game-root',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    backgroundColor: '#0d1117',
-    scene: [AppShellScene],
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH
-    },
-    pixelArt: false,
-    antialias: true
-  };
-
-  window.studyTownApp = new Phaser.Game(config);
 </script>
 </body>
 </html>
