@@ -100,6 +100,12 @@ router.post('/invite', async (req, res) => {
   if (!from_id || !to_id) return res.status(400).json({ error: 'missing fields' })
   if (from_id === to_id) return res.status(400).json({ error: 'cannot invite self' })
   try {
+    await supabase
+      .from('teams')
+      .delete()
+      .neq('status', 'active')
+      .or(`and(member1_id.eq.${from_id},member2_id.eq.${to_id}),and(member1_id.eq.${to_id},member2_id.eq.${from_id})`)
+
     const activeEdges = await getTeamEdgesByStatus('active')
     const fromTeamMemberIds = new Set([from_id, ...getConnectedMemberIds(activeEdges, from_id)])
     if (fromTeamMemberIds.has(to_id)) {
@@ -108,8 +114,9 @@ router.post('/invite', async (req, res) => {
 
     const pendingEdges = await getTeamEdgesByStatus('pending')
     const hasConflictingPending = pendingEdges.some(edge => {
-      const members = [edge.member1_id, edge.member2_id]
-      return members.includes(from_id) || members.includes(to_id)
+      const samePair = (edge.member1_id === from_id && edge.member2_id === to_id)
+        || (edge.member1_id === to_id && edge.member2_id === from_id)
+      return samePair
     })
 
     if (hasConflictingPending) {
@@ -122,6 +129,31 @@ router.post('/invite', async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message })
     res.json({ success: true, team: data })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/teams/reject — 拒絕邀請
+router.post('/reject', async (req, res) => {
+  const { from_id, to_id, team_id } = req.body
+  if (!team_id && (!from_id || !to_id)) {
+    return res.status(400).json({ error: 'missing fields' })
+  }
+
+  try {
+    let query = supabase.from('teams').update({ status: 'rejected' })
+    if (team_id) {
+      query = query.eq('id', team_id)
+    } else {
+      query = query
+        .eq('status', 'pending')
+        .or(`and(member1_id.eq.${from_id},member2_id.eq.${to_id}),and(member1_id.eq.${to_id},member2_id.eq.${from_id})`)
+    }
+
+    const { error } = await query
+    if (error) return res.status(500).json({ error: error.message })
+    res.json({ success: true })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
