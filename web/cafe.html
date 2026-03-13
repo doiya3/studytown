@@ -1878,10 +1878,12 @@ async function openOtherProfileModal(discord_id) {
   const statsGrid = document.getElementById('other-stats-grid')
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
+    const isAnon = profile.avatar_mode === 'anonymous'
+    const privateName = isAnon ? '同學' : (profile.username || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
-    document.getElementById('other-username').textContent = '同學'
+    document.getElementById('other-username').textContent = privateName
     document.getElementById('other-status').textContent = '已關閉查看資料'
     document.getElementById('other-level-badge').textContent = ''
     otherAvatar.src = ''
