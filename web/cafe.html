@@ -1640,11 +1640,29 @@ function showToast(msg) {
 let dmTarget = { id: null, name: '' }
 const dmMenuEl = document.getElementById('interaction-menu')
 let _menuOpening = false
+let menuNameSyncTimer = null
+
+function getLiveTargetName(targetId, fallbackName = '') {
+  try {
+    const scene = game?.scene?.getScene('Cafe')
+    const liveText = scene?.playerLabels?.[targetId]?.text
+    if (typeof liveText === 'string' && liveText.trim()) return liveText.trim()
+  } catch {}
+  return fallbackName || '未知玩家'
+}
+
+function stopMenuNameSync() {
+  if (menuNameSyncTimer) {
+    clearInterval(menuNameSyncTimer)
+    menuNameSyncTimer = null
+  }
+}
 
 function openDmMenu(targetId, targetName, px, py) {
   _menuOpening = true
-  dmTarget = { id: targetId, name: targetName }
-  document.getElementById('menu-player-name').textContent = targetName
+  const initialName = getLiveTargetName(targetId, targetName)
+  dmTarget = { id: targetId, name: initialName }
+  document.getElementById('menu-player-name').textContent = initialName
   document.getElementById('dm-input-row').classList.remove('visible')
   document.getElementById('dm-input').value = ''
   dmMenuEl.style.visibility = 'hidden'
@@ -1662,15 +1680,25 @@ function openDmMenu(targetId, targetName, px, py) {
   dmMenuEl.style.left = x + 'px'
   dmMenuEl.style.top  = y + 'px'
   dmMenuEl.style.visibility = 'visible'
+
+  stopMenuNameSync()
+  menuNameSyncTimer = setInterval(() => {
+    if (dmMenuEl.style.display === 'none' || !dmTarget.id) return
+    const liveName = getLiveTargetName(dmTarget.id, dmTarget.name)
+    dmTarget.name = liveName
+    document.getElementById('menu-player-name').textContent = liveName
+  }, 400)
 }
 
 document.getElementById('menu-close').addEventListener('click', () => {
   dmMenuEl.style.display = 'none'
+  stopMenuNameSync()
 })
 document.addEventListener('click', (e) => {
   if (_menuOpening) { _menuOpening = false; return }
   if (dmMenuEl.style.display !== 'none' && !dmMenuEl.contains(e.target)) {
     dmMenuEl.style.display = 'none'
+    stopMenuNameSync()
   }
 })
 document.getElementById('btn-wave').addEventListener('click', () => {
@@ -1700,8 +1728,10 @@ function sendDM() {
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
 document.getElementById('btn-view-profile').addEventListener('click', async () => {
-  await openOtherProfileModal(dmTarget.id, dmTarget.name)
+  const currentTitleName = document.getElementById('menu-player-name').textContent.trim()
+  await openOtherProfileModal(dmTarget.id, currentTitleName || dmTarget.name)
   dmMenuEl.style.display = 'none'
+  stopMenuNameSync()
 })
 
 function formatMinutes(min) {
