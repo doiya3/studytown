@@ -2286,41 +2286,25 @@ document.getElementById('display-name-input').addEventListener('keydown', (e) =>
 })
 
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-save-profile')
   const avatarMode = getSelectedAvatarMode()
   const displayName = (document.getElementById('display-name-input').value || document.getElementById('display-name-text').textContent || '').trim().slice(0, 20)
-
-  try {
-    const res = await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bio: document.getElementById('bio-input').value,
-        status_text: document.getElementById('status-input').value,
-        is_profile_public: document.getElementById('toggle-public').checked,
-        avatar_mode: avatarMode,
-        display_name: displayName
-      })
+  await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bio: document.getElementById('bio-input').value,
+      status_text: document.getElementById('status-input').value,
+      is_profile_public: document.getElementById('toggle-public').checked,
+      avatar_mode: avatarMode,
+      display_name: displayName
     })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || '儲存失敗')
-    }
-
-    const saved = await res.json().catch(() => ({}))
-    MY_DISPLAY_NAME = (saved.display_name ?? displayName ?? '').trim().slice(0, 20)
-    applyAvatarMode(avatarMode)
-    syncDisplayNameUI(avatarMode, { username: MY_USERNAME, display_name: MY_DISPLAY_NAME })
-
-    btn.textContent = '已儲存 ✓'
-    captureProfileFormBaseline()
-    setTimeout(() => { btn.textContent = '儲存' }, 2000)
-  } catch (e) {
-    btn.textContent = '儲存失敗'
-    showToast(e.message || '儲存失敗')
-    setTimeout(() => { btn.textContent = '儲存' }, 2000)
-  }
+  })
+  MY_DISPLAY_NAME = displayName
+  applyAvatarMode(avatarMode)
+  const btn = document.getElementById('btn-save-profile')
+  btn.textContent = '已儲存 ✓'
+  captureProfileFormBaseline()
+  setTimeout(() => { btn.textContent = '儲存' }, 2000)
 })
 
 // ─── 組隊系統 ────────────────────────────────────────────────
