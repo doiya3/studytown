@@ -19,11 +19,6 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
   body {
     font-family: 'Noto Sans TC', sans-serif;
     background:
@@ -75,9 +70,9 @@
   }
 
   .container {
-    max-width: 480px;
-    margin: 70px auto 40px;
-    padding: 0 20px;
+    max-width: 760px;
+    margin: 20px auto 40px;
+    padding: 0 14px;
   }
 
   .panel.profile-shell {
@@ -130,31 +125,6 @@
     font-size: 1.08rem;
     font-weight: 700;
     margin-bottom: 8px;
-  }
-
-  .display-name-input {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    color: #e6edf3;
-    font-size: 1rem;
-    font-weight: 700;
-    font-family: 'Noto Sans TC', sans-serif;
-    width: 100%;
-    outline: none;
-    padding: 2px 0;
-    margin-bottom: 4px;
-    transition: border-color 0.2s;
-  }
-
-  .display-name-input:focus {
-    border-bottom-color: rgba(48,200,120,0.5);
-  }
-
-  .dc-username {
-    font-size: 0.72rem;
-    color: #8b949e;
-    margin-bottom: 6px;
   }
 
   #status-input {
@@ -213,7 +183,7 @@
 
   #stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 16px;
   }
@@ -431,21 +401,9 @@
     padding: 8px 2px;
   }
 
-  @media (max-width: 520px) {
-    .container {
-      margin: 60px 0 40px;
-      padding: 0 12px;
-      max-width: none;
-    }
+  @media (max-width: 760px) {
     .panel.profile-shell { padding: 16px; }
-  }
-
-  @media (max-width: 480px) {
-    #stats-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width: 360px) {
-    .profile-header { flex-direction: column; text-align: center; }
+    .profile-header { align-items: flex-start; }
     .profile-avatar-wrap { width: 68px; height: 68px; }
   }
 </style>
@@ -456,7 +414,7 @@
     <a id="hud-back" href="index.html">← 返回大廳</a>
   </div>
 
-  <main class="container" id="profile-page">
+  <main class="container">
     <section class="panel profile-shell">
       <div class="profile-header">
         <div class="profile-avatar-wrap">
@@ -464,8 +422,7 @@
           <div id="avatar-fallback">👤</div>
         </div>
         <div class="profile-header-info">
-          <input id="display-name-input" class="display-name-input" placeholder="輸入自訂名稱..." maxlength="20">
-          <div id="profile-dc-username" class="dc-username"></div>
+          <div id="profile-username">載入中...</div>
           <input id="status-input" placeholder="新增狀態..." maxlength="30">
           <div id="profile-level">Lv.1</div>
         </div>
@@ -579,17 +536,10 @@ function setSelectedAvatarMode(mode) {
 function renderIdentityPreview() {
   document.getElementById('identity-discord-avatar').src = sessionUser?.avatar_url || ''
   document.getElementById('identity-discord-name').textContent = sessionUser?.username || 'Discord 使用者'
-  document.getElementById('profile-dc-username').textContent = `DC：${sessionUser?.username || '未知玩家'}`
-}
-
-function getDisplayName(user) {
-  if (user?.avatar_mode === 'anonymous') return '同學'
-  return (user?.display_name || '').trim() || user?.username || '未知玩家'
 }
 
 function getProfileFormState() {
   return JSON.stringify({
-    display_name: document.getElementById('display-name-input')?.value || '',
     status_text: document.getElementById('status-input')?.value || '',
     bio: document.getElementById('bio-input')?.value || '',
     is_profile_public: !!document.getElementById('profile-public-checkbox')?.checked,
@@ -709,7 +659,6 @@ async function loadProfile() {
   if (res.status === 404) {
     return {
       username: sessionUser.username || '未知玩家',
-      display_name: (sessionUser.display_name || '').trim().slice(0, 20),
       status_text: '',
       bio: '',
       is_profile_public: true,
@@ -720,9 +669,7 @@ async function loadProfile() {
   if (!res.ok) throw new Error('profile load failed')
   const data = await res.json()
 
-  const profileDisplayName = data.display_name || sessionUser.display_name || ''
-  document.getElementById('display-name-input').value = profileDisplayName
-  document.getElementById('profile-dc-username').textContent = `DC：${data.username || sessionUser.username || '未知玩家'}`
+  document.getElementById('profile-username').textContent = data.username || sessionUser.username || '未知玩家'
   document.getElementById('status-input').value = data.status_text || ''
   document.getElementById('bio-input').value = data.bio || ''
   document.getElementById('profile-public-checkbox').checked = data.is_profile_public !== false
@@ -793,8 +740,7 @@ async function ensureUserExists() {
         username: sessionUser.username,
         avatar: sessionUser.avatar,
         discord_avatar: sessionUser.avatar,
-        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord',
-        display_name: (sessionUser.display_name || '').trim().slice(0, 20)
+        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord'
       })
     })
   } catch (err) {
@@ -807,7 +753,6 @@ async function saveProfile() {
   const statusText = document.getElementById('status-input').value.trim()
   const isPublic = document.getElementById('profile-public-checkbox').checked
   const avatarMode = getSelectedAvatarMode()
-  const displayName = document.getElementById('display-name-input').value.trim().slice(0, 20)
 
   setSaveStatus('儲存中...')
 
@@ -818,8 +763,7 @@ async function saveProfile() {
       bio,
       status_text: statusText,
       is_profile_public: isPublic,
-      avatar_mode: avatarMode,
-      display_name: displayName
+      avatar_mode: avatarMode
     })
   })
 
@@ -830,7 +774,6 @@ async function saveProfile() {
 
   const latestUser = JSON.parse(localStorage.getItem('study_user') || '{}')
   latestUser.avatar_mode = avatarMode
-  latestUser.display_name = displayName
   localStorage.setItem('study_user', JSON.stringify(latestUser))
   localStorage.setItem('study_avatar_mode', avatarMode)
 
@@ -843,7 +786,6 @@ document.getElementById('bio-input').addEventListener('input', (e) => {
   document.getElementById('bio-count').textContent = `${len} / 100`
   updateUnsavedHint()
 })
-document.getElementById('display-name-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('status-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('profile-public-checkbox').addEventListener('change', updateUnsavedHint)
 document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {

@@ -19,8 +19,6 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body { max-width: 100%; overflow-x: hidden; }
   body {
     background: var(--bg);
     display: flex; flex-direction: column;
@@ -393,26 +391,6 @@
     color: #e6edf3;
     margin-bottom: 4px;
   }
-  .display-name-input {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    color: #e6edf3;
-    font-size: 0.95rem;
-    font-weight: 700;
-    font-family: 'Noto Sans TC', sans-serif;
-    width: 100%;
-    outline: none;
-    padding: 2px 0;
-    margin-bottom: 4px;
-    transition: border-color 0.2s;
-  }
-  .display-name-input:focus { border-bottom-color: rgba(48,200,120,0.5); }
-  .dc-username {
-    font-size: 0.72rem;
-    color: #8b949e;
-    margin-bottom: 4px;
-  }
   .status-input {
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.08);
@@ -669,20 +647,6 @@
     backdrop-filter: blur(12px);
   }
   #player-count span { color: var(--accent); font-family: 'DotGothic16', monospace; }
-
-  @media (max-width: 480px) {
-    #hud { gap: 4px; padding: 0 10px; }
-    #hud button, #hud a { font-size: 0.72rem; padding: 4px 8px; }
-    #team-panel { width: calc(100vw - 20px); left: 10px; right: 10px; }
-    #controls-hint { display: none; }
-    .modal-overlay { align-items: flex-end; padding: 0; }
-    .modal-box {
-      width: calc(100vw - 32px);
-      max-height: 85vh;
-      border-radius: 16px 16px 0 0;
-      margin-bottom: 0;
-    }
-  }
 </style>
 </head>
 <body>
@@ -807,8 +771,7 @@
     <div class="profile-header">
       <img id="profile-avatar-img" src="" class="profile-avatar" alt="avatar">
       <div class="profile-header-info" style="width:100%;">
-        <input id="display-name-input" class="display-name-input" placeholder="輸入自訂名稱..." maxlength="20">
-        <div id="profile-dc-username" class="dc-username"></div>
+        <div id="profile-username" class="profile-name"></div>
         <input id="status-input" class="status-input" placeholder="新增狀態..." maxlength="30">
         <div id="profile-level-badge" class="level-badge"></div>
       </div>
@@ -923,14 +886,8 @@ const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR_URL = sessionUser?.avatar_url || null
 let MY_AVATAR_MODE = localStorage.getItem('study_avatar_mode') || 'discord'
-let MY_DISPLAY_NAME = (sessionUser?.display_name || '').trim().slice(0, 20)
 
-function getDisplayName(user) {
-  if (user?.avatar_mode === 'anonymous') return '同學'
-  return (user?.display_name || '').trim() || user?.username || '未知玩家'
-}
-
-let DISPLAY_NAME = getDisplayName({ username: MY_USERNAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE })
+let DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '同學' : MY_USERNAME
 let DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'discord' ? MY_AVATAR_URL : null
 
 if (!MY_DISCORD_ID) {
@@ -957,7 +914,7 @@ function initWebSocket(scene) {
     ws.send(JSON.stringify({ type: 'auth', discord_id: MY_DISCORD_ID, scene: '咖啡廳' }))
     // 重連後立即廣播目前位置，避免靜止玩家在他人視野消失
     if (scene.playerGx !== undefined) {
-      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+      ws.send(JSON.stringify({ type: 'move', x: scene.playerGx, y: scene.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
     }
     console.log('[WS] 已連線')
   }
@@ -1339,7 +1296,7 @@ class CafeScene extends Phaser.Scene {
           this.moveTimer = 0;
           // 走一格立即透過 WebSocket 推送
           if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+            ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
           }
         } else if (blockedByPlayer && !this.bumpCooldown) {
           // 碰撞特效：縮放 + 閃爍
@@ -1379,7 +1336,7 @@ class CafeScene extends Phaser.Scene {
         }).catch(e => console.error('heartbeat error:', e))
         // WS 心跳：確保靜止玩家持續出現在他人視野
         if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+          ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
         }
       }
     }
@@ -1490,7 +1447,7 @@ class CafeScene extends Phaser.Scene {
     this.updatePlayerPos();
     // 廣播坐下位置給其他玩家
     if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'move', x: seat.x, y: seat.y, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+      ws.send(JSON.stringify({ type: 'move', x: seat.x, y: seat.y, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
     }
     this.tweens.add({ targets: this.player, scaleX: 0.85, scaleY: 0.85, duration: 200, ease: 'Power2' });
     document.getElementById('interaction-hint').style.display = 'none';
@@ -1517,7 +1474,7 @@ class CafeScene extends Phaser.Scene {
     this.currentSeat = null;
     pomo.seatId = null;
     if (!isExiting && ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+      ws.send(JSON.stringify({ type: 'move', x: this.playerGx, y: this.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
     }
     this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 200, ease: 'Power2' });
     document.getElementById('focus-panel').classList.remove('visible');
@@ -1568,7 +1525,7 @@ class CafeScene extends Phaser.Scene {
       const gx = user.map_x || 8
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
-      const displayName = getDisplayName(user)
+      const displayName = isAnon ? '同學' : user.username
       const teamColor = isAnon ? COLORS.playerAnon : (isTeammateId(user.discord_id) ? COLORS.playerTeam : COLORS.playerOther)
       const g = this.add.graphics()
       g.fillStyle(teamColor, 0.8)
@@ -1603,11 +1560,11 @@ class CafeScene extends Phaser.Scene {
   }
 
   onPlayerMove(msg) {
-    const { discord_id, x, y, username, display_name, avatar_mode, avatar_url } = msg
+    const { discord_id, x, y, username, avatar_url } = msg
     const gx = x || 8
     const gy = y || 10
-    const displayName = getDisplayName({ username, display_name, avatar_mode }) || discord_id
-    const isAnon = avatar_mode === 'anonymous' || displayName === '同學'
+    const displayName = username || discord_id
+    const isAnon = displayName === '同學'
     const color = isAnon ? COLORS.playerAnon : (isTeammateId(discord_id) ? COLORS.playerTeam : COLORS.playerOther)
 
     if (this.otherPlayers[discord_id]) {
@@ -1685,15 +1642,7 @@ class CafeScene extends Phaser.Scene {
 }
 
 const config = {
-  type: Phaser.CANVAS,
-  width: W,
-  height: H,
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: W,
-    height: H
-  },
+  type: Phaser.CANVAS, width: W, height: H,
   parent: 'game-container', backgroundColor: '#2a1a0a',
   scene: CafeScene, pixelArt: true, antialias: false,
 }
@@ -1844,7 +1793,6 @@ let profileFormInitialState = ''
 
 function getProfileFormState() {
   return JSON.stringify({
-    display_name: document.getElementById('display-name-input')?.value || '',
     status_text: document.getElementById('status-input')?.value || '',
     bio: document.getElementById('bio-input')?.value || '',
     is_profile_public: !!document.getElementById('toggle-public')?.checked,
@@ -1875,12 +1823,11 @@ function closeProfileModal() {
 function applyAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   MY_AVATAR_MODE = mode
-  DISPLAY_NAME = getDisplayName({ username: MY_USERNAME, display_name: MY_DISPLAY_NAME, avatar_mode: mode })
+  DISPLAY_NAME = mode === 'anonymous' ? '同學' : MY_USERNAME
   DISPLAY_AVATAR_URL = mode === 'discord' ? MY_AVATAR_URL : null
 
   const session = JSON.parse(localStorage.getItem('study_user') || '{}')
   session.avatar_mode = mode
-  session.display_name = MY_DISPLAY_NAME
   localStorage.setItem('study_user', JSON.stringify(session))
 
   updateHUD()
@@ -1892,7 +1839,7 @@ function applyAvatarMode(mode) {
     body: JSON.stringify({ discord_id: MY_DISCORD_ID, avatar_mode: mode })
   }).catch(() => {})
   if (ws && ws.readyState === WebSocket.OPEN && s) {
-    ws.send(JSON.stringify({ type: 'move', x: s.playerGx, y: s.playerGy, username: DISPLAY_NAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE, avatar_url: DISPLAY_AVATAR_URL }))
+    ws.send(JSON.stringify({ type: 'move', x: s.playerGx, y: s.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
   }
 }
 
@@ -1907,8 +1854,7 @@ async function ensureUserExists() {
         username: session?.username || MY_USERNAME,
         avatar: session?.avatar || null,
         discord_avatar: session?.avatar || null,
-        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord',
-        display_name: (session?.display_name || MY_DISPLAY_NAME || '').trim().slice(0, 20)
+        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord'
       })
     })
   } catch (err) {
@@ -1939,7 +1885,6 @@ async function openProfileModal() {
 
   const profile = await parseJsonSafe(profileRes, {
     username: MY_USERNAME,
-    display_name: MY_DISPLAY_NAME,
     status_text: '',
     bio: '',
     is_profile_public: true,
@@ -1952,8 +1897,7 @@ async function openProfileModal() {
   document.getElementById('profile-avatar-img').src = session?.avatar_url || ''
   document.getElementById('identity-discord-avatar').src = session?.avatar_url || ''
   document.getElementById('identity-discord-name').textContent = session?.username || MY_USERNAME
-  document.getElementById('display-name-input').value = (profile.display_name || session?.display_name || '').trim().slice(0, 20)
-  document.getElementById('profile-dc-username').textContent = `DC：${profile.username || MY_USERNAME}`
+  document.getElementById('profile-username').textContent = profile.username || MY_USERNAME
   document.getElementById('status-input').value = profile.status_text || ''
   document.getElementById('bio-input').value = profile.bio || ''
   document.getElementById('bio-count').textContent = `${(profile.bio || '').length} / 100`
@@ -2020,11 +1964,8 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
   const statsGrid = document.getElementById('other-stats-grid')
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
-    const privateName = getDisplayName({
-      username: profile.username || baseName,
-      display_name: profile.display_name || '',
-      avatar_mode: profile.avatar_mode || (fallbackName === '同學' ? 'anonymous' : 'discord')
-    })
+    const isAnon = profile.avatar_mode === 'anonymous' || fallbackName === '同學'
+    const privateName = isAnon ? '同學' : (profile.username || baseName || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
@@ -2046,11 +1987,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
     otherAvatar.src = ''
     otherAvatar.style.display = 'none'
   }
-  document.getElementById('other-username').textContent = getDisplayName({
-    username: profile.username || baseName,
-    display_name: profile.display_name || '',
-    avatar_mode: profile.avatar_mode
-  })
+  document.getElementById('other-username').textContent = isAnon ? '同學' : (profile.username || baseName || '未知玩家')
   document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
   document.getElementById('other-level-badge').textContent = `Lv.${calcLevel(stats.xp || 0)}`
@@ -2078,14 +2015,12 @@ document.getElementById('bio-input').addEventListener('input', (e) => {
   document.getElementById('bio-count').textContent = `${e.target.value.length} / 100`
   updateUnsavedHint()
 })
-document.getElementById('display-name-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('toggle-public').addEventListener('change', updateUnsavedHint)
 document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
   radio.addEventListener('change', updateUnsavedHint)
 })
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
   const avatarMode = getSelectedAvatarMode()
-  const displayName = document.getElementById('display-name-input').value.trim().slice(0, 20)
   await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2093,11 +2028,9 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
       bio: document.getElementById('bio-input').value,
       status_text: document.getElementById('status-input').value,
       is_profile_public: document.getElementById('toggle-public').checked,
-      avatar_mode: avatarMode,
-      display_name: displayName
+      avatar_mode: avatarMode
     })
   })
-  MY_DISPLAY_NAME = displayName
   applyAvatarMode(avatarMode)
   const btn = document.getElementById('btn-save-profile')
   btn.textContent = '已儲存 ✓'
@@ -2124,7 +2057,7 @@ function renderTeamMembers(teammates) {
 
   teammates.forEach((teammate) => {
     const isAnon = teammate.avatar_mode === 'anonymous'
-    const name = getDisplayName(teammate)
+    const name = isAnon ? '同學' : (teammate.username || '隊友')
     const avatarUrl = (!isAnon && teammate.discord_avatar)
       ? `https://cdn.discordapp.com/avatars/${teammate.discord_id}/${teammate.discord_avatar}.png?size=64`
       : null
