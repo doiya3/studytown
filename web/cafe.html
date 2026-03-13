@@ -393,40 +393,25 @@
     color: #e6edf3;
     margin-bottom: 4px;
   }
-  .display-name-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-  .display-name-text {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #e6edf3;
-  }
-  .edit-name-btn {
-    background: none;
-    border: none;
-    font-size: 0.75rem;
-    cursor: pointer;
-    opacity: 0.5;
-    padding: 0;
-    color: #e6edf3;
-    transition: opacity 0.2s;
-  }
-  .edit-name-btn:hover { opacity: 1; }
   .display-name-input {
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(48,200,120,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     color: #e6edf3;
     font-size: 0.95rem;
     font-weight: 700;
     font-family: 'Noto Sans TC', sans-serif;
-    width: 140px;
+    width: 100%;
     outline: none;
     padding: 2px 0;
-    display: none;
+    margin-bottom: 4px;
+    transition: border-color 0.2s;
+  }
+  .display-name-input:focus { border-bottom-color: rgba(48,200,120,0.5); }
+  .dc-username {
+    font-size: 0.72rem;
+    color: #8b949e;
+    margin-bottom: 4px;
   }
   .status-input {
     background: rgba(255,255,255,0.05);
@@ -723,10 +708,6 @@
       <span class="id-mode-icon">🖼️</span>
       <div><div class="id-mode-title">Discord 頭像</div><div class="id-mode-desc">顯示您的 Discord 大頭貼</div></div>
     </button>
-    <button class="id-mode-btn" id="idmode-custom" onclick="setIdentityMode('custom')">
-      <span class="id-mode-icon">✏️</span>
-      <div><div class="id-mode-title">自訂身分</div><div class="id-mode-desc">預設頭貼 + 自訂暱稱</div></div>
-    </button>
     <button class="id-mode-btn" id="idmode-anonymous" onclick="setIdentityMode('anonymous')">
       <span class="id-mode-icon">👤</span>
       <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「同學」</div></div>
@@ -826,11 +807,8 @@
     <div class="profile-header">
       <img id="profile-avatar-img" src="" class="profile-avatar" alt="avatar">
       <div class="profile-header-info" style="width:100%;">
-        <div class="display-name-row">
-          <span id="display-name-text" class="display-name-text"></span>
-          <button id="btn-edit-name" class="edit-name-btn">✏️</button>
-          <input id="display-name-input" class="display-name-input" placeholder="輸入暱稱..." maxlength="20">
-        </div>
+        <input id="display-name-input" class="display-name-input" placeholder="輸入自訂名稱..." maxlength="20">
+        <div id="profile-dc-username" class="dc-username"></div>
         <input id="status-input" class="status-input" placeholder="新增狀態..." maxlength="30">
         <div id="profile-level-badge" class="level-badge"></div>
       </div>
@@ -870,22 +848,12 @@
         </div>
       </label>
       <label class="identity-option">
-        <input type="radio" name="avatar-mode" value="custom" id="mode-custom-modal">
-        <div class="identity-card">
-          <img id="identity-custom-avatar" src="assets/avatars/default.png" class="identity-avatar" alt="custom avatar">
-          <div class="identity-info">
-            <div class="identity-name" id="identity-custom-name">自訂身分</div>
-            <div class="identity-desc">使用預設頭貼和自訂暱稱</div>
-          </div>
-        </div>
-      </label>
-      <label class="identity-option">
         <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous-modal">
         <div class="identity-card">
           <div class="identity-avatar identity-anon">？</div>
           <div class="identity-info">
-            <div class="identity-name">匿名</div>
-            <div class="identity-desc">顯示為「同學」，隱藏所有身分</div>
+            <div class="identity-name">同學</div>
+            <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
           </div>
         </div>
       </label>
@@ -959,18 +927,11 @@ let MY_DISPLAY_NAME = (sessionUser?.display_name || '').trim().slice(0, 20)
 
 function getDisplayName(user) {
   if (user?.avatar_mode === 'anonymous') return '同學'
-  if (user?.avatar_mode === 'custom') return (user?.display_name || '').trim() || '未命名'
-  return user?.username || '未知玩家'
-}
-
-function getAvatarURLForMode(mode, discordUrl = MY_AVATAR_URL) {
-  if (mode === 'anonymous') return null
-  if (mode === 'custom') return 'assets/avatars/default.png'
-  return discordUrl || null
+  return (user?.display_name || '').trim() || user?.username || '未知玩家'
 }
 
 let DISPLAY_NAME = getDisplayName({ username: MY_USERNAME, display_name: MY_DISPLAY_NAME, avatar_mode: MY_AVATAR_MODE })
-let DISPLAY_AVATAR_URL = getAvatarURLForMode(MY_AVATAR_MODE, MY_AVATAR_URL)
+let DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'discord' ? MY_AVATAR_URL : null
 
 if (!MY_DISCORD_ID) {
   console.error('❌ MY_DISCORD_ID is missing:', sessionUser)
@@ -1874,34 +1835,16 @@ function getSelectedAvatarMode() {
 }
 
 function setSelectedAvatarMode(mode) {
-  const safeMode = ['discord', 'custom', 'anonymous'].includes(mode) ? mode : 'discord'
+  const safeMode = mode === 'anonymous' ? 'anonymous' : 'discord'
   const el = document.querySelector(`input[name="avatar-mode"][value="${safeMode}"]`)
   if (el) el.checked = true
-}
-
-function syncDisplayNameUI(mode, profileLike) {
-  const text = document.getElementById('display-name-text')
-  const input = document.getElementById('display-name-input')
-  const editBtn = document.getElementById('btn-edit-name')
-  const safeMode = ['discord', 'custom', 'anonymous'].includes(mode) ? mode : 'discord'
-  const displayName = getDisplayName({
-    username: profileLike?.username || sessionUser?.username || MY_USERNAME,
-    display_name: profileLike?.display_name || '',
-    avatar_mode: safeMode
-  })
-
-  text.textContent = displayName
-  input.value = (profileLike?.display_name || '').slice(0, 20)
-  text.style.display = 'inline'
-  input.style.display = 'none'
-  editBtn.style.display = safeMode === 'custom' ? 'inline' : 'none'
 }
 
 let profileFormInitialState = ''
 
 function getProfileFormState() {
   return JSON.stringify({
-    display_name: document.getElementById('display-name-input')?.value || document.getElementById('display-name-text')?.textContent || '',
+    display_name: document.getElementById('display-name-input')?.value || '',
     status_text: document.getElementById('status-input')?.value || '',
     bio: document.getElementById('bio-input')?.value || '',
     is_profile_public: !!document.getElementById('toggle-public')?.checked,
@@ -1933,7 +1876,7 @@ function applyAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   MY_AVATAR_MODE = mode
   DISPLAY_NAME = getDisplayName({ username: MY_USERNAME, display_name: MY_DISPLAY_NAME, avatar_mode: mode })
-  DISPLAY_AVATAR_URL = getAvatarURLForMode(mode, MY_AVATAR_URL)
+  DISPLAY_AVATAR_URL = mode === 'discord' ? MY_AVATAR_URL : null
 
   const session = JSON.parse(localStorage.getItem('study_user') || '{}')
   session.avatar_mode = mode
@@ -2006,19 +1949,16 @@ async function openProfileModal() {
   const recent = await parseJsonSafe(recentRes, [])
 
   const session = JSON.parse(localStorage.getItem('study_user'))
-  const avatarMode = profile.avatar_mode || MY_AVATAR_MODE || 'discord'
-  document.getElementById('profile-avatar-img').src = getAvatarURLForMode(avatarMode, session?.avatar_url || MY_AVATAR_URL) || ''
+  document.getElementById('profile-avatar-img').src = session?.avatar_url || ''
   document.getElementById('identity-discord-avatar').src = session?.avatar_url || ''
   document.getElementById('identity-discord-name').textContent = session?.username || MY_USERNAME
-  syncDisplayNameUI(avatarMode, {
-    username: profile.username || session?.username || MY_USERNAME,
-    display_name: (profile.display_name || session?.display_name || '').trim().slice(0, 20)
-  })
+  document.getElementById('display-name-input').value = (profile.display_name || session?.display_name || '').trim().slice(0, 20)
+  document.getElementById('profile-dc-username').textContent = `DC：${profile.username || MY_USERNAME}`
   document.getElementById('status-input').value = profile.status_text || ''
   document.getElementById('bio-input').value = profile.bio || ''
   document.getElementById('bio-count').textContent = `${(profile.bio || '').length} / 100`
   document.getElementById('toggle-public').checked = profile.is_profile_public !== false
-  setSelectedAvatarMode(avatarMode)
+  setSelectedAvatarMode(profile.avatar_mode || MY_AVATAR_MODE || 'discord')
 
   document.getElementById('stat-today').textContent = formatMinutes(stats.today)
   document.getElementById('stat-week').textContent = formatMinutes(stats.week)
@@ -2141,46 +2081,11 @@ document.getElementById('bio-input').addEventListener('input', (e) => {
 document.getElementById('display-name-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('toggle-public').addEventListener('change', updateUnsavedHint)
 document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
-  radio.addEventListener('change', () => {
-    syncDisplayNameUI(getSelectedAvatarMode(), {
-      username: MY_USERNAME,
-      display_name: document.getElementById('display-name-input').value
-    })
-    const modalAvatar = getAvatarURLForMode(getSelectedAvatarMode(), sessionUser?.avatar_url || MY_AVATAR_URL)
-    document.getElementById('profile-avatar-img').src = modalAvatar || ''
-    updateUnsavedHint()
-  })
+  radio.addEventListener('change', updateUnsavedHint)
 })
-
-document.getElementById('btn-edit-name').addEventListener('click', () => {
-  if (getSelectedAvatarMode() !== 'custom') return
-  const text = document.getElementById('display-name-text')
-  const input = document.getElementById('display-name-input')
-  text.style.display = 'none'
-  input.style.display = 'inline-block'
-  input.focus()
-  input.select()
-})
-
-document.getElementById('display-name-input').addEventListener('blur', () => {
-  const mode = getSelectedAvatarMode()
-  syncDisplayNameUI(mode, {
-    username: MY_USERNAME,
-    display_name: document.getElementById('display-name-input').value
-  })
-  updateUnsavedHint()
-})
-
-document.getElementById('display-name-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    e.currentTarget.blur()
-  }
-})
-
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
   const avatarMode = getSelectedAvatarMode()
-  const displayName = (document.getElementById('display-name-input').value || document.getElementById('display-name-text').textContent || '').trim().slice(0, 20)
+  const displayName = document.getElementById('display-name-input').value.trim().slice(0, 20)
   await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2275,15 +2180,8 @@ async function acceptTeamInvite() {
 }
 
 function rejectTeamInvite() {
-  const fromId = pendingInviteFromId
   document.getElementById('team-invite-toast').classList.remove('visible')
   pendingInviteFromId = null
-  if (!fromId) return
-  fetch(`${API_URL}/api/teams/reject`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from_id: fromId, to_id: MY_DISCORD_ID })
-  }).catch(() => {})
 }
 
 async function disbandTeam() {
@@ -2354,7 +2252,6 @@ async function refreshTeammate() {
 
 function handleTeamWsMessage(msg) {
   if (msg.type === 'team_invite') {
-    if (currentTeam?.teammate_ids?.length) return true
     pendingInviteFromId = msg.from_id
     document.getElementById('invite-from-name').textContent = msg.from_name
     const toast = document.getElementById('team-invite-toast')
@@ -2640,10 +2537,10 @@ function updateHUD() {
     document.getElementById('hud-username').textContent = '同學'
   } else if (DISPLAY_AVATAR_URL) {
     document.getElementById('hud-avatar').innerHTML = `<img src="${DISPLAY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
-    document.getElementById('hud-username').textContent = DISPLAY_NAME
+    document.getElementById('hud-username').textContent = MY_USERNAME
   } else {
     document.getElementById('hud-avatar').textContent = '👤'
-    document.getElementById('hud-username').textContent = DISPLAY_NAME
+    document.getElementById('hud-username').textContent = MY_USERNAME
   }
 }
 function setIdentityMode(mode) {
