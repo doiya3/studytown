@@ -82,6 +82,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   create() {
+<<<<<<< HEAD
     // 清空所有他人玩家殘影
     Object.values(this.otherPlayers).forEach(g => g.destroy && g.destroy());
     Object.values(this.playerLabels).forEach(l => l.destroy && l.destroy());
@@ -89,6 +90,15 @@ export class CafeScene extends Phaser.Scene {
     this.otherTargets = {};
     this.otherGrids = {};
     this.playerLabels = {};
+=======
+      // 清空所有他人玩家殘影
+      Object.values(this.otherPlayers).forEach(g => g.destroy && g.destroy());
+      Object.values(this.playerLabels).forEach(l => l.destroy && l.destroy());
+      this.otherPlayers = {};
+      this.otherTargets = {};
+      this.otherGrids = {};
+      this.playerLabels = {};
+>>>>>>> 97bf9dd04a17cfeb1a83c5bc8fe4e2ee0db3788e
     this.graphics = this.add.graphics();
     this.drawMap();
 
