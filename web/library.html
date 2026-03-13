@@ -511,7 +511,7 @@
   #bio-input:focus { border-color: rgba(48,200,120,0.3); }
   .bio-footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-top: 6px;
   }
@@ -529,6 +529,17 @@
     transition: opacity 0.2s;
   }
   .save-btn:hover { opacity: 0.85; }
+  .profile-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  #profile-unsaved-hint {
+    color: #f5a623;
+    font-size: 0.72rem;
+    min-height: 1em;
+  }
   .recent-section { margin-bottom: 16px; }
   #recent-list { display: flex; flex-direction: column; gap: 6px; }
   .recent-item {
@@ -810,12 +821,7 @@
       <textarea id="bio-input" placeholder="介紹一下自己吧..." maxlength="100"></textarea>
       <div class="bio-footer">
         <span id="bio-count">0 / 100</span>
-        <button id="btn-save-profile" class="save-btn">儲存</button>
       </div>
-    </div>
-    <div class="recent-section">
-      <div class="section-title">最近紀錄</div>
-      <div id="recent-list"></div>
     </div>
     <div class="section-title">身分設定</div>
     <div class="identity-options">
@@ -845,6 +851,14 @@
         <input type="checkbox" id="toggle-public" checked>
         允許其他人查看我的資料
       </label>
+    </div>
+    <div class="profile-actions">
+      <span id="profile-unsaved-hint"></span>
+      <button id="btn-save-profile" class="save-btn">儲存</button>
+    </div>
+    <div class="recent-section">
+      <div class="section-title">最近紀錄</div>
+      <div id="recent-list"></div>
     </div>
   </div>
 </div>
@@ -1860,6 +1874,41 @@ function setSelectedAvatarMode(mode) {
   if (el) el.checked = true
 }
 
+let profileFormInitialState = ''
+
+function getProfileFormState() {
+  return JSON.stringify({
+    status_text: document.getElementById('status-input')?.value || '',
+    bio: document.getElementById('bio-input')?.value || '',
+    is_profile_public: !!document.getElementById('toggle-public')?.checked,
+    avatar_mode: getSelectedAvatarMode()
+  })
+}
+
+function hasUnsavedProfileChanges() {
+  return !!profileFormInitialState && getProfileFormState() !== profileFormInitialState
+}
+
+function updateUnsavedHint() {
+  const hint = document.getElementById('profile-unsaved-hint')
+  if (!hint) return
+  hint.textContent = hasUnsavedProfileChanges() ? '尚有未儲存變更' : ''
+}
+
+function captureProfileFormBaseline() {
+  profileFormInitialState = getProfileFormState()
+  updateUnsavedHint()
+}
+
+function closeProfileModal() {
+  if (hasUnsavedProfileChanges()) {
+    const shouldClose = window.confirm('你有尚未儲存的變更，確定要離開嗎？')
+    if (!shouldClose) return false
+  }
+  document.getElementById('profile-modal').style.display = 'none'
+  return true
+}
+
 function applyAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   MY_AVATAR_MODE = mode
@@ -1972,6 +2021,8 @@ async function openProfileModal() {
     `
     list.appendChild(item)
   })
+
+  captureProfileFormBaseline()
 }
 
 async function openOtherProfileModal(discord_id, fallbackName = '') {
@@ -2034,19 +2085,35 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
 }
 
 document.getElementById('hud-profile').addEventListener('click', openProfileModal)
-document.getElementById('btn-close-profile').addEventListener('click', () => {
-  document.getElementById('profile-modal').style.display = 'none'
-})
+document.getElementById('btn-close-profile').addEventListener('click', closeProfileModal)
 document.getElementById('btn-close-other-profile').addEventListener('click', () => {
   document.getElementById('other-profile-modal').style.display = 'none'
 })
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.style.display = 'none'
+    if (e.target !== overlay) return
+    if (overlay.id === 'profile-modal') {
+      closeProfileModal()
+      return
+    }
+    overlay.style.display = 'none'
   })
 })
+window.addEventListener('beforeunload', (e) => {
+  const isProfileOpen = document.getElementById('profile-modal').style.display !== 'none'
+  if (isProfileOpen && hasUnsavedProfileChanges()) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+})
+document.getElementById('status-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('bio-input').addEventListener('input', (e) => {
   document.getElementById('bio-count').textContent = `${e.target.value.length} / 100`
+  updateUnsavedHint()
+})
+document.getElementById('toggle-public').addEventListener('change', updateUnsavedHint)
+document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
+  radio.addEventListener('change', updateUnsavedHint)
 })
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
   const avatarMode = getSelectedAvatarMode()
@@ -2063,6 +2130,7 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
   applyAvatarMode(avatarMode)
   const btn = document.getElementById('btn-save-profile')
   btn.textContent = '已儲存 ✓'
+  captureProfileFormBaseline()
   setTimeout(() => { btn.textContent = '儲存' }, 2000)
 })
 
