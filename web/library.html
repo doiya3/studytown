@@ -2099,13 +2099,6 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.style.display = 'none'
   })
 })
-window.addEventListener('beforeunload', (e) => {
-  const isProfileOpen = document.getElementById('profile-modal').style.display !== 'none'
-  if (isProfileOpen && hasUnsavedProfileChanges()) {
-    e.preventDefault()
-    e.returnValue = ''
-  }
-})
 document.getElementById('status-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('bio-input').addEventListener('input', (e) => {
   document.getElementById('bio-count').textContent = `${e.target.value.length} / 100`
