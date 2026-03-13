@@ -42,6 +42,13 @@ function setupWebSocket(server) {
       if (msg.type === 'auth') {
         authId = msg.discord_id
         const scene = msg.scene || null
+        const prev = clients.get(authId)
+
+        // Same websocket switching scene: tell old scene to remove this player.
+        if (prev && prev.ws === ws && prev.scene && prev.scene !== scene) {
+          broadcast(prev.scene, { type: 'player_leave', discord_id: authId }, authId)
+        }
+
         clients.set(authId, { ws, scene })
         console.log(`[WS] 玩家連線: ${authId} 場景: ${scene}`)
         return
