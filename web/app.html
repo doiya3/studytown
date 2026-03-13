@@ -307,6 +307,7 @@
 </div>
 
 <div id="scene-menu" aria-label="scene-menu">
+  <button class="scene-option" data-scene="map">🏠 地圖</button>
   <button class="scene-option" data-scene="library">📚 圖書館</button>
   <button class="scene-option" data-scene="cafe">☕ 咖啡廳</button>
 </div>
@@ -335,20 +336,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script type="module">
+  import { bootMapApp } from './js/scenes/MapScene.js';
   import { bootLibraryApp } from './js/scenes/LibraryScene.js';
   import { bootCafeApp } from './js/scenes/CafeScene.js';
 
   const params = new URLSearchParams(window.location.search);
-  const activeScene = params.get('scene') === 'cafe' ? 'cafe' : 'library';
+  const sceneParam = params.get('scene');
+  const activeScene = sceneParam === 'library' || sceneParam === 'cafe' ? sceneParam : 'map';
 
   const zoneName = document.getElementById('zone-name');
-  if (zoneName) zoneName.textContent = activeScene === 'cafe' ? '咖啡廳' : '圖書館';
+  if (zoneName) {
+    if (activeScene === 'library') zoneName.textContent = '圖書館';
+    else if (activeScene === 'cafe') zoneName.textContent = '咖啡廳';
+    else zoneName.textContent = '地圖';
+  }
 
   document.querySelectorAll('.scene-option').forEach((btn) => {
     if (btn.dataset.scene === activeScene) btn.classList.add('active');
     btn.addEventListener('click', () => {
       const scene = btn.dataset.scene;
-      const next = scene === 'cafe' ? 'app.html?scene=cafe' : 'app.html?scene=library';
+      const next = scene === 'map' ? 'app.html?scene=map' : `app.html?scene=${scene}`;
       window.location.href = next;
     });
   });
@@ -366,7 +373,9 @@
     }
   });
 
-  window.studyTownApp = activeScene === 'cafe' ? bootCafeApp() : bootLibraryApp();
+  if (activeScene === 'library') window.studyTownApp = bootLibraryApp();
+  else if (activeScene === 'cafe') window.studyTownApp = bootCafeApp();
+  else window.studyTownApp = bootMapApp();
 
   const interactBtn = document.getElementById('interact-btn');
   if (interactBtn) {
