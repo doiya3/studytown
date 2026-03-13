@@ -88,6 +88,8 @@ function setupWebSocket(server) {
         if (oldScene) {
           broadcast(oldScene, { type: 'player_leave', discord_id: authId }, authId)
         }
+        // 強制 server 端該玩家不屬於任何場景
+        if (client) client.scene = null
         return
       }
 
