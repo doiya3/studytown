@@ -219,8 +219,7 @@ let currentUser = null
 
 function getDisplayName(user) {
   if (user?.avatar_mode === 'anonymous') return '同學'
-  if (user?.avatar_mode === 'custom') return (user?.display_name || '').trim() || '未命名'
-  return user?.username || '未知'
+  return (user?.display_name || '').trim() || user?.username || '未知'
 }
 
 async function init() {
