@@ -162,8 +162,7 @@ router.post('/upsert', async (req, res) => {
   const upsertData = { discord_id, username, avatar }
   if (discord_avatar !== undefined) upsertData.discord_avatar = discord_avatar
   if (avatar_mode) upsertData.avatar_mode = avatar_mode
-  const safeDisplayName = clampText(display_name, 20)
-  if (safeDisplayName) upsertData.display_name = safeDisplayName
+  if (display_name !== undefined) upsertData.display_name = clampText(display_name, 20)
 
   const { data, error } = await supabase
     .from('users')

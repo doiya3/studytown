@@ -849,20 +849,17 @@ async function loadRecent() {
 
 async function ensureUserExists() {
   try {
-    const payload = {
-      discord_id: MY_DISCORD_ID,
-      username: sessionUser.username,
-      avatar: sessionUser.avatar,
-      discord_avatar: sessionUser.avatar,
-      avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord'
-    }
-    const safeDisplayName = (sessionUser.display_name || '').trim().slice(0, 20)
-    if (safeDisplayName) payload.display_name = safeDisplayName
-
     await fetch(`${API_URL}/api/users/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        discord_id: MY_DISCORD_ID,
+        username: sessionUser.username,
+        avatar: sessionUser.avatar,
+        discord_avatar: sessionUser.avatar,
+        avatar_mode: localStorage.getItem('study_avatar_mode') || 'discord',
+        display_name: (sessionUser.display_name || '').trim().slice(0, 20)
+      })
     })
   } catch (err) {
     console.error('ensureUserExists failed:', err)
