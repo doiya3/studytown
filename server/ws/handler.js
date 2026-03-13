@@ -72,6 +72,15 @@ function setupWebSocket(server) {
         return
       }
 
+      if (msg.type === 'scene_leave') {
+        const client = clients.get(authId)
+        const oldScene = msg.scene || client?.scene || null
+        if (oldScene) {
+          broadcast(oldScene, { type: 'player_leave', discord_id: authId }, authId)
+        }
+        return
+      }
+
       if (msg.type === 'broadcast') {
         const { to, action, text, fromName } = msg
         sendTo(to, {
