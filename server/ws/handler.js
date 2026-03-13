@@ -53,11 +53,17 @@ function setupWebSocket(server) {
         const client = clients.get(authId)
         if (!client) return
         if (msg.username) client.username = msg.username
+        client.display_name = typeof msg.display_name === 'string' ? msg.display_name : (client.display_name || '')
+        if (msg.avatar_mode === 'anonymous' || msg.avatar_mode === 'discord') {
+          client.avatar_mode = msg.avatar_mode
+        }
         client.avatar_url = msg.avatar_url ?? null  // 允許 null 清除（匿名模式）
         broadcast(client.scene, {
           type: 'player_move',
           discord_id: authId,
           username: client.username || authId,
+          display_name: client.display_name || '',
+          avatar_mode: client.avatar_mode || 'discord',
           avatar_url: client.avatar_url || null,
           x: msg.x,
           y: msg.y
