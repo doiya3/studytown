@@ -56,16 +56,20 @@ router.get('/:discord_id/profile', async (req, res) => {
 
   const isOwner = viewerId && viewerId === discord_id
   if (!data.is_profile_public && !isOwner) {
-    const safeAvatarMode = data.avatar_mode === 'anonymous' ? 'anonymous' : 'discord'
+    const safeAvatarMode = ['discord', 'custom', 'anonymous'].includes(data.avatar_mode)
+      ? data.avatar_mode
+      : 'discord'
     const safeName = safeAvatarMode === 'anonymous'
       ? '同學'
-      : ((data.display_name || '').trim() || data.username || '未知玩家')
+      : safeAvatarMode === 'custom'
+        ? ((data.display_name || '').trim() || '未命名')
+        : (data.username || '未知玩家')
     return res.json({
       discord_id,
       is_profile_public: false,
       avatar_mode: safeAvatarMode,
       username: safeName,
-      display_name: safeAvatarMode === 'anonymous' ? '' : (data.display_name || '')
+      display_name: safeAvatarMode === 'custom' ? (data.display_name || '') : ''
     })
   }
 
@@ -86,7 +90,7 @@ router.post('/:discord_id/profile', async (req, res) => {
   if (typeof is_profile_public === 'boolean') {
     updateData.is_profile_public = is_profile_public
   }
-  if (avatar_mode === 'discord' || avatar_mode === 'anonymous') {
+  if (avatar_mode === 'discord' || avatar_mode === 'custom' || avatar_mode === 'anonymous') {
     updateData.avatar_mode = avatar_mode
   }
 

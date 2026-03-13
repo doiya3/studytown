@@ -126,35 +126,44 @@
     width: 100%;
   }
 
-  #profile-username {
-    font-size: 1.08rem;
-    font-weight: 700;
-    margin-bottom: 8px;
+  .display-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
   }
+
+  .display-name-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e6edf3;
+  }
+
+  .edit-name-btn {
+    background: none;
+    border: none;
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 0;
+    transition: opacity 0.2s;
+    color: #e6edf3;
+  }
+
+  .edit-name-btn:hover { opacity: 1; }
 
   .display-name-input {
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(48,200,120,0.5);
     color: #e6edf3;
     font-size: 1rem;
     font-weight: 700;
     font-family: 'Noto Sans TC', sans-serif;
-    width: 100%;
+    width: 140px;
     outline: none;
     padding: 2px 0;
-    margin-bottom: 4px;
-    transition: border-color 0.2s;
-  }
-
-  .display-name-input:focus {
-    border-bottom-color: rgba(48,200,120,0.5);
-  }
-
-  .dc-username {
-    font-size: 0.72rem;
-    color: #8b949e;
-    margin-bottom: 6px;
+    display: none;
   }
 
   #status-input {
@@ -464,8 +473,11 @@
           <div id="avatar-fallback">👤</div>
         </div>
         <div class="profile-header-info">
-          <input id="display-name-input" class="display-name-input" placeholder="輸入自訂名稱..." maxlength="20">
-          <div id="profile-dc-username" class="dc-username"></div>
+          <div class="display-name-row">
+            <span id="display-name-text" class="display-name-text"></span>
+            <button id="btn-edit-name" class="edit-name-btn">✏️</button>
+            <input id="display-name-input" class="display-name-input" placeholder="輸入暱稱..." maxlength="20">
+          </div>
           <input id="status-input" placeholder="新增狀態..." maxlength="30">
           <div id="profile-level">Lv.1</div>
         </div>
@@ -520,12 +532,22 @@
             </div>
           </label>
           <label class="identity-option">
+            <input type="radio" name="avatar-mode" value="custom" id="mode-custom">
+            <div class="identity-card">
+              <img id="identity-custom-avatar" src="assets/avatars/default.png" class="identity-avatar" alt="custom avatar">
+              <div class="identity-info">
+                <div class="identity-name" id="identity-custom-name">自訂身分</div>
+                <div class="identity-desc">使用預設頭貼和自訂暱稱</div>
+              </div>
+            </div>
+          </label>
+          <label class="identity-option">
             <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous">
             <div class="identity-card">
               <div class="identity-avatar identity-anon">？</div>
               <div class="identity-info">
-                <div class="identity-name">同學</div>
-                <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
+                <div class="identity-name">匿名</div>
+                <div class="identity-desc">顯示為「同學」，隱藏所有身分</div>
               </div>
             </div>
           </label>
@@ -571,7 +593,7 @@ function getSelectedAvatarMode() {
 }
 
 function setSelectedAvatarMode(mode) {
-  const target = mode === 'anonymous' ? 'anonymous' : 'discord'
+  const target = ['discord', 'custom', 'anonymous'].includes(mode) ? mode : 'discord'
   const el = document.querySelector(`input[name="avatar-mode"][value="${target}"]`)
   if (el) el.checked = true
 }
@@ -579,17 +601,50 @@ function setSelectedAvatarMode(mode) {
 function renderIdentityPreview() {
   document.getElementById('identity-discord-avatar').src = sessionUser?.avatar_url || ''
   document.getElementById('identity-discord-name').textContent = sessionUser?.username || 'Discord 使用者'
-  document.getElementById('profile-dc-username').textContent = `DC：${sessionUser?.username || '未知玩家'}`
 }
 
 function getDisplayName(user) {
   if (user?.avatar_mode === 'anonymous') return '同學'
-  return (user?.display_name || '').trim() || user?.username || '未知玩家'
+  if (user?.avatar_mode === 'custom') return (user?.display_name || '').trim() || '未命名'
+  return user?.username || '未知玩家'
+}
+
+function getAvatarURL(user) {
+  if (user?.avatar_mode === 'anonymous') return null
+  if (user?.avatar_mode === 'custom') return user?.preset_avatar || 'assets/avatars/default.png'
+  if (user?.discord_avatar && user?.discord_id) {
+    return `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=128`
+  }
+  return user?.avatar_url || sessionUser?.avatar_url || null
+}
+
+function syncDisplayNameUI(mode, profile) {
+  const text = document.getElementById('display-name-text')
+  const input = document.getElementById('display-name-input')
+  const editBtn = document.getElementById('btn-edit-name')
+  const normalizedMode = ['discord', 'custom', 'anonymous'].includes(mode) ? mode : 'discord'
+
+  text.textContent = getDisplayName({
+    username: profile?.username || sessionUser?.username,
+    display_name: profile?.display_name || '',
+    avatar_mode: normalizedMode
+  })
+  input.value = profile?.display_name || ''
+
+  if (normalizedMode === 'custom') {
+    editBtn.style.display = 'inline'
+    text.style.display = 'inline'
+    input.style.display = 'none'
+  } else {
+    editBtn.style.display = 'none'
+    text.style.display = 'inline'
+    input.style.display = 'none'
+  }
 }
 
 function getProfileFormState() {
   return JSON.stringify({
-    display_name: document.getElementById('display-name-input')?.value || '',
+    display_name: document.getElementById('display-name-input')?.value || document.getElementById('display-name-text')?.textContent || '',
     status_text: document.getElementById('status-input')?.value || '',
     bio: document.getElementById('bio-input')?.value || '',
     is_profile_public: !!document.getElementById('profile-public-checkbox')?.checked,
@@ -720,27 +775,36 @@ async function loadProfile() {
   if (!res.ok) throw new Error('profile load failed')
   const data = await res.json()
 
-  const profileDisplayName = data.display_name || sessionUser.display_name || ''
-  document.getElementById('display-name-input').value = profileDisplayName
-  document.getElementById('profile-dc-username').textContent = `DC：${data.username || sessionUser.username || '未知玩家'}`
+  const currentMode = data.avatar_mode || sessionUser.avatar_mode || localStorage.getItem('study_avatar_mode') || 'discord'
+  syncDisplayNameUI(currentMode, {
+    username: data.username || sessionUser.username,
+    display_name: data.display_name || sessionUser.display_name || ''
+  })
   document.getElementById('status-input').value = data.status_text || ''
   document.getElementById('bio-input').value = data.bio || ''
   document.getElementById('profile-public-checkbox').checked = data.is_profile_public !== false
-  setSelectedAvatarMode(data.avatar_mode || sessionUser.avatar_mode || localStorage.getItem('study_avatar_mode') || 'discord')
+  setSelectedAvatarMode(currentMode)
   renderIdentityPreview()
 
   const bioLen = (data.bio || '').length
   document.getElementById('bio-count').textContent = `${bioLen} / 100`
 
-  const avatar = data.discord_avatar
-    ? `https://cdn.discordapp.com/avatars/${data.discord_id}/${data.discord_avatar}.png?size=128`
-    : (sessionUser.avatar_url || '')
+  const avatar = getAvatarURL({
+    avatar_mode: currentMode,
+    discord_id: data.discord_id || MY_DISCORD_ID,
+    discord_avatar: data.discord_avatar,
+    avatar_url: sessionUser.avatar_url,
+    preset_avatar: 'assets/avatars/default.png'
+  })
 
   if (avatar) {
     const img = document.getElementById('avatar-img')
     img.src = avatar
     img.style.display = 'block'
     document.getElementById('avatar-fallback').style.display = 'none'
+  } else {
+    document.getElementById('avatar-img').style.display = 'none'
+    document.getElementById('avatar-fallback').style.display = 'block'
   }
 
   captureProfileFormBaseline()
@@ -807,7 +871,7 @@ async function saveProfile() {
   const statusText = document.getElementById('status-input').value.trim()
   const isPublic = document.getElementById('profile-public-checkbox').checked
   const avatarMode = getSelectedAvatarMode()
-  const displayName = document.getElementById('display-name-input').value.trim().slice(0, 20)
+  const displayName = (document.getElementById('display-name-input').value || document.getElementById('display-name-text').textContent || '').trim().slice(0, 20)
 
   setSaveStatus('儲存中...')
 
@@ -847,7 +911,61 @@ document.getElementById('display-name-input').addEventListener('input', updateUn
 document.getElementById('status-input').addEventListener('input', updateUnsavedHint)
 document.getElementById('profile-public-checkbox').addEventListener('change', updateUnsavedHint)
 document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
-  radio.addEventListener('change', updateUnsavedHint)
+  radio.addEventListener('change', () => {
+    const mode = getSelectedAvatarMode()
+    syncDisplayNameUI(mode, {
+      username: sessionUser.username,
+      display_name: document.getElementById('display-name-input').value
+    })
+    const avatar = getAvatarURL({
+      avatar_mode: mode,
+      discord_id: MY_DISCORD_ID,
+      discord_avatar: sessionUser.avatar,
+      avatar_url: sessionUser.avatar_url,
+      preset_avatar: 'assets/avatars/default.png'
+    })
+    const img = document.getElementById('avatar-img')
+    const fallback = document.getElementById('avatar-fallback')
+    if (avatar) {
+      img.src = avatar
+      img.style.display = 'block'
+      fallback.style.display = 'none'
+    } else {
+      img.style.display = 'none'
+      fallback.style.display = 'block'
+    }
+    updateUnsavedHint()
+  })
+})
+
+document.getElementById('btn-edit-name').addEventListener('click', () => {
+  if (getSelectedAvatarMode() !== 'custom') return
+  const text = document.getElementById('display-name-text')
+  const input = document.getElementById('display-name-input')
+  text.style.display = 'none'
+  input.style.display = 'inline-block'
+  input.value = (input.value || '').trim()
+  input.focus()
+})
+
+document.getElementById('display-name-input').addEventListener('blur', () => {
+  const text = document.getElementById('display-name-text')
+  const input = document.getElementById('display-name-input')
+  text.textContent = getDisplayName({
+    username: sessionUser.username,
+    display_name: input.value,
+    avatar_mode: getSelectedAvatarMode()
+  })
+  text.style.display = 'inline'
+  input.style.display = 'none'
+  updateUnsavedHint()
+})
+
+document.getElementById('display-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    e.currentTarget.blur()
+  }
 })
 
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
