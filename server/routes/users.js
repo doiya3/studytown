@@ -56,12 +56,20 @@ router.get('/:discord_id/profile', async (req, res) => {
 
   const isOwner = viewerId && viewerId === discord_id
   if (!data.is_profile_public && !isOwner) {
+    const safeAvatarMode = ['discord', 'custom', 'anonymous'].includes(data.avatar_mode)
+      ? data.avatar_mode
+      : 'discord'
+    const safeName = safeAvatarMode === 'anonymous'
+      ? '同學'
+      : safeAvatarMode === 'custom'
+        ? ((data.display_name || '').trim() || '未命名')
+        : (data.username || '未知玩家')
     return res.json({
       discord_id,
       is_profile_public: false,
-      avatar_mode: 'anonymous',
-      username: '同學',
-      display_name: ''
+      avatar_mode: safeAvatarMode,
+      username: safeName,
+      display_name: safeAvatarMode === 'custom' ? (data.display_name || '') : ''
     })
   }
 
