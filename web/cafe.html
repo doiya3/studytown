@@ -879,7 +879,7 @@
       <label class="identity-option">
         <input type="radio" name="avatar-mode" value="custom" id="mode-custom-modal">
         <div class="identity-card">
-          <img id="identity-custom-avatar" src="assets/avatars/default.svg" class="identity-avatar" alt="custom avatar">
+          <img id="identity-custom-avatar" src="assets/avatars/default.png" class="identity-avatar" alt="custom avatar">
           <div class="identity-info">
             <div class="identity-name" id="identity-custom-name">自訂身分</div>
             <div class="identity-desc">使用預設頭貼和自訂暱稱</div>
@@ -974,7 +974,7 @@ function getDisplayName(user) {
 
 function getAvatarURLForMode(mode, discordUrl = MY_AVATAR_URL) {
   if (mode === 'anonymous') return null
-  if (mode === 'custom') return 'assets/avatars/default.svg'
+  if (mode === 'custom') return 'assets/avatars/default.png'
   return discordUrl || null
 }
 
