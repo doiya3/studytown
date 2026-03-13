@@ -377,6 +377,8 @@
 
   async function switchScene(sceneKey) {
     if (!SCENE_MAP[sceneKey] || sceneKey === activeScene) return;
+    const previousSceneName = SCENE_MAP[activeScene].sceneName;
+    runtime.leaveScene(previousSceneName);
     await runtime.postJSON('/api/users/clear-location', { discord_id: runtime.session.id });
     const currentKey = SCENE_MAP[activeScene].key;
     game.scene.stop(currentKey);

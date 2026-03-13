@@ -76,6 +76,10 @@ export function createSpaRuntime() {
     sendAuth();
   }
 
+  function leaveScene(sceneName) {
+    send({ type: 'scene_leave', scene: sceneName || currentSceneName });
+  }
+
   async function postJSON(path, body) {
     try {
       const res = await fetch(`${API_URL}${path}`, {
@@ -110,6 +114,7 @@ export function createSpaRuntime() {
     session,
     send,
     setSceneName,
+    leaveScene,
     addMessageListener,
     postJSON,
     connectWs,
