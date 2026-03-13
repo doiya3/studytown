@@ -8,7 +8,6 @@
 <style>
   :root { --bg:#1a1a2e; --accent:#e94560; --yellow:#f5a623; --green:#4ecdc4; --text:#eaeaea; --muted:#8892a4; --border:rgba(255,255,255,0.08); }
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { max-width:100%; overflow-x:hidden; }
   body { background:var(--bg); color:var(--text); font-family:'Noto Sans TC',sans-serif; min-height:100vh; overflow-x:hidden; }
   body::before { content:''; position:fixed; inset:0; background-image: radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,0.6) 0%,transparent 100%), radial-gradient(1px 1px at 30% 60%,rgba(255,255,255,0.4) 0%,transparent 100%), radial-gradient(1px 1px at 50% 10%,rgba(255,255,255,0.5) 0%,transparent 100%), radial-gradient(1px 1px at 70% 80%,rgba(255,255,255,0.3) 0%,transparent 100%), radial-gradient(1px 1px at 90% 40%,rgba(255,255,255,0.6) 0%,transparent 100%); pointer-events:none; z-index:0; }
   #login-screen { display:none; position:fixed; inset:0; background:var(--bg); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
@@ -60,41 +59,13 @@
   .spinner { width:10px; height:10px; border:2px solid var(--muted); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; display:none; }
   .spinner.active { display:block; }
   @keyframes spin { to{transform:rotate(360deg)} }
-  #hud {
-    position: fixed;
-    top: 16px;
-    right: 20px;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  @media (max-width:768px) {
+  @media (max-width:700px) {
     .map-grid { grid-template-columns:1fr 1fr; }
     .zone-library { grid-column:1/-1; grid-row:auto; }
     .zone-cafe,.zone-grass { grid-column:1; grid-row:auto; }
     .zone-night,.zone-lake { grid-column:2; grid-row:auto; }
     .zone-path { display:none; }
     .header h1 { font-size:2rem; }
-  }
-
-  @media (max-width:480px) {
-    .map-grid { grid-template-columns:1fr; grid-template-rows:auto; }
-    .zone-library,.zone-cafe,.zone-grass,.zone-night,.zone-lake { grid-column:1; grid-row:auto; }
-    #hud {
-      top: 10px;
-      right: 10px;
-      left: 10px;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    #hud button, #hud a {
-      font-size: 0.75rem;
-      padding: 5px 10px;
-    }
   }
   #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
@@ -166,7 +137,7 @@
       <div class="stat-item"><div class="stat-num" id="stat-studying">0</div><div class="stat-label">專注中</div></div>
       <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
     </div>
-    <div id="hud">
+    <div style="position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px;">
       <span id="hud-username" style="color:#8892a4; font-size:0.8rem;"></span>
       <a id="hud-profile" href="profile.html" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer; text-decoration:none;">👤 個人資料</a>
       <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>
@@ -217,11 +188,6 @@ const BUFF_RULES = [
 
 let currentUser = null
 
-function getDisplayName(user) {
-  if (user?.avatar_mode === 'anonymous') return '同學'
-  return (user?.display_name || '').trim() || user?.username || '未知'
-}
-
 async function init() {
   const token = getTokenFromURL()
   if (token) {
@@ -234,11 +200,10 @@ async function init() {
     if (session) currentUser = session.user
   }
   if (currentUser) {
-    const savedDisplayName = (JSON.parse(localStorage.getItem('study_user') || '{}')?.display_name || '').trim().slice(0, 20)
     await fetch(`${API_URL}/api/users/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar, discord_avatar: currentUser.avatar, display_name: savedDisplayName })
+      body: JSON.stringify({ discord_id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar, discord_avatar: currentUser.avatar })
     }).catch(e => console.error('upsert error:', e))
     showMap()
   } else { showLogin() }
@@ -252,13 +217,6 @@ function showLogin() {
 function showMap() {
   document.getElementById('login-screen').style.display = 'none'
   document.getElementById('map-screen').style.display = 'block'
-  const localMode = localStorage.getItem('study_avatar_mode') || 'discord'
-  const localDisplayName = (JSON.parse(localStorage.getItem('study_user') || '{}')?.display_name || '').trim()
-  document.getElementById('hud-username').textContent = getDisplayName({
-    username: currentUser?.username,
-    display_name: localDisplayName,
-    avatar_mode: localMode
-  })
   
   // 不在这里清除位置，避免与场景加载的并发问题
   // 清除逻辑由 cafe.html/library.html 的 tryInteract 负责
@@ -298,7 +256,7 @@ async function fetchAndRender() {
       } else {
         listEl.innerHTML = zoneUsers.map(user => {
           const isAnon = user.avatar_mode === 'anonymous'
-          const displayName = getDisplayName(user)
+          const displayName = isAnon ? '同學' : (user.username || '未知')
           const avatarHtml = (!isAnon && user.discord_avatar)
             ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;">`
             : `<span style="display:inline-block;width:1.1rem;height:1.1rem;border-radius:50%;background:#9ca3af;vertical-align:middle;"></span>`

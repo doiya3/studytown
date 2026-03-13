@@ -48,7 +48,7 @@ router.get('/:discord_id/profile', async (req, res) => {
 
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, display_name, avatar, discord_avatar, avatar_mode, status, current_zone, level, xp, total_minutes, bio, status_text, is_profile_public')
+    .select('discord_id, username, avatar, discord_avatar, avatar_mode, status, current_zone, level, xp, total_minutes, bio, status_text, is_profile_public')
     .eq('discord_id', discord_id)
     .single()
 
@@ -57,15 +57,12 @@ router.get('/:discord_id/profile', async (req, res) => {
   const isOwner = viewerId && viewerId === discord_id
   if (!data.is_profile_public && !isOwner) {
     const safeAvatarMode = data.avatar_mode === 'anonymous' ? 'anonymous' : 'discord'
-    const safeName = safeAvatarMode === 'anonymous'
-      ? '同學'
-      : ((data.display_name || '').trim() || data.username || '未知玩家')
+    const safeName = safeAvatarMode === 'anonymous' ? '同學' : (data.username || '未知玩家')
     return res.json({
       discord_id,
       is_profile_public: false,
       avatar_mode: safeAvatarMode,
-      username: safeName,
-      display_name: safeAvatarMode === 'anonymous' ? '' : (data.display_name || '')
+      username: safeName
     })
   }
 
@@ -75,12 +72,11 @@ router.get('/:discord_id/profile', async (req, res) => {
 // POST /api/users/:discord_id/profile - 更新個人資料
 router.post('/:discord_id/profile', async (req, res) => {
   const { discord_id } = req.params
-  const { bio, status_text, is_profile_public, avatar_mode, display_name } = req.body
+  const { bio, status_text, is_profile_public, avatar_mode } = req.body
 
   const updateData = {
     bio: clampText(bio, 100),
-    status_text: clampText(status_text, 30),
-    display_name: clampText(display_name, 20)
+    status_text: clampText(status_text, 30)
   }
 
   if (typeof is_profile_public === 'boolean') {
@@ -94,7 +90,7 @@ router.post('/:discord_id/profile', async (req, res) => {
     .from('users')
     .update(updateData)
     .eq('discord_id', discord_id)
-    .select('discord_id, bio, status_text, is_profile_public, avatar_mode, display_name')
+    .select('discord_id, bio, status_text, is_profile_public, avatar_mode')
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
@@ -152,13 +148,12 @@ router.get('/:discord_id', async (req, res) => {
 
 // POST /api/users/upsert - 新增或更新玩家（登入時呼叫）
 router.post('/upsert', async (req, res) => {
-  const { discord_id, username, avatar, discord_avatar, avatar_mode, display_name } = req.body
+  const { discord_id, username, avatar, discord_avatar, avatar_mode } = req.body
   if (!discord_id) return res.status(400).json({ error: 'discord_id is required' })
 
   const upsertData = { discord_id, username, avatar }
   if (discord_avatar !== undefined) upsertData.discord_avatar = discord_avatar
   if (avatar_mode) upsertData.avatar_mode = avatar_mode
-  if (display_name !== undefined) upsertData.display_name = clampText(display_name, 20)
 
   const { data, error } = await supabase
     .from('users')
@@ -225,7 +220,7 @@ router.post('/clear-location', async (req, res) => {
 router.get('/scene/all', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, display_name, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
+    .select('discord_id, username, current_zone, status, level, xp, avatar, discord_avatar, avatar_mode')
 
   if (error) return res.status(500).json({ error: error.message })
   res.json(data || [])
@@ -236,7 +231,7 @@ router.get('/scene/:scene_name', async (req, res) => {
   const { scene_name } = req.params
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, display_name, avatar_mode, discord_avatar, map_x, map_y, seat_id, status, current_zone, xp, level')
+    .select('*')
     .eq('map_scene', scene_name)
 
   if (error) return res.status(500).json({ error: error.message })
