@@ -223,6 +223,18 @@ function getDisplayName(user) {
   return user?.username || '未知'
 }
 
+function getAvatarURL(user) {
+  if (user?.avatar_mode === 'anonymous') return null
+  if (user?.avatar_mode === 'custom') return 'assets/avatars/default.svg'
+  if (user?.discord_avatar && user?.discord_id) {
+    return `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32`
+  }
+  if (user?.avatar && user?.discord_id) {
+    return `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.avatar}.png?size=32`
+  }
+  return 'https://cdn.discordapp.com/embed/avatars/0.png'
+}
+
 async function init() {
   const token = getTokenFromURL()
   if (token) {
@@ -307,10 +319,10 @@ async function fetchAndRender() {
         listEl.innerHTML = '<div class="empty-zone">🌿 空無一人</div>'
       } else {
         listEl.innerHTML = zoneUsers.map(user => {
-          const isAnon = user.avatar_mode === 'anonymous'
           const displayName = getDisplayName(user)
-          const avatarHtml = (!isAnon && user.discord_avatar)
-            ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;">`
+          const avatarUrl = getAvatarURL(user)
+          const avatarHtml = avatarUrl
+            ? `<img src="${avatarUrl}" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;object-fit:cover;">`
             : `<span style="display:inline-block;width:1.1rem;height:1.1rem;border-radius:50%;background:#9ca3af;vertical-align:middle;"></span>`
           return `<div class="user-chip">${avatarHtml}<span class="user-name">${displayName}</span></div>`
         }).join('')
