@@ -1833,15 +1833,32 @@ function applyAvatarMode(mode) {
 async function openProfileModal() {
   document.getElementById('profile-modal').style.display = 'flex'
 
+  const parseJsonSafe = async (res, fallback) => {
+    if (!res || !res.ok) return fallback
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) return fallback
+    try {
+      return await res.json()
+    } catch {
+      return fallback
+    }
+  }
+
   const [profileRes, statsRes, recentRes] = await Promise.all([
-    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`),
-    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/stats`),
-    fetch(`${API_URL}/api/study/recent/${MY_DISCORD_ID}`)
+    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`).catch(() => null),
+    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/stats`).catch(() => null),
+    fetch(`${API_URL}/api/study/recent/${MY_DISCORD_ID}`).catch(() => null)
   ])
 
-  const profile = await profileRes.json()
-  const stats = await statsRes.json()
-  const recent = await recentRes.json()
+  const profile = await parseJsonSafe(profileRes, {
+    username: MY_USERNAME,
+    status_text: '',
+    bio: '',
+    is_profile_public: true,
+    avatar_mode: MY_AVATAR_MODE || 'discord'
+  })
+  const stats = await parseJsonSafe(statsRes, { today: 0, week: 0, month: 0, total: 0, xp: 0 })
+  const recent = await parseJsonSafe(recentRes, [])
 
   const session = JSON.parse(localStorage.getItem('study_user'))
   document.getElementById('profile-avatar-img').src = session?.avatar_url || ''
@@ -1888,13 +1905,24 @@ async function openOtherProfileModal(discord_id) {
   if (!discord_id) return
   document.getElementById('other-profile-modal').style.display = 'flex'
 
+  const parseJsonSafe = async (res, fallback) => {
+    if (!res || !res.ok) return fallback
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) return fallback
+    try {
+      return await res.json()
+    } catch {
+      return fallback
+    }
+  }
+
   const [profileRes, statsRes] = await Promise.all([
-    fetch(`${API_URL}/api/users/${discord_id}/profile?viewer_id=${MY_DISCORD_ID}`),
-    fetch(`${API_URL}/api/users/${discord_id}/stats`)
+    fetch(`${API_URL}/api/users/${discord_id}/profile?viewer_id=${MY_DISCORD_ID}`).catch(() => null),
+    fetch(`${API_URL}/api/users/${discord_id}/stats`).catch(() => null)
   ])
 
-  const profile = await profileRes.json()
-  const stats = statsRes.ok ? await statsRes.json() : { week: 0, total: 0, xp: 0 }
+  const profile = await parseJsonSafe(profileRes, { is_profile_public: false })
+  const stats = await parseJsonSafe(statsRes, { week: 0, total: 0, xp: 0 })
 
   const privateMsg = document.getElementById('other-private-msg')
   const statsGrid = document.getElementById('other-stats-grid')
