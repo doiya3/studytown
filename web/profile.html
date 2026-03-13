@@ -534,7 +534,7 @@
           <label class="identity-option">
             <input type="radio" name="avatar-mode" value="custom" id="mode-custom">
             <div class="identity-card">
-              <img id="identity-custom-avatar" src="assets/avatars/default.png" class="identity-avatar" alt="custom avatar">
+              <img id="identity-custom-avatar" src="assets/avatars/default.svg" class="identity-avatar" alt="custom avatar">
               <div class="identity-info">
                 <div class="identity-name" id="identity-custom-name">自訂身分</div>
                 <div class="identity-desc">使用預設頭貼和自訂暱稱</div>
@@ -611,7 +611,7 @@ function getDisplayName(user) {
 
 function getAvatarURL(user) {
   if (user?.avatar_mode === 'anonymous') return null
-  if (user?.avatar_mode === 'custom') return user?.preset_avatar || 'assets/avatars/default.png'
+  if (user?.avatar_mode === 'custom') return user?.preset_avatar || 'assets/avatars/default.svg'
   if (user?.discord_avatar && user?.discord_id) {
     return `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=128`
   }
@@ -794,7 +794,7 @@ async function loadProfile() {
     discord_id: data.discord_id || MY_DISCORD_ID,
     discord_avatar: data.discord_avatar,
     avatar_url: sessionUser.avatar_url,
-    preset_avatar: 'assets/avatars/default.png'
+    preset_avatar: 'assets/avatars/default.svg'
   })
 
   if (avatar) {
@@ -925,7 +925,7 @@ document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
       discord_id: MY_DISCORD_ID,
       discord_avatar: sessionUser.avatar,
       avatar_url: sessionUser.avatar_url,
-      preset_avatar: 'assets/avatars/default.png'
+      preset_avatar: 'assets/avatars/default.svg'
     })
     const img = document.getElementById('avatar-img')
     const fallback = document.getElementById('avatar-fallback')
