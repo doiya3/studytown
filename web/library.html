@@ -1793,7 +1793,7 @@ function sendDM() {
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
 document.getElementById('btn-view-profile').addEventListener('click', async () => {
-  await openOtherProfileModal(dmTarget.id)
+  await openOtherProfileModal(dmTarget.id, dmTarget.name)
   dmMenuEl.style.display = 'none'
 })
 
@@ -1944,7 +1944,7 @@ async function openProfileModal() {
   })
 }
 
-async function openOtherProfileModal(discord_id) {
+async function openOtherProfileModal(discord_id, fallbackName = '') {
   if (!discord_id) return
   document.getElementById('other-profile-modal').style.display = 'flex'
 
@@ -1972,7 +1972,7 @@ async function openOtherProfileModal(discord_id) {
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
     const isAnon = profile.avatar_mode === 'anonymous'
-    const privateName = isAnon ? '同學' : (profile.username || '未知玩家')
+    const privateName = isAnon ? '同學' : (profile.username || fallbackName || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
