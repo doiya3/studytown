@@ -59,6 +59,7 @@
   .spinner { width:10px; height:10px; border:2px solid var(--muted); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; display:none; }
   .spinner.active { display:block; }
   @keyframes spin { to{transform:rotate(360deg)} }
+  #top-actions { position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px; }
   @media (max-width:700px) {
     .map-grid { grid-template-columns:1fr 1fr; }
     .zone-library { grid-column:1/-1; grid-row:auto; }
@@ -66,6 +67,18 @@
     .zone-night,.zone-lake { grid-column:2; grid-row:auto; }
     .zone-path { display:none; }
     .header h1 { font-size:2rem; }
+    #top-actions { position:static; justify-content:flex-end; flex-wrap:wrap; margin-bottom:14px; }
+    .container { padding-top:20px; }
+  }
+  @media (max-width:520px) {
+    .container { padding:20px 12px; }
+    .stats-bar { gap:10px; }
+    .stat-item { padding:9px 14px; }
+    .map-grid { grid-template-columns:1fr; gap:12px; }
+    .zone-library,.zone-cafe,.zone-night,.zone-grass,.zone-lake { grid-column:1; grid-row:auto; }
+    #hud-username { display:none; }
+    #hud-profile, #btn-logout { padding:5px 9px !important; font-size:0.72rem !important; }
+    .user-name { max-width:120px; }
   }
   #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
@@ -137,7 +150,7 @@
       <div class="stat-item"><div class="stat-num" id="stat-studying">0</div><div class="stat-label">專注中</div></div>
       <div class="stat-item"><div class="stat-num" id="stat-players">0</div><div class="stat-label">總玩家數</div></div>
     </div>
-    <div style="position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px;">
+    <div id="top-actions">
       <span id="hud-username" style="color:#8892a4; font-size:0.8rem;"></span>
       <a id="hud-profile" href="profile.html" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer; text-decoration:none;">👤 個人資料</a>
       <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>

@@ -695,6 +695,42 @@
     color: var(--accent);
     font-family: 'DotGothic16', monospace;
   }
+
+  @media (max-width: 900px) {
+    #hud { padding: 0 12px; gap: 10px; }
+    #hud-player { font-size: 0.78rem; }
+    #hud-zone { display: none; }
+    #hud-back, #hud-profile { padding: 4px 9px; font-size: 0.72rem; }
+    #controls-hint { display: none; }
+    #team-panel { left: 12px; right: 12px; width: auto; top: auto; bottom: 80px; max-height: 42vh; }
+    #focus-panel { width: min(320px, calc(100vw - 24px)); right: 12px; bottom: 12px; }
+    #interaction-menu { min-width: min(220px, calc(100vw - 24px)); }
+    .modal-box { width: calc(100vw - 20px); max-height: 86vh; padding: 18px; }
+    .modal-box-sm { width: calc(100vw - 20px); }
+    #player-count { right: 12px; top: 58px; }
+  }
+
+  @media (max-width: 620px) {
+    #hud { height: auto; min-height: 52px; flex-wrap: wrap; padding: 7px 10px; row-gap: 6px; }
+    #hud-title { font-size: 0.78rem; }
+    #hud-player { order: 2; width: 100%; }
+    #hud-back { margin-left: auto; }
+    #game-container { margin-top: 62px; }
+    #interaction-hint { bottom: 74px; font-size: 0.73rem; padding: 6px 12px; }
+    #team-invite-toast { right: 10px; left: 10px; top: 72px; padding: 10px 12px; gap: 6px; flex-wrap: wrap; }
+    #focus-panel {
+      right: 0;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      max-width: none;
+      border-radius: 16px 16px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+    .modal-box .stats-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
