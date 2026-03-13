@@ -37,6 +37,13 @@ export class MapScene extends Phaser.Scene {
   }
 
   create() {
+      // 清空所有他人玩家殘影
+      Object.values(this.otherPlayers).forEach(g => g.destroy && g.destroy());
+      Object.values(this.playerLabels).forEach(l => l.destroy && l.destroy());
+      this.otherPlayers = {};
+      this.otherTargets = {};
+      this.otherGrids = {};
+      this.playerLabels = {};
     this.graphics = this.add.graphics();
     this.drawMap();
 
