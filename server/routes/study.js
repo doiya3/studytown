@@ -93,4 +93,20 @@ router.get('/active/:discord_id', async (req, res) => {
   res.json(data)
 })
 
+// GET /api/study/recent/:discord_id - 取得最近 5 筆學習紀錄
+router.get('/recent/:discord_id', async (req, res) => {
+  const { discord_id } = req.params
+
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select('id, zone, duration_minutes, xp_earned, start_time, end_time')
+    .eq('discord_id', discord_id)
+    .not('end_time', 'is', null)
+    .order('start_time', { ascending: false })
+    .limit(5)
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data || [])
+})
+
 module.exports = router

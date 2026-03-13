@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -47,13 +47,13 @@
   }
   #hud-back:hover { background: rgba(255,255,255,0.1); color: var(--text); border-color: var(--border); }
 
-  #hud-identity-btn {
+  #hud-profile {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
     color: var(--text-muted); padding: 4px 11px; border-radius: 8px;
     font-size: 0.73rem; cursor: pointer; transition: all 0.2s;
     font-family: 'Noto Sans TC', sans-serif;
   }
-  #hud-identity-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+  #hud-profile:hover { background: rgba(255,255,255,0.12); color: var(--text); }
 
   /* 身分設定面板 */
   #id-settings-overlay {
@@ -159,7 +159,7 @@
   #pomo-settings { margin-bottom: 10px; }
   .pomo-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .pomo-row label { color: var(--text-muted); font-size: 0.72rem; min-width: 52px; }
-  .pomo-row input { width: 44px; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--text); font-size: 0.78rem; padding: 3px 6px; text-align: center; font-family: 'DotGothic16', monospace; -moz-appearance: textfield; }
+  .pomo-row input { width: 44px; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--text); font-size: 0.78rem; padding: 3px 6px; text-align: center; font-family: 'DotGothic16', monospace; -moz-appearance: textfield; appearance: textfield; }
   .pomo-row input::-webkit-inner-spin-button, .pomo-row input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
   .pomo-row span { color: var(--text-muted); font-size: 0.7rem; }
   .pomo-spins { display: flex; gap: 3px; margin-left: auto; }
@@ -321,6 +321,268 @@
     transition: opacity 0.3s, transform 0.3s; max-width: 280px; text-align: center;
   }
   #dm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-box {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px;
+    width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+  .modal-box-sm { width: 300px; }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 16px;
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .modal-close:hover {
+    background: rgba(255,255,255,0.08);
+    color: #e6edf3;
+  }
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid rgba(48,200,120,0.3);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .profile-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 4px;
+  }
+  .status-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 4px 10px;
+    color: #8b949e;
+    font-size: 0.75rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    width: 100%;
+    outline: none;
+    margin-bottom: 6px;
+  }
+  .status-input:focus {
+    border-color: rgba(48,200,120,0.3);
+    color: #e6edf3;
+  }
+  .level-badge {
+    display: inline-block;
+    background: rgba(48,200,120,0.15);
+    border: 1px solid rgba(48,200,120,0.3);
+    color: #30c878;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: 'DotGothic16', monospace;
+  }
+  .xp-section { margin-bottom: 16px; }
+  .xp-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #8b949e;
+    margin-bottom: 4px;
+  }
+  .xp-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #30c878, #22a060);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+  .modal-box .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .modal-box .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+  .modal-box .stat-label { font-size: 0.7rem; color: #8b949e; margin-bottom: 4px; }
+  .modal-box .stat-value { font-size: 0.95rem; font-weight: 700; color: #e6edf3; font-family: 'DotGothic16', monospace; }
+  .modal-box .section-title {
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .bio-section { margin-bottom: 16px; }
+  #bio-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px;
+    color: #e6edf3;
+    font-size: 0.8rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    resize: none;
+    height: 72px;
+    outline: none;
+  }
+  #bio-input:focus { border-color: rgba(48,200,120,0.3); }
+  .bio-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+  #bio-count { font-size: 0.7rem; color: #8b949e; }
+  .save-btn {
+    background: linear-gradient(135deg, #30c878, #22a060);
+    border: none;
+    border-radius: 8px;
+    padding: 5px 16px;
+    color: #0d1117;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .save-btn:hover { opacity: 0.85; }
+  .recent-section { margin-bottom: 16px; }
+  #recent-list { display: flex; flex-direction: column; gap: 6px; }
+  .recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    font-size: 0.75rem;
+  }
+  .recent-zone { color: #e6edf3; }
+  .recent-duration { color: #30c878; font-family: 'DotGothic16', monospace; }
+  .recent-xp { color: #f5a623; font-size: 0.7rem; }
+  .privacy-section {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 12px;
+  }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: #8b949e;
+    cursor: pointer;
+  }
+  .other-status { font-size: 0.78rem; color: #8b949e; margin-bottom: 4px; }
+  .other-bio {
+    font-size: 0.8rem;
+    color: #8b949e;
+    margin-bottom: 14px;
+    line-height: 1.6;
+    min-height: 20px;
+  }
+  .identity-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .identity-option {
+    cursor: pointer;
+  }
+  .identity-option input[type="radio"] {
+    display: none;
+  }
+  .identity-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+  .identity-option input[type="radio"]:checked + .identity-card {
+    background: rgba(48,200,120,0.08);
+    border-color: rgba(48,200,120,0.3);
+  }
+  .identity-card:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .identity-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .identity-anon {
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #8b949e;
+    font-family: 'DotGothic16', monospace;
+  }
+  .identity-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 2px;
+  }
+  .identity-desc {
+    font-size: 0.72rem;
+    color: #8b949e;
+  }
   @keyframes pageFadeIn { from { opacity: 1; } to { opacity: 0; } }
 
   #page-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; animation: pageFadeIn 0.2s ease 0.1s both; }
@@ -357,7 +619,7 @@
     <span id="hud-drink" style="margin-left:4px;"></span>
   </div>
   <div id="hud-zone">📍 咖啡廳</div>
-  <button id="hud-identity-btn" onclick="openIdentitySettings()">👤 身分設定</button>
+  <button id="hud-profile">👤 個人資料</button>
   <a href="index.html" id="hud-back">← 回小鎮</a>
 </div>
 
@@ -434,6 +696,7 @@
 <div id="interaction-menu" style="display:none; position:fixed;">
   <button class="menu-close" id="menu-close">✕</button>
   <div class="menu-title" id="menu-player-name">玩家名稱</div>
+  <button class="menu-btn" id="btn-view-profile"><span class="btn-icon">👤</span> 查看資料</button>
   <button class="menu-btn" id="btn-wave"><span class="btn-icon">👋</span> 打招呼</button>
   <button class="menu-btn" id="btn-dm"><span class="btn-icon">💬</span> 傳訊息</button>
   <button class="menu-btn" id="btn-invite-team"><span class="btn-icon">🤝</span> 邀請組隊</button>
@@ -460,6 +723,106 @@
   <button id="btn-disband">離開隊伍</button>
 </div>
 <div id="dm-toast"></div>
+
+<!-- 個人資料 Modal（自己） -->
+<div id="profile-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <button class="modal-close" id="btn-close-profile">✕</button>
+    <div class="profile-header">
+      <img id="profile-avatar-img" src="" class="profile-avatar" alt="avatar">
+      <div class="profile-header-info" style="width:100%;">
+        <div id="profile-username" class="profile-name"></div>
+        <input id="status-input" class="status-input" placeholder="新增狀態..." maxlength="30">
+        <div id="profile-level-badge" class="level-badge"></div>
+      </div>
+    </div>
+    <div class="xp-section">
+      <div class="xp-label-row">
+        <span id="xp-level-text"></span>
+        <span id="xp-value-text"></span>
+      </div>
+      <div class="xp-bar-bg">
+        <div id="xp-bar-fill" class="xp-bar-fill"></div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">今日</div><div class="stat-value" id="stat-today">-</div></div>
+      <div class="stat-card"><div class="stat-label">本週</div><div class="stat-value" id="stat-week">-</div></div>
+      <div class="stat-card"><div class="stat-label">本月</div><div class="stat-value" id="stat-month">-</div></div>
+      <div class="stat-card"><div class="stat-label">總計</div><div class="stat-value" id="stat-total">-</div></div>
+    </div>
+    <div class="bio-section">
+      <div class="section-title">自我介紹</div>
+      <textarea id="bio-input" placeholder="介紹一下自己吧..." maxlength="100"></textarea>
+      <div class="bio-footer">
+        <span id="bio-count">0 / 100</span>
+        <button id="btn-save-profile" class="save-btn">儲存</button>
+      </div>
+    </div>
+    <div class="recent-section">
+      <div class="section-title">最近紀錄</div>
+      <div id="recent-list"></div>
+    </div>
+    <div class="section-title">身分設定</div>
+    <div class="identity-options">
+      <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="discord" id="mode-discord-modal">
+        <div class="identity-card">
+          <img id="identity-discord-avatar" src="" class="identity-avatar" alt="discord avatar">
+          <div class="identity-info">
+            <div class="identity-name" id="identity-discord-name"></div>
+            <div class="identity-desc">使用 Discord 頭貼和名稱</div>
+          </div>
+        </div>
+      </label>
+      <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous-modal">
+        <div class="identity-card">
+          <div class="identity-avatar identity-anon">？</div>
+          <div class="identity-info">
+            <div class="identity-name">同學</div>
+            <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
+          </div>
+        </div>
+      </label>
+    </div>
+    <div class="privacy-section">
+      <label class="toggle-label">
+        <input type="checkbox" id="toggle-public" checked>
+        允許其他人查看我的資料
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- 查看他人資料 Modal -->
+<div id="other-profile-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box modal-box-sm">
+    <button class="modal-close" id="btn-close-other-profile">✕</button>
+    <div class="profile-header">
+      <img id="other-avatar-img" src="" class="profile-avatar" alt="avatar">
+      <div class="profile-header-info">
+        <div id="other-username" class="profile-name"></div>
+        <div id="other-status" class="other-status"></div>
+        <div id="other-level-badge" class="level-badge"></div>
+      </div>
+    </div>
+    <div id="other-bio" class="other-bio"></div>
+    <div class="stats-grid" id="other-stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">本週</div>
+        <div class="stat-value" id="other-stat-week">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">總計</div>
+        <div class="stat-value" id="other-stat-total">-</div>
+      </div>
+    </div>
+    <div id="other-private-msg" style="display:none; color:#8b949e; text-align:center; font-size:0.8rem;">
+      此玩家已設定隱私
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
@@ -550,6 +913,7 @@ const COLORS = {
   plant:       0x2d5a2d,
   playerSelf:  0x30c878,
   playerOther: 0x7c8cf8,
+  playerAnon:  0x4a5568,
   playerTeam:  0xf5a623,
   lamp:        0xf5e642,
 }
@@ -1117,7 +1481,7 @@ class CafeScene extends Phaser.Scene {
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
       const displayName = isAnon ? '同學' : user.username
-      const teamColor = isTeammateId(user.discord_id) ? COLORS.playerTeam : COLORS.playerOther
+      const teamColor = isAnon ? COLORS.playerAnon : (isTeammateId(user.discord_id) ? COLORS.playerTeam : COLORS.playerOther)
       const g = this.add.graphics()
       g.fillStyle(teamColor, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1155,10 +1519,15 @@ class CafeScene extends Phaser.Scene {
     const gx = x || 8
     const gy = y || 10
     const displayName = username || discord_id
+    const isAnon = displayName === '同學'
+    const color = isAnon ? COLORS.playerAnon : (isTeammateId(discord_id) ? COLORS.playerTeam : COLORS.playerOther)
 
     if (this.otherPlayers[discord_id]) {
       this.otherTargets[discord_id] = { x: gx * TILE, y: gy * TILE }
       this.otherGrids[discord_id] = { x: gx, y: gy }
+      this.otherPlayers[discord_id].clear()
+      this.otherPlayers[discord_id].fillStyle(color, 0.8)
+      this.otherPlayers[discord_id].fillCircle(TILE / 2, TILE / 2 - 2, 12)
       // 身分切換：更新名稱標籤
       if (this.playerLabels[discord_id]) {
         this.playerLabels[discord_id].setText(displayName)
@@ -1177,7 +1546,6 @@ class CafeScene extends Phaser.Scene {
         })
       }
     } else {
-      const color = isTeammateId(discord_id) ? COLORS.playerTeam : COLORS.playerOther
       const g = this.add.graphics()
       g.fillStyle(color, 0.8)
       g.fillCircle(TILE / 2, TILE / 2 - 2, 12)
@@ -1308,6 +1676,192 @@ function sendDM() {
 }
 document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
+document.getElementById('btn-view-profile').addEventListener('click', async () => {
+  await openOtherProfileModal(dmTarget.id)
+  dmMenuEl.style.display = 'none'
+})
+
+function formatMinutes(min) {
+  if (!min || min === 0) return '0 分'
+  if (min < 60) return `${min} 分`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m > 0 ? `${h} 小時 ${m} 分` : `${h} 小時`
+}
+
+function calcLevel(xp) {
+  if (xp < 100) return 1
+  if (xp < 250) return 2
+  if (xp < 500) return 3
+  if (xp < 900) return 4
+  if (xp < 1400) return 5
+  return Math.floor(xp / 300) + 1
+}
+
+function xpForLevel(level) {
+  const thresholds = [0, 100, 250, 500, 900, 1400]
+  if (level <= 5) return thresholds[level]
+  return level * 300
+}
+
+function getSelectedAvatarMode() {
+  return document.querySelector('input[name="avatar-mode"]:checked')?.value || 'discord'
+}
+
+function setSelectedAvatarMode(mode) {
+  const safeMode = mode === 'anonymous' ? 'anonymous' : 'discord'
+  const el = document.querySelector(`input[name="avatar-mode"][value="${safeMode}"]`)
+  if (el) el.checked = true
+}
+
+function applyAvatarMode(mode) {
+  localStorage.setItem('study_avatar_mode', mode)
+  MY_AVATAR_MODE = mode
+  DISPLAY_NAME = mode === 'anonymous' ? '同學' : MY_USERNAME
+  DISPLAY_AVATAR_URL = mode === 'discord' ? MY_AVATAR_URL : null
+
+  const session = JSON.parse(localStorage.getItem('study_user') || '{}')
+  session.avatar_mode = mode
+  localStorage.setItem('study_user', JSON.stringify(session))
+
+  updateHUD()
+  const s = game?.scene?.getScene('Cafe')
+  if (s && s.playerLabel) s.playerLabel.setText(DISPLAY_NAME)
+  fetch(`${API_URL}/api/users/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discord_id: MY_DISCORD_ID, avatar_mode: mode })
+  }).catch(() => {})
+  if (ws && ws.readyState === WebSocket.OPEN && s) {
+    ws.send(JSON.stringify({ type: 'move', x: s.playerGx, y: s.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
+  }
+}
+
+async function openProfileModal() {
+  document.getElementById('profile-modal').style.display = 'flex'
+
+  const [profileRes, statsRes, recentRes] = await Promise.all([
+    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`),
+    fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/stats`),
+    fetch(`${API_URL}/api/study/recent/${MY_DISCORD_ID}`)
+  ])
+
+  const profile = await profileRes.json()
+  const stats = await statsRes.json()
+  const recent = await recentRes.json()
+
+  const session = JSON.parse(localStorage.getItem('study_user'))
+  document.getElementById('profile-avatar-img').src = session?.avatar_url || ''
+  document.getElementById('identity-discord-avatar').src = session?.avatar_url || ''
+  document.getElementById('identity-discord-name').textContent = session?.username || MY_USERNAME
+  document.getElementById('profile-username').textContent = profile.username || MY_USERNAME
+  document.getElementById('status-input').value = profile.status_text || ''
+  document.getElementById('bio-input').value = profile.bio || ''
+  document.getElementById('bio-count').textContent = `${(profile.bio || '').length} / 100`
+  document.getElementById('toggle-public').checked = profile.is_profile_public !== false
+  setSelectedAvatarMode(profile.avatar_mode || MY_AVATAR_MODE || 'discord')
+
+  document.getElementById('stat-today').textContent = formatMinutes(stats.today)
+  document.getElementById('stat-week').textContent = formatMinutes(stats.week)
+  document.getElementById('stat-month').textContent = formatMinutes(stats.month)
+  document.getElementById('stat-total').textContent = formatMinutes(stats.total)
+
+  const level = calcLevel(stats.xp || 0)
+  const currentLevelXP = xpForLevel(level - 1)
+  const nextLevelXP = xpForLevel(level)
+  const progressXP = Math.max(0, (stats.xp || 0) - currentLevelXP)
+  const neededXP = Math.max(1, nextLevelXP - currentLevelXP)
+  const progress = Math.max(0, Math.min(100, (progressXP / neededXP) * 100))
+  document.getElementById('xp-level-text').textContent = `Lv.${level} → Lv.${level + 1}`
+  document.getElementById('xp-value-text').textContent = `${progressXP} / ${neededXP} XP`
+  document.getElementById('xp-bar-fill').style.width = `${progress}%`
+  document.getElementById('profile-level-badge').textContent = `Lv.${level}`
+
+  const list = document.getElementById('recent-list')
+  list.innerHTML = ''
+  ;(recent || []).slice(0, 5).forEach(r => {
+    const item = document.createElement('div')
+    item.className = 'recent-item'
+    item.innerHTML = `
+      <span class="recent-zone">${r.zone || '未知區域'}</span>
+      <span class="recent-duration">${formatMinutes(r.duration_minutes || 0)}</span>
+      <span class="recent-xp">+${r.xp_earned || 0} XP</span>
+    `
+    list.appendChild(item)
+  })
+}
+
+async function openOtherProfileModal(discord_id) {
+  if (!discord_id) return
+  document.getElementById('other-profile-modal').style.display = 'flex'
+
+  const [profileRes, statsRes] = await Promise.all([
+    fetch(`${API_URL}/api/users/${discord_id}/profile?viewer_id=${MY_DISCORD_ID}`),
+    fetch(`${API_URL}/api/users/${discord_id}/stats`)
+  ])
+
+  const profile = await profileRes.json()
+  const stats = statsRes.ok ? await statsRes.json() : { week: 0, total: 0, xp: 0 }
+
+  const privateMsg = document.getElementById('other-private-msg')
+  const statsGrid = document.getElementById('other-stats-grid')
+  if (!profile.is_profile_public) {
+    privateMsg.style.display = 'block'
+    statsGrid.style.display = 'none'
+    document.getElementById('other-bio').textContent = ''
+    document.getElementById('other-username').textContent = ''
+    document.getElementById('other-status').textContent = ''
+    document.getElementById('other-level-badge').textContent = ''
+    document.getElementById('other-avatar-img').src = ''
+    return
+  }
+
+  privateMsg.style.display = 'none'
+  statsGrid.style.display = 'grid'
+  const isAnon = profile.avatar_mode === 'anonymous'
+  document.getElementById('other-avatar-img').src = (!isAnon && profile.discord_avatar)
+    ? `https://cdn.discordapp.com/avatars/${discord_id}/${profile.discord_avatar}.png?size=64`
+    : ''
+  document.getElementById('other-username').textContent = isAnon ? '同學' : (profile.username || '未知玩家')
+  document.getElementById('other-status').textContent = profile.status_text || ''
+  document.getElementById('other-bio').textContent = profile.bio || ''
+  document.getElementById('other-level-badge').textContent = `Lv.${calcLevel(stats.xp || 0)}`
+  document.getElementById('other-stat-week').textContent = formatMinutes(stats.week || 0)
+  document.getElementById('other-stat-total').textContent = formatMinutes(stats.total || 0)
+}
+
+document.getElementById('hud-profile').addEventListener('click', openProfileModal)
+document.getElementById('btn-close-profile').addEventListener('click', () => {
+  document.getElementById('profile-modal').style.display = 'none'
+})
+document.getElementById('btn-close-other-profile').addEventListener('click', () => {
+  document.getElementById('other-profile-modal').style.display = 'none'
+})
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.style.display = 'none'
+  })
+})
+document.getElementById('bio-input').addEventListener('input', (e) => {
+  document.getElementById('bio-count').textContent = `${e.target.value.length} / 100`
+})
+document.getElementById('btn-save-profile').addEventListener('click', async () => {
+  const avatarMode = getSelectedAvatarMode()
+  await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bio: document.getElementById('bio-input').value,
+      status_text: document.getElementById('status-input').value,
+      is_profile_public: document.getElementById('toggle-public').checked,
+      avatar_mode: avatarMode
+    })
+  })
+  applyAvatarMode(avatarMode)
+  const btn = document.getElementById('btn-save-profile')
+  btn.textContent = '已儲存 ✓'
+  setTimeout(() => { btn.textContent = '儲存' }, 2000)
+})
 
 // ─── 組隊系統 ────────────────────────────────────────────────
 let currentTeam = null
@@ -1748,24 +2302,9 @@ function updateHUD() {
   }
 }
 function setIdentityMode(mode) {
-  localStorage.setItem('study_avatar_mode', mode)
-  MY_AVATAR_MODE = mode
-  DISPLAY_NAME = mode === 'anonymous' ? '同學' : MY_USERNAME
-  DISPLAY_AVATAR_URL = mode === 'discord' ? MY_AVATAR_URL : null
+  applyAvatarMode(mode)
   document.querySelectorAll('.id-mode-btn').forEach(b => b.classList.remove('active'))
   document.getElementById(`idmode-${mode}`)?.classList.add('active')
-  fetch(`${API_URL}/api/users/status`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ discord_id: MY_DISCORD_ID, avatar_mode: mode })
-  }).catch(() => {})
-  // 就地更新 HUD 與 Phaser 標籤，不 reload
-  updateHUD()
-  const s = game.scene.getScene('Cafe')
-  if (s && s.playerLabel) s.playerLabel.setText(DISPLAY_NAME)
-  if (ws && ws.readyState === WebSocket.OPEN && s) {
-    ws.send(JSON.stringify({ type: 'move', x: s.playerGx, y: s.playerGy, username: DISPLAY_NAME, avatar_url: DISPLAY_AVATAR_URL }))
-  }
   closeIdentitySettings()
 }
 window.openIdentitySettings = openIdentitySettings
@@ -1774,3 +2313,4 @@ window.setIdentityMode = setIdentityMode
 </script>
 </body>
 </html>
+

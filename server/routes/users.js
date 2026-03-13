@@ -2,6 +2,133 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../supabase')
 
+function calcLevel(xp) {
+  if (xp < 100) return 1
+  if (xp < 250) return 2
+  if (xp < 500) return 3
+  if (xp < 900) return 4
+  if (xp < 1400) return 5
+  return Math.floor(xp / 300) + 1
+}
+
+function clampText(input, maxLen) {
+  if (typeof input !== 'string') return ''
+  return input.trim().slice(0, maxLen)
+}
+
+function getTimeRangeStarts() {
+  const now = new Date()
+
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const startOfWeek = new Date(startOfToday)
+  const day = startOfWeek.getDay()
+  const diffToMonday = (day + 6) % 7
+  startOfWeek.setDate(startOfWeek.getDate() - diffToMonday)
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  return {
+    todayISO: startOfToday.toISOString(),
+    weekISO: startOfWeek.toISOString(),
+    monthISO: startOfMonth.toISOString()
+  }
+}
+
+function sumDuration(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return 0
+  return rows.reduce((acc, row) => acc + (row.duration_minutes || 0), 0)
+}
+
+// GET /api/users/:discord_id/profile - 取得完整個人資料（他人依隱私限制）
+router.get('/:discord_id/profile', async (req, res) => {
+  const { discord_id } = req.params
+  const viewerId = req.query.viewer_id || discord_id
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('discord_id, username, avatar, discord_avatar, avatar_mode, status, current_zone, level, xp, total_minutes, bio, status_text, is_profile_public')
+    .eq('discord_id', discord_id)
+    .single()
+
+  if (error || !data) return res.status(404).json({ error: 'User not found' })
+
+  const isOwner = viewerId && viewerId === discord_id
+  if (!data.is_profile_public && !isOwner) {
+    return res.json({
+      discord_id,
+      is_profile_public: false
+    })
+  }
+
+  res.json(data)
+})
+
+// POST /api/users/:discord_id/profile - 更新個人資料
+router.post('/:discord_id/profile', async (req, res) => {
+  const { discord_id } = req.params
+  const { bio, status_text, is_profile_public, avatar_mode } = req.body
+
+  const updateData = {
+    bio: clampText(bio, 100),
+    status_text: clampText(status_text, 30)
+  }
+
+  if (typeof is_profile_public === 'boolean') {
+    updateData.is_profile_public = is_profile_public
+  }
+  if (avatar_mode === 'discord' || avatar_mode === 'anonymous') {
+    updateData.avatar_mode = avatar_mode
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(updateData)
+    .eq('discord_id', discord_id)
+    .select('discord_id, bio, status_text, is_profile_public, avatar_mode')
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data)
+})
+
+// GET /api/users/:discord_id/stats - 取得學習統計
+router.get('/:discord_id/stats', async (req, res) => {
+  const { discord_id } = req.params
+  const { todayISO, weekISO, monthISO } = getTimeRangeStarts()
+
+  const [userResp, todayResp, weekResp, monthResp, totalResp] = await Promise.all([
+    supabase.from('users').select('xp, total_minutes').eq('discord_id', discord_id).single(),
+    supabase.from('study_sessions').select('duration_minutes').eq('discord_id', discord_id).gte('start_time', todayISO),
+    supabase.from('study_sessions').select('duration_minutes').eq('discord_id', discord_id).gte('start_time', weekISO),
+    supabase.from('study_sessions').select('duration_minutes').eq('discord_id', discord_id).gte('start_time', monthISO),
+    supabase.from('study_sessions').select('duration_minutes').eq('discord_id', discord_id)
+  ])
+
+  if (userResp.error || !userResp.data) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+  if (todayResp.error || weekResp.error || monthResp.error || totalResp.error) {
+    return res.status(500).json({ error: 'Failed to load study stats' })
+  }
+
+  const xp = userResp.data.xp || 0
+  const level = calcLevel(xp)
+  const totalMinutesFromUser = userResp.data.total_minutes || 0
+  const totalMinutesFromSessions = sumDuration(totalResp.data)
+  const total = Math.max(totalMinutesFromUser, totalMinutesFromSessions)
+
+  res.json({
+    today: sumDuration(todayResp.data),
+    week: sumDuration(weekResp.data),
+    month: sumDuration(monthResp.data),
+    total,
+    xp,
+    level
+  })
+})
+
 // GET /api/users/:discord_id - 取得玩家資料
 router.get('/:discord_id', async (req, res) => {
   const { discord_id } = req.params

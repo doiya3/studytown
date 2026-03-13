@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -139,7 +139,7 @@
     </div>
     <div style="position:fixed; top:16px; right:20px; z-index:100; display:flex; align-items:center; gap:8px;">
       <span id="hud-username" style="color:#8892a4; font-size:0.8rem;"></span>
-      <button id="btn-settings" onclick="openSettings()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer;">👤 身分設定</button>
+      <a id="hud-profile" href="profile.html" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#eaeaea; padding:4px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer; text-decoration:none;">👤 個人資料</a>
       <button id="btn-logout" style="background:rgba(233,69,96,0.15); border:1px solid rgba(233,69,96,0.3); color:#e94560; padding:4px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">登出</button>
     </div>
     <div class="map-grid">
@@ -259,7 +259,7 @@ async function fetchAndRender() {
           const displayName = isAnon ? '同學' : (user.username || '未知')
           const avatarHtml = (!isAnon && user.discord_avatar)
             ? `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=32" style="width:1.4rem;height:1.4rem;border-radius:50%;vertical-align:middle;">`
-            : `<span style="font-size:1.4rem;">👤</span>`
+            : `<span style="display:inline-block;width:1.1rem;height:1.1rem;border-radius:50%;background:#9ca3af;vertical-align:middle;"></span>`
           return `<div class="user-chip">${avatarHtml}<span class="user-name">${displayName}</span></div>`
         }).join('')
       }
@@ -383,3 +383,4 @@ init()
 
 </body>
 </html>
+
