@@ -1729,9 +1729,9 @@ document.getElementById('dm-send').addEventListener('click', sendDM)
 document.getElementById('dm-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDM() })
 document.getElementById('btn-view-profile').addEventListener('click', async () => {
   const currentTitleName = document.getElementById('menu-player-name').textContent.trim()
-  await openOtherProfileModal(dmTarget.id, currentTitleName || dmTarget.name)
   dmMenuEl.style.display = 'none'
   stopMenuNameSync()
+  await openOtherProfileModal(dmTarget.id, currentTitleName || dmTarget.name)
 })
 
 function formatMinutes(min) {
