@@ -1854,6 +1854,7 @@ async function openProfileModal() {
 async function openOtherProfileModal(discord_id, fallbackName = '') {
   if (!discord_id) return
   document.getElementById('other-profile-modal').style.display = 'flex'
+  const baseName = fallbackName || '未知玩家'
 
   const parseJsonSafe = async (res, fallback) => {
     if (!res || !res.ok) return fallback
@@ -1879,7 +1880,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
     const isAnon = profile.avatar_mode === 'anonymous' || fallbackName === '同學'
-    const privateName = isAnon ? '同學' : (profile.username || fallbackName || '未知玩家')
+    const privateName = isAnon ? '同學' : (baseName || profile.username || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
@@ -1901,7 +1902,7 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
     otherAvatar.src = ''
     otherAvatar.style.display = 'none'
   }
-  document.getElementById('other-username').textContent = isAnon ? '同學' : (profile.username || '未知玩家')
+  document.getElementById('other-username').textContent = isAnon ? '同學' : (baseName || profile.username || '未知玩家')
   document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
   document.getElementById('other-level-badge').textContent = `Lv.${calcLevel(stats.xp || 0)}`
