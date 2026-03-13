@@ -528,6 +528,27 @@
     line-height: 1.6;
     min-height: 20px;
   }
+  .private-state {
+    display: none;
+    text-align: center;
+    padding: 16px 12px;
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+  }
+  .private-icon {
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+  .private-title {
+    color: #e6edf3;
+    font-size: 0.82rem;
+    margin-bottom: 4px;
+  }
+  .private-desc {
+    color: #8b949e;
+    font-size: 0.76rem;
+  }
   .identity-options {
     display: flex;
     flex-direction: column;
@@ -818,8 +839,10 @@
         <div class="stat-value" id="other-stat-total">-</div>
       </div>
     </div>
-    <div id="other-private-msg" style="display:none; color:#8b949e; text-align:center; font-size:0.8rem;">
-      此玩家已設定隱私
+    <div id="other-private-msg" class="private-state">
+      <div class="private-icon">🔒</div>
+      <div class="private-title">這位同學已關閉查看資料</div>
+      <div class="private-desc">你仍可以在場景內互動與聊天</div>
     </div>
   </div>
 </div>
@@ -1853,23 +1876,29 @@ async function openOtherProfileModal(discord_id) {
 
   const privateMsg = document.getElementById('other-private-msg')
   const statsGrid = document.getElementById('other-stats-grid')
+  const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
-    document.getElementById('other-bio').textContent = ''
-    document.getElementById('other-username').textContent = ''
-    document.getElementById('other-status').textContent = ''
+    document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
+    document.getElementById('other-username').textContent = '同學'
+    document.getElementById('other-status').textContent = '已關閉查看資料'
     document.getElementById('other-level-badge').textContent = ''
-    document.getElementById('other-avatar-img').src = ''
+    otherAvatar.src = ''
+    otherAvatar.style.display = 'none'
     return
   }
 
   privateMsg.style.display = 'none'
   statsGrid.style.display = 'grid'
   const isAnon = profile.avatar_mode === 'anonymous'
-  document.getElementById('other-avatar-img').src = (!isAnon && profile.discord_avatar)
-    ? `https://cdn.discordapp.com/avatars/${discord_id}/${profile.discord_avatar}.png?size=64`
-    : ''
+  if (!isAnon && profile.discord_avatar) {
+    otherAvatar.src = `https://cdn.discordapp.com/avatars/${discord_id}/${profile.discord_avatar}.png?size=64`
+    otherAvatar.style.display = 'block'
+  } else {
+    otherAvatar.src = ''
+    otherAvatar.style.display = 'none'
+  }
   document.getElementById('other-username').textContent = isAnon ? '同學' : (profile.username || '未知玩家')
   document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
