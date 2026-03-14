@@ -94,6 +94,23 @@ router.get('/:discord_id', async (req, res) => {
   }
 })
 
+// POST /api/teams/reject — 拒絕邀請（清除 pending 記錄）
+router.post('/reject', async (req, res) => {
+  const { discord_id } = req.body
+  if (!discord_id) return res.status(400).json({ error: 'missing discord_id' })
+  try {
+    const { error } = await supabase
+      .from('teams')
+      .delete()
+      .or(`member1_id.eq.${discord_id},member2_id.eq.${discord_id}`)
+      .eq('status', 'pending')
+    if (error) return res.status(500).json({ error: error.message })
+    res.json({ success: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 // POST /api/teams/invite — 發送組隊邀請
 router.post('/invite', async (req, res) => {
   const { from_id, to_id } = req.body
@@ -106,15 +123,15 @@ router.post('/invite', async (req, res) => {
       return res.status(400).json({ error: 'already in same team' })
     }
 
-    const pendingEdges = await getTeamEdgesByStatus('pending')
-    const hasConflictingPending = pendingEdges.some(edge => {
-      const members = [edge.member1_id, edge.member2_id]
-      return members.includes(from_id) || members.includes(to_id)
-    })
-
-    if (hasConflictingPending) {
-      return res.status(400).json({ error: 'pending invite already exists' })
-    }
+    // 發邀前清除雙方之間舊的 pending 記錄
+    await supabase
+      .from('teams')
+      .delete()
+      .or(
+        `and(member1_id.eq.${from_id},member2_id.eq.${to_id}),` +
+        `and(member1_id.eq.${to_id},member2_id.eq.${from_id})`
+      )
+      .eq('status', 'pending')
 
     const { data, error } = await supabase.from('teams')
       .insert({ member1_id: from_id, member2_id: to_id, status: 'pending' })

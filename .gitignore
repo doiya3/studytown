@@ -8,6 +8,7 @@ node_modules/
 server/node_modules/
 bot/node_modules/
 web/node_modules/
+web/assets/
 
 # update note
 update_note/

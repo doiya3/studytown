@@ -767,6 +767,10 @@
       <span class="id-mode-icon">🖼️</span>
       <div><div class="id-mode-title">Discord 頭像</div><div class="id-mode-desc">顯示您的 Discord 大頭貼</div></div>
     </button>
+    <button class="id-mode-btn" id="idmode-custom" onclick="setIdentityMode('custom')">
+      <span class="id-mode-icon">✏️</span>
+      <div><div class="id-mode-title">自訂身分</div><div class="id-mode-desc">自訂暱稱，隱藏 Discord 資訊</div></div>
+    </button>
     <button class="id-mode-btn" id="idmode-anonymous" onclick="setIdentityMode('anonymous')">
       <span class="id-mode-icon">👤</span>
       <div><div class="id-mode-title">匿名模式</div><div class="id-mode-desc">顯示為「同學」</div></div>
@@ -890,6 +894,16 @@
         </div>
       </label>
       <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="custom" id="mode-custom-modal">
+        <div class="identity-card">
+          <div class="identity-avatar identity-anon">✏</div>
+          <div class="identity-info">
+            <div class="identity-name">自訂身分</div>
+            <div class="identity-desc">自訂暱稱，與 Discord 帳號切割</div>
+          </div>
+        </div>
+      </label>
+      <label class="identity-option">
         <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous-modal">
         <div class="identity-card">
           <div class="identity-avatar identity-anon">？</div>
@@ -899,6 +913,13 @@
           </div>
         </div>
       </label>
+    </div>
+    <div id="custom-name-row" style="display:none; margin: 0 0 12px;">
+      <div class="section-title" style="margin-bottom:6px;">自訂暱稱</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="display-name-input" class="status-input" style="margin:0;flex:1;" placeholder="輸入暱稱（最多20字）" maxlength="20">
+        <span id="display-name-count" style="font-size:0.72rem; color:#8b949e;">0/20</span>
+      </div>
     </div>
     <div class="privacy-section">
       <label class="toggle-label">
@@ -969,9 +990,12 @@ const MY_DISCORD_ID = sessionUser?.id
 const MY_USERNAME = sessionUser?.username
 const MY_AVATAR_URL = sessionUser?.avatar_url || null
 let MY_AVATAR_MODE = localStorage.getItem('study_avatar_mode') || 'discord'
+let MY_DISPLAY_NAME = localStorage.getItem('study_display_name') || ''
 
-// 匿名模式下改用的實際變數
-let DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '同學' : MY_USERNAME
+// 根據模式決定顯示名稱與頭像
+let DISPLAY_NAME = MY_AVATAR_MODE === 'anonymous' ? '同學'
+  : MY_AVATAR_MODE === 'custom' ? (MY_DISPLAY_NAME.trim() || '未命名')
+  : MY_USERNAME
 let DISPLAY_AVATAR_URL = MY_AVATAR_MODE === 'discord' ? MY_AVATAR_URL : null
 
 if (!MY_DISCORD_ID) {
@@ -1648,7 +1672,9 @@ class LibraryScene extends Phaser.Scene {
       const gx = user.map_x || 8
       const gy = user.map_y || 10
       const isAnon = user.avatar_mode === 'anonymous'
-      const displayName = isAnon ? '同學' : user.username
+      const displayName = isAnon ? '同學'
+        : user.avatar_mode === 'custom' ? (user.display_name?.trim() || '未命名')
+        : (user.username || '未知玩家')
       const teamColor = isAnon ? COLORS.playerAnon : (isTeammateId(user.discord_id) ? COLORS.playerTeam : COLORS.playerOther)
       const g = this.add.graphics()
       g.fillStyle(teamColor, 0.8)
@@ -1670,9 +1696,9 @@ class LibraryScene extends Phaser.Scene {
       ).setOrigin(0.5, 1)
       this.playerLabels[user.discord_id] = label
 
-      // 載入頭像（匿名模式不顯示 Discord 頭像）
+      // 載入頭像（只有 discord 模式顯示 Discord 頭像）
       const avatarKey = `avatar_${user.discord_id}`
-      const avatarUrl = (!isAnon && user.discord_avatar)
+      const avatarUrl = (user.avatar_mode === 'discord' && user.discord_avatar)
         ? `https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png?size=64`
         : null
       loadAvatarTexture(this, avatarKey, avatarUrl, (ok) => {
@@ -1923,9 +1949,11 @@ function getSelectedAvatarMode() {
 }
 
 function setSelectedAvatarMode(mode) {
-  const safeMode = mode === 'anonymous' ? 'anonymous' : 'discord'
+  const safeMode = ['discord', 'custom', 'anonymous'].includes(mode) ? mode : 'discord'
   const el = document.querySelector(`input[name="avatar-mode"][value="${safeMode}"]`)
   if (el) el.checked = true
+  const row = document.getElementById('custom-name-row')
+  if (row) row.style.display = safeMode === 'custom' ? 'block' : 'none'
 }
 
 let profileFormInitialState = ''
@@ -1935,7 +1963,8 @@ function getProfileFormState() {
     status_text: document.getElementById('status-input')?.value || '',
     bio: document.getElementById('bio-input')?.value || '',
     is_profile_public: !!document.getElementById('toggle-public')?.checked,
-    avatar_mode: getSelectedAvatarMode()
+    avatar_mode: getSelectedAvatarMode(),
+    display_name: document.getElementById('display-name-input')?.value || ''
   })
 }
 
@@ -1962,7 +1991,9 @@ function closeProfileModal() {
 function applyAvatarMode(mode) {
   localStorage.setItem('study_avatar_mode', mode)
   MY_AVATAR_MODE = mode
-  DISPLAY_NAME = mode === 'anonymous' ? '同學' : MY_USERNAME
+  DISPLAY_NAME = mode === 'anonymous' ? '同學'
+    : mode === 'custom' ? (MY_DISPLAY_NAME.trim() || '未命名')
+    : MY_USERNAME
   DISPLAY_AVATAR_URL = mode === 'discord' ? MY_AVATAR_URL : null
 
   const session = JSON.parse(localStorage.getItem('study_user') || '{}')
@@ -2043,6 +2074,13 @@ async function openProfileModal() {
   document.getElementById('toggle-public').checked = profile.is_profile_public !== false
   setSelectedAvatarMode(profile.avatar_mode || MY_AVATAR_MODE || 'discord')
 
+  const storedDN = profile.display_name || MY_DISPLAY_NAME || ''
+  const dnInput = document.getElementById('display-name-input')
+  if (dnInput) {
+    dnInput.value = storedDN
+    document.getElementById('display-name-count').textContent = `${storedDN.length}/20`
+  }
+
   document.getElementById('stat-today').textContent = formatMinutes(stats.today)
   document.getElementById('stat-week').textContent = formatMinutes(stats.week)
   document.getElementById('stat-month').textContent = formatMinutes(stats.month)
@@ -2104,7 +2142,9 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
   const otherAvatar = document.getElementById('other-avatar-img')
   if (!profile.is_profile_public) {
     const isAnon = profile.avatar_mode === 'anonymous' || fallbackName === '同學'
-    const privateName = isAnon ? '同學' : (profile.username || baseName || '未知玩家')
+    const privateName = isAnon ? '同學'
+      : profile.avatar_mode === 'custom' ? (profile.display_name?.trim() || '未命名')
+      : (profile.username || baseName || '未知玩家')
     privateMsg.style.display = 'block'
     statsGrid.style.display = 'none'
     document.getElementById('other-bio').textContent = '此玩家將資料設為私密。'
@@ -2118,15 +2158,17 @@ async function openOtherProfileModal(discord_id, fallbackName = '') {
 
   privateMsg.style.display = 'none'
   statsGrid.style.display = 'grid'
-  const isAnon = profile.avatar_mode === 'anonymous'
-  if (!isAnon && profile.discord_avatar) {
+  if (profile.avatar_mode === 'discord' && profile.discord_avatar) {
     otherAvatar.src = `https://cdn.discordapp.com/avatars/${discord_id}/${profile.discord_avatar}.png?size=64`
     otherAvatar.style.display = 'block'
   } else {
     otherAvatar.src = ''
     otherAvatar.style.display = 'none'
   }
-  document.getElementById('other-username').textContent = isAnon ? '同學' : (profile.username || baseName || '未知玩家')
+  const otherName = profile.avatar_mode === 'anonymous' ? '同學'
+    : profile.avatar_mode === 'custom' ? (profile.display_name?.trim() || '未命名')
+    : (profile.username || baseName || '未知玩家')
+  document.getElementById('other-username').textContent = otherName
   document.getElementById('other-status').textContent = profile.status_text || ''
   document.getElementById('other-bio').textContent = profile.bio || ''
   document.getElementById('other-level-badge').textContent = `Lv.${calcLevel(stats.xp || 0)}`
@@ -2156,10 +2198,19 @@ document.getElementById('bio-input').addEventListener('input', (e) => {
 })
 document.getElementById('toggle-public').addEventListener('change', updateUnsavedHint)
 document.querySelectorAll('input[name="avatar-mode"]').forEach((radio) => {
-  radio.addEventListener('change', updateUnsavedHint)
+  radio.addEventListener('change', () => {
+    updateUnsavedHint()
+    const row = document.getElementById('custom-name-row')
+    if (row) row.style.display = radio.value === 'custom' ? 'block' : 'none'
+  })
+})
+document.getElementById('display-name-input')?.addEventListener('input', (e) => {
+  document.getElementById('display-name-count').textContent = `${e.target.value.length}/20`
+  updateUnsavedHint()
 })
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
   const avatarMode = getSelectedAvatarMode()
+  const displayName = document.getElementById('display-name-input')?.value?.trim() || ''
   await fetch(`${API_URL}/api/users/${MY_DISCORD_ID}/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2167,9 +2218,12 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
       bio: document.getElementById('bio-input').value,
       status_text: document.getElementById('status-input').value,
       is_profile_public: document.getElementById('toggle-public').checked,
-      avatar_mode: avatarMode
+      avatar_mode: avatarMode,
+      display_name: displayName
     })
   })
+  MY_DISPLAY_NAME = displayName
+  localStorage.setItem('study_display_name', displayName)
   applyAvatarMode(avatarMode)
   const btn = document.getElementById('btn-save-profile')
   btn.textContent = '已儲存 ✓'
@@ -2195,9 +2249,10 @@ function renderTeamMembers(teammates) {
   container.innerHTML = ''
 
   teammates.forEach((teammate) => {
-    const isAnon = teammate.avatar_mode === 'anonymous'
-    const name = isAnon ? '同學' : (teammate.username || '隊友')
-    const avatarUrl = (!isAnon && teammate.discord_avatar)
+    const name = teammate.avatar_mode === 'anonymous' ? '同學'
+      : teammate.avatar_mode === 'custom' ? (teammate.display_name?.trim() || '未命名')
+      : (teammate.username || '隊友')
+    const avatarUrl = (teammate.avatar_mode === 'discord' && teammate.discord_avatar)
       ? `https://cdn.discordapp.com/avatars/${teammate.discord_id}/${teammate.discord_avatar}.png?size=64`
       : null
 
@@ -2251,9 +2306,17 @@ async function acceptTeamInvite() {
   } catch { showToast('接受失敗') }
 }
 
-function rejectTeamInvite() {
+async function rejectTeamInvite() {
   document.getElementById('team-invite-toast').classList.remove('visible')
+  const fromId = pendingInviteFromId
   pendingInviteFromId = null
+  if (fromId) {
+    await fetch(`${API_URL}/api/teams/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: MY_DISCORD_ID })
+    }).catch(() => {})
+  }
 }
 
 async function disbandTeam() {
@@ -2582,6 +2645,9 @@ function updateHUD() {
   if (MY_AVATAR_MODE === 'anonymous') {
     document.getElementById('hud-avatar').textContent = '👤'
     document.getElementById('hud-username').textContent = '同學'
+  } else if (MY_AVATAR_MODE === 'custom') {
+    document.getElementById('hud-avatar').textContent = '✏'
+    document.getElementById('hud-username').textContent = MY_DISPLAY_NAME.trim() || '未命名'
   } else if (DISPLAY_AVATAR_URL) {
     document.getElementById('hud-avatar').innerHTML = `<img src="${DISPLAY_AVATAR_URL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;">`
     document.getElementById('hud-username').textContent = MY_USERNAME

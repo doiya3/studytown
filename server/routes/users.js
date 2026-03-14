@@ -48,7 +48,7 @@ router.get('/:discord_id/profile', async (req, res) => {
 
   const { data, error } = await supabase
     .from('users')
-    .select('discord_id, username, avatar, discord_avatar, avatar_mode, status, current_zone, level, xp, total_minutes, bio, status_text, is_profile_public')
+    .select('discord_id, username, avatar, discord_avatar, avatar_mode, display_name, status, current_zone, level, xp, total_minutes, bio, status_text, is_profile_public')
     .eq('discord_id', discord_id)
     .single()
 
@@ -56,13 +56,16 @@ router.get('/:discord_id/profile', async (req, res) => {
 
   const isOwner = viewerId && viewerId === discord_id
   if (!data.is_profile_public && !isOwner) {
-    const safeAvatarMode = data.avatar_mode === 'anonymous' ? 'anonymous' : 'discord'
-    const safeName = safeAvatarMode === 'anonymous' ? '同學' : (data.username || '未知玩家')
+    const safeAvatarMode = data.avatar_mode || 'discord'
+    const safeName = safeAvatarMode === 'anonymous' ? '同學'
+      : safeAvatarMode === 'custom' ? (data.display_name?.trim() || '未命名')
+      : (data.username || '未知玩家')
     return res.json({
       discord_id,
       is_profile_public: false,
       avatar_mode: safeAvatarMode,
-      username: safeName
+      username: safeName,
+      display_name: data.display_name || ''
     })
   }
 
@@ -72,7 +75,7 @@ router.get('/:discord_id/profile', async (req, res) => {
 // POST /api/users/:discord_id/profile - 更新個人資料
 router.post('/:discord_id/profile', async (req, res) => {
   const { discord_id } = req.params
-  const { bio, status_text, is_profile_public, avatar_mode } = req.body
+  const { bio, status_text, is_profile_public, avatar_mode, display_name } = req.body
 
   const updateData = {
     bio: clampText(bio, 100),
@@ -82,15 +85,18 @@ router.post('/:discord_id/profile', async (req, res) => {
   if (typeof is_profile_public === 'boolean') {
     updateData.is_profile_public = is_profile_public
   }
-  if (avatar_mode === 'discord' || avatar_mode === 'anonymous') {
+  if (avatar_mode === 'discord' || avatar_mode === 'anonymous' || avatar_mode === 'custom') {
     updateData.avatar_mode = avatar_mode
+  }
+  if (display_name !== undefined) {
+    updateData.display_name = clampText(display_name, 20)
   }
 
   const { data, error } = await supabase
     .from('users')
     .update(updateData)
     .eq('discord_id', discord_id)
-    .select('discord_id, bio, status_text, is_profile_public, avatar_mode')
+    .select('discord_id, bio, status_text, is_profile_public, avatar_mode, display_name')
     .single()
 
   if (error) return res.status(500).json({ error: error.message })

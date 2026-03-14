@@ -11,12 +11,19 @@ function getSession() {
   }
 
   const avatarMode = localStorage.getItem('study_avatar_mode') || 'discord';
+  const storedDisplayName = localStorage.getItem('study_display_name') || '';
+  const displayName = avatarMode === 'anonymous'
+    ? '同學'
+    : avatarMode === 'custom'
+    ? (storedDisplayName.trim() || '未命名')
+    : (user.username || 'unknown');
+
   return {
     id: user.id,
     username: user.username || 'unknown',
     avatarUrl: user.avatar_url || null,
     avatarMode,
-    displayName: avatarMode === 'anonymous' ? '同學' : (user.username || 'unknown'),
+    displayName,
   };
 }
 
@@ -106,6 +113,10 @@ export function createSpaRuntime() {
     listeners.clear();
   }
 
+  function updateSession(updates) {
+    Object.assign(session, updates);
+  }
+
   connectWs();
 
   return {
@@ -119,5 +130,6 @@ export function createSpaRuntime() {
     postJSON,
     connectWs,
     destroy,
+    updateSession,
   };
 }

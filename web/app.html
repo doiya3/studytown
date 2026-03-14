@@ -294,6 +294,151 @@
       opacity: 0.55;
     }
   }
+
+  /* ── Profile Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-box {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px;
+    width: 360px;
+    max-height: 82vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 16px;
+    background: none; border: none;
+    color: #8b949e; font-size: 0.9rem;
+    cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; transition: all 0.15s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.08); color: #e6edf3; }
+  .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .profile-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2px solid rgba(48,200,120,0.3);
+    object-fit: cover; flex-shrink: 0;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    color: #8b949e; font-size: 1.2rem;
+  }
+  .profile-name { font-size: 1rem; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+  .status-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 4px 10px;
+    color: #8b949e; font-size: 0.75rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    width: 100%; outline: none; margin-bottom: 6px;
+  }
+  .status-input:focus { border-color: rgba(48,200,120,0.3); color: #e6edf3; }
+  .level-badge {
+    display: inline-block;
+    background: rgba(48,200,120,0.15);
+    border: 1px solid rgba(48,200,120,0.3);
+    color: #30c878; font-size: 0.72rem;
+    padding: 2px 10px; border-radius: 20px;
+    font-family: 'DotGothic16', monospace;
+  }
+  .xp-section { margin-bottom: 16px; }
+  .xp-label-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: #8b949e; margin-bottom: 4px; }
+  .xp-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #30c878, #22a060); border-radius: 3px; transition: width 0.8s ease; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px; text-align: center; }
+  .stat-label { font-size: 0.7rem; color: #8b949e; margin-bottom: 4px; }
+  .stat-value { font-size: 0.95rem; font-weight: 700; color: #e6edf3; font-family: 'DotGothic16', monospace; }
+  .section-title { font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .bio-section { margin-bottom: 16px; }
+  #bio-input {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 10px;
+    color: #e6edf3; font-size: 0.8rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    resize: none; height: 72px; outline: none;
+  }
+  #bio-input:focus { border-color: rgba(48,200,120,0.3); }
+  .bio-footer { display: flex; justify-content: flex-end; margin-top: 6px; }
+  #bio-count { font-size: 0.7rem; color: #8b949e; }
+  .identity-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .identity-option { cursor: pointer; }
+  .identity-option input[type="radio"] { display: none; }
+  .identity-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; transition: all 0.2s;
+  }
+  .identity-option input[type="radio"]:checked + .identity-card {
+    background: rgba(48,200,120,0.08);
+    border-color: rgba(48,200,120,0.3);
+  }
+  .identity-card:hover { background: rgba(255,255,255,0.06); }
+  .identity-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+  }
+  .identity-anon, .identity-custom {
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: #8b949e;
+    font-family: 'DotGothic16', monospace;
+  }
+  .identity-name { font-size: 0.85rem; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
+  .identity-desc { font-size: 0.72rem; color: #8b949e; }
+  .custom-name-row { margin: 0 0 12px; }
+  .custom-name-row .section-title { margin-bottom: 6px; }
+  .custom-name-wrap { display: flex; gap: 8px; align-items: center; }
+  #display-name-count { font-size: 0.72rem; color: #8b949e; white-space: nowrap; }
+  .privacy-section {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #8b949e; cursor: pointer; flex: 1; }
+  .save-btn {
+    background: linear-gradient(135deg, #30c878, #22a060);
+    border: none; border-radius: 8px; padding: 5px 16px;
+    color: #0d1117; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.2s;
+  }
+  .save-btn:hover { opacity: 0.85; }
+  .profile-actions { min-height: 1.5em; margin-top: 6px; margin-bottom: 12px; }
+  #profile-unsaved-hint { font-size: 0.72rem; color: #f5a623; }
+  .recent-section { margin-bottom: 4px; }
+  #recent-list { display: flex; flex-direction: column; gap: 6px; }
+  .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 0.75rem; }
+  .recent-zone { color: #e6edf3; }
+  .recent-duration { color: #30c878; font-family: 'DotGothic16', monospace; }
+  .recent-xp { color: #f5a623; font-size: 0.7rem; }
+  .p-name { cursor: pointer; }
+  .p-name:hover { text-decoration: underline; }
+  @media (max-width: 768px) {
+    .modal-box { width: calc(100vw - 20px); max-height: 86vh; padding: 18px; }
+    .stats-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -333,6 +478,91 @@
 </div>
 
 <div id="interaction-hint">按 E 互動</div>
+
+<!-- Profile Modal -->
+<div id="profile-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <button class="modal-close" id="btn-close-profile">✕</button>
+    <div class="profile-header">
+      <img id="profile-avatar-img" src="" class="profile-avatar" alt="avatar">
+      <div style="width:100%;">
+        <div id="profile-username" class="profile-name"></div>
+        <input id="status-input" class="status-input" placeholder="新增狀態..." maxlength="30">
+        <div id="profile-level-badge" class="level-badge"></div>
+      </div>
+    </div>
+    <div class="xp-section">
+      <div class="xp-label-row">
+        <span id="xp-level-text"></span>
+        <span id="xp-value-text"></span>
+      </div>
+      <div class="xp-bar-bg"><div id="xp-bar-fill" class="xp-bar-fill"></div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">今日</div><div class="stat-value" id="stat-today">-</div></div>
+      <div class="stat-card"><div class="stat-label">本週</div><div class="stat-value" id="stat-week">-</div></div>
+      <div class="stat-card"><div class="stat-label">本月</div><div class="stat-value" id="stat-month">-</div></div>
+      <div class="stat-card"><div class="stat-label">總計</div><div class="stat-value" id="stat-total">-</div></div>
+    </div>
+    <div class="bio-section">
+      <div class="section-title">自我介紹</div>
+      <textarea id="bio-input" placeholder="介紹一下自己吧..." maxlength="100"></textarea>
+      <div class="bio-footer"><span id="bio-count">0 / 100</span></div>
+    </div>
+    <div class="section-title">身分設定</div>
+    <div class="identity-options">
+      <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="discord" id="mode-discord">
+        <div class="identity-card">
+          <img id="identity-discord-avatar" src="" class="identity-avatar" alt="discord avatar">
+          <div class="identity-info">
+            <div class="identity-name" id="identity-discord-name"></div>
+            <div class="identity-desc">使用 Discord 頭貼和名稱</div>
+          </div>
+        </div>
+      </label>
+      <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="custom" id="mode-custom">
+        <div class="identity-card">
+          <div class="identity-avatar identity-custom">✏</div>
+          <div class="identity-info">
+            <div class="identity-name">自訂身分</div>
+            <div class="identity-desc">自訂暱稱，與 Discord 帳號切割</div>
+          </div>
+        </div>
+      </label>
+      <label class="identity-option">
+        <input type="radio" name="avatar-mode" value="anonymous" id="mode-anonymous">
+        <div class="identity-card">
+          <div class="identity-avatar identity-anon">？</div>
+          <div class="identity-info">
+            <div class="identity-name">同學</div>
+            <div class="identity-desc">隱藏名稱和頭貼，顯示為匿名</div>
+          </div>
+        </div>
+      </label>
+    </div>
+    <div class="custom-name-row" id="custom-name-row" style="display:none;">
+      <div class="section-title">自訂暱稱</div>
+      <div class="custom-name-wrap">
+        <input id="display-name-input" class="status-input" style="margin:0;flex:1;" placeholder="輸入暱稱（最多20字）" maxlength="20">
+        <span id="display-name-count">0/20</span>
+      </div>
+    </div>
+    <div class="privacy-section">
+      <label class="toggle-label">
+        <input type="checkbox" id="toggle-public" checked>
+        允許其他人查看我的資料
+      </label>
+      <button id="btn-save-profile" class="save-btn">儲存</button>
+    </div>
+    <div class="profile-actions"><span id="profile-unsaved-hint"></span></div>
+    <div class="recent-section">
+      <div class="section-title">最近紀錄</div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script type="module">
@@ -457,6 +687,165 @@
   });
 
   window.studyTownApp = game;
+
+  // ── Profile Modal ──────────────────────────────
+  const profileModal = document.getElementById('profile-modal');
+
+  function calcLevel(xp) {
+    if (xp < 100) return 1; if (xp < 250) return 2; if (xp < 500) return 3;
+    if (xp < 900) return 4; if (xp < 1400) return 5;
+    return Math.floor(xp / 300) + 1;
+  }
+  function xpForLevel(l) {
+    const table = [0, 100, 250, 500, 900, 1400];
+    return table[l] !== undefined ? table[l] : l * 300;
+  }
+  function formatMinutes(m) {
+    if (!m) return '0 分';
+    if (m < 60) return `${m} 分`;
+    return `${Math.floor(m / 60)}h ${m % 60}m`;
+  }
+
+  function setCustomNameRow(mode) {
+    const row = document.getElementById('custom-name-row');
+    if (row) row.style.display = mode === 'custom' ? 'block' : 'none';
+  }
+
+  document.querySelectorAll('input[name="avatar-mode"]').forEach(radio => {
+    radio.addEventListener('change', () => setCustomNameRow(radio.value));
+  });
+
+  const displayNameInput = document.getElementById('display-name-input');
+  const displayNameCount = document.getElementById('display-name-count');
+  displayNameInput?.addEventListener('input', () => {
+    displayNameCount.textContent = `${displayNameInput.value.length}/20`;
+  });
+
+  const bioInput = document.getElementById('bio-input');
+  bioInput?.addEventListener('input', () => {
+    document.getElementById('bio-count').textContent = `${bioInput.value.length} / 100`;
+  });
+
+  async function openProfileModal() {
+    profileModal.style.display = 'flex';
+
+    const discordUser = JSON.parse(localStorage.getItem('study_user') || '{}');
+    const myId = runtime.session.id;
+
+    const [profileRes, statsRes, recentRes] = await Promise.all([
+      fetch(`${runtime.API_URL}/api/users/${myId}/profile`).catch(() => null),
+      fetch(`${runtime.API_URL}/api/users/${myId}/stats`).catch(() => null),
+      fetch(`${runtime.API_URL}/api/study/recent/${myId}`).catch(() => null),
+    ]);
+
+    const profile = await profileRes?.json().catch(() => ({})) || {};
+    const stats = await statsRes?.json().catch(() => ({})) || {};
+    const recent = await recentRes?.json().catch(() => []) || [];
+
+    document.getElementById('profile-avatar-img').src = discordUser.avatar_url || '';
+    document.getElementById('identity-discord-avatar').src = discordUser.avatar_url || '';
+    document.getElementById('identity-discord-name').textContent = discordUser.username || runtime.session.username;
+    document.getElementById('profile-username').textContent = profile.username || runtime.session.username;
+    document.getElementById('status-input').value = profile.status_text || '';
+    document.getElementById('bio-input').value = profile.bio || '';
+    document.getElementById('bio-count').textContent = `${(profile.bio || '').length} / 100`;
+    document.getElementById('toggle-public').checked = profile.is_profile_public !== false;
+
+    const currentMode = profile.avatar_mode || runtime.session.avatarMode || 'discord';
+    const modeEl = document.querySelector(`input[name="avatar-mode"][value="${currentMode}"]`);
+    if (modeEl) modeEl.checked = true;
+    setCustomNameRow(currentMode);
+
+    const storedDisplayName = profile.display_name || localStorage.getItem('study_display_name') || '';
+    displayNameInput.value = storedDisplayName;
+    displayNameCount.textContent = `${storedDisplayName.length}/20`;
+
+    document.getElementById('stat-today').textContent = formatMinutes(stats.today);
+    document.getElementById('stat-week').textContent = formatMinutes(stats.week);
+    document.getElementById('stat-month').textContent = formatMinutes(stats.month);
+    document.getElementById('stat-total').textContent = formatMinutes(stats.total);
+
+    const level = calcLevel(stats.xp || 0);
+    const progressXP = Math.max(0, (stats.xp || 0) - xpForLevel(level - 1));
+    const neededXP = Math.max(1, xpForLevel(level) - xpForLevel(level - 1));
+    document.getElementById('xp-level-text').textContent = `Lv.${level} → Lv.${level + 1}`;
+    document.getElementById('xp-value-text').textContent = `${progressXP} / ${neededXP} XP`;
+    document.getElementById('xp-bar-fill').style.width = `${Math.min(100, (progressXP / neededXP) * 100)}%`;
+    document.getElementById('profile-level-badge').textContent = `Lv.${level}`;
+
+    const list = document.getElementById('recent-list');
+    list.innerHTML = '';
+    (recent || []).slice(0, 5).forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'recent-item';
+      item.innerHTML = `<span class="recent-zone">${r.zone || '未知區域'}</span><span class="recent-duration">${formatMinutes(r.duration_minutes || 0)}</span><span class="recent-xp">+${r.xp_earned || 0} XP</span>`;
+      list.appendChild(item);
+    });
+
+    document.getElementById('profile-unsaved-hint').textContent = '';
+  }
+
+  async function saveProfile() {
+    const mode = document.querySelector('input[name="avatar-mode"]:checked')?.value || 'discord';
+    const displayName = displayNameInput?.value?.trim() || '';
+
+    const res = await fetch(`${runtime.API_URL}/api/users/${runtime.session.id}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bio: bioInput?.value || '',
+        status_text: document.getElementById('status-input')?.value || '',
+        is_profile_public: !!document.getElementById('toggle-public')?.checked,
+        avatar_mode: mode,
+        display_name: displayName,
+      }),
+    }).catch(() => null);
+
+    if (!res?.ok) {
+      document.getElementById('profile-unsaved-hint').textContent = '儲存失敗，請重試';
+      return;
+    }
+
+    localStorage.setItem('study_avatar_mode', mode);
+    localStorage.setItem('study_display_name', displayName);
+
+    const newDisplayName = mode === 'anonymous' ? '同學'
+      : mode === 'custom' ? (displayName || '未命名')
+      : runtime.session.username;
+
+    runtime.updateSession({ avatarMode: mode, displayName: newDisplayName });
+
+    const pName = document.querySelector('.p-name');
+    if (pName) pName.textContent = newDisplayName;
+
+    const avatarEl = document.querySelector('.p-avatar');
+    if (avatarEl) {
+      if (mode === 'discord' && runtime.session.avatarUrl) {
+        avatarEl.style.backgroundImage = `url(${runtime.session.avatarUrl})`;
+        avatarEl.style.backgroundSize = 'cover';
+        avatarEl.textContent = '';
+      } else {
+        avatarEl.style.backgroundImage = '';
+        avatarEl.textContent = '？';
+      }
+    }
+
+    const sceneKey = SCENE_MAP[activeScene]?.key;
+    const scene = sceneKey ? game.scene.getScene(sceneKey) : null;
+    if (scene?.playerLabel) scene.playerLabel.setText(newDisplayName);
+    if (scene?.sendMove) scene.sendMove();
+
+    profileModal.style.display = 'none';
+  }
+
+  document.querySelector('.p-name')?.addEventListener('click', openProfileModal);
+  document.getElementById('btn-close-profile')?.addEventListener('click', () => {
+    profileModal.style.display = 'none';
+  });
+  profileModal?.addEventListener('click', (e) => {
+    if (e.target === profileModal) profileModal.style.display = 'none';
+  });
+  document.getElementById('btn-save-profile')?.addEventListener('click', saveProfile);
 </script>
 </body>
 </html>

@@ -1,4 +1,6 @@
-﻿const TILE = 48;
+﻿import { getDisplayName } from '../common/utils.js';
+
+const TILE = 48;
 const COLS = 16;
 const ROWS = 12;
 
@@ -380,7 +382,7 @@ export class LibraryScene extends Phaser.Scene {
         if (user.discord_id === this.runtime.session.id) return;
         this.onPlayerMove({
           discord_id: user.discord_id,
-          username: user.avatar_mode === 'anonymous' ? '同學' : (user.username || '未知玩家'),
+          username: getDisplayName(user),
           x: Number.isInteger(user.map_x) ? user.map_x : 8,
           y: Number.isInteger(user.map_y) ? user.map_y : 10,
         });
